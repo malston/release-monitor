@@ -44,3 +44,48 @@ settings:
   
   # Include pre-releases in monitoring
   include_prereleases: false
+
+# Download configuration (optional)
+# Uncomment and configure to enable automatic downloading of releases
+download:
+  # Enable download functionality
+  enabled: false
+  
+  # Directory to store downloaded files
+  directory: ./downloads
+  
+  # Version database file for tracking downloads
+  version_db: ./version_db.json
+  
+  # Asset filtering patterns
+  asset_patterns:
+    - "*.tar.gz"       # Include .tar.gz files
+    - "*.zip"          # Include .zip files
+    - "!*-sources.zip" # Exclude source archives
+    - "!*.sig"         # Exclude signature files
+  
+  # Include pre-releases in downloads (overrides global setting)
+  include_prereleases: false
+  
+  # Verification settings
+  verify_downloads: true
+  
+  # Cleanup settings
+  cleanup_old_versions: true
+  keep_versions: 5  # Keep last 5 versions per repository
+  
+  # Download timeout in seconds
+  timeout: 300
+  
+  # Per-repository download overrides
+  repository_overrides:
+    # Example: Different settings for specific repositories
+    kubernetes/kubernetes:
+      asset_patterns:
+        - "kubernetes-client-*.tar.gz"
+        - "kubernetes-server-*.tar.gz"
+      include_prereleases: false
+    
+    # Example: Skip downloads for documentation-only repos
+    # some/docs-repo:
+    #   enabled: false

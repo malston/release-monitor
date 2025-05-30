@@ -62,6 +62,10 @@ $ python3 github_monitor.py --config config.yaml
 - **Concourse Integration**: Designed for use in Concourse pipelines with bash wrapper
 - **Error Handling**: Comprehensive error handling for network issues and API failures
 - **Configurable**: YAML-based configuration for repository lists and settings
+- **📥 Release Downloads**: Automatically download release assets with version management
+- **🔍 Asset Filtering**: Download only specific file types using configurable patterns
+- **✅ Verification**: Built-in checksum verification for downloaded files
+- **🗂️ Smart Organization**: Organize downloads by repository and version
 
 ## 🤝 Contributing
 
@@ -154,6 +158,15 @@ settings:
   rate_limit_delay: 1.0
   max_releases_per_repo: 10
   include_prereleases: false
+
+# Optional: Enable release downloads
+download:
+  enabled: false
+  directory: ./downloads
+  asset_patterns:
+    - "*.tar.gz"
+    - "*.zip"
+  verify_downloads: true
 ```
 
 ## Usage
@@ -172,6 +185,9 @@ python3 github_monitor.py --config config.yaml --format yaml
 
 # Force check all releases (ignore timestamps)
 python3 github_monitor.py --config config.yaml --force-check
+
+# Monitor and download new releases automatically
+python3 github_monitor.py --config config.yaml --download
 ```
 
 ### Bash Wrapper
@@ -188,7 +204,27 @@ python3 github_monitor.py --config config.yaml --force-check
 
 # Force check
 ./scripts/monitor.sh --force-check
+
+# Monitor and download releases
+./scripts/monitor.sh --download
 ```
+
+### Release Downloads
+
+Enable automatic downloading of GitHub release assets:
+
+```bash
+# Configure downloads in config.yaml first
+python3 github_monitor.py --config config.yaml --download
+
+# Use the dedicated download script
+./scripts/download.sh --config config.yaml --input releases.json
+
+# Monitor and download in one pipeline
+./scripts/monitor.sh | ./scripts/download.sh
+```
+
+See the [Download Guide](DOWNLOAD_GUIDE.md) for detailed configuration and usage.
 
 ## Output Format
 
