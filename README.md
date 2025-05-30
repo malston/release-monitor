@@ -6,6 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org)
 [![Concourse CI](https://img.shields.io/badge/works%20with-Concourse%20CI-blue)](https://concourse-ci.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Good First Issues](https://img.shields.io/github/issues/malston/release-monitor/good%20first%20issue)](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
 **Quick Start**: New to Python? See our [Quick Start Guide](QUICK_START.md) for non-Python developers.
 
@@ -380,20 +381,39 @@ make help           # Show all available commands
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information.
 
-- Development setup instructions
-- Coding standards and best practices
-- How to submit pull requests
-- Testing guidelines
-- Security considerations
+### 🎯 Where to Start Contributing
+
+#### Good First Issues
+Perfect for newcomers to the project:
+- [🏷️ Good First Issues](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Beginner-friendly tasks
+- [🤝 Help Wanted](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) - Issues where we need help
+- [✨ Enhancements](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) - New features and improvements
+
+#### Types of Contributions We're Looking For
+- 🐛 **Bug Fixes** - Help us squash bugs
+- 📚 **Documentation** - Improve docs, add examples, fix typos
+- ✨ **New Features** - Add support for new CI/CD tools (GitHub Actions, GitLab CI, etc.)
+- 🧪 **Tests** - Increase test coverage
+- 🎨 **Code Quality** - Refactoring and improvements
+- 🌍 **Examples** - Add more use cases and integration examples
+
+#### Quick Start for Contributors
+1. **Find an Issue**: Browse [open issues](https://github.com/malston/release-monitor/issues) or create a new one
+2. **Comment**: Let us know you're working on it
+3. **Fork & Clone**: See our [Contributing Guide](CONTRIBUTING.md#fork-and-clone)
+4. **Make Changes**: Follow our coding standards
+5. **Submit PR**: We'll review and provide feedback
 
 ### Quick Links for Contributors
 
-- [Fork the repository](https://github.com/malston/release-monitor/fork)
-- [Submit an issue](https://github.com/malston/release-monitor/issues)
-- [Contributing Guide](CONTRIBUTING.md)
-- [Code of Conduct](CONTRIBUTING.md#code-of-conduct)
+- [🍴 Fork the repository](https://github.com/malston/release-monitor/fork)
+- [🐛 Report a bug](https://github.com/malston/release-monitor/issues/new?template=bug_report.md)
+- [💡 Request a feature](https://github.com/malston/release-monitor/issues/new?template=feature_request.md)
+- [📖 Contributing Guide](CONTRIBUTING.md)
+- [👥 Contributors](CONTRIBUTORS.md)
+- [💬 Discussions](https://github.com/malston/release-monitor/discussions) (coming soon)
 
 ## License
 
