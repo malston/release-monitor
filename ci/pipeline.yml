@@ -42,6 +42,8 @@ jobs:
 
       - task: check-releases
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
 
       - put: monitor-output
         params:

@@ -85,12 +85,14 @@ cd /path/to/release-monitor
 ./ci/fly.sh set -t test -f test
 
 # OR deploy with SSH key for private repositories
+export GITHUB_TOKEN="your_github_token_here"
 fly -t test set-pipeline \
   -p github-release-monitor \
   -c ci/pipeline.yml \
   -l params/global.yml \
   -l params/test.yml \
-  --var git_private_key="$(cat ~/.ssh/id_ed25519)"  # or ~/.ssh/id_rsa
+  --var git_private_key="$(cat ~/.ssh/id_ed25519)" \
+  --var github_api_token="$GITHUB_TOKEN"
 
 # Verify deployment
 fly -t test pipelines

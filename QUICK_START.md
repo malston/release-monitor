@@ -101,6 +101,9 @@ make clean-all
 **For Public Repositories (No SSH Key Required):**
 
 ```bash
+# Set your GitHub token first
+export GITHUB_TOKEN="your_github_token_here"
+
 # Deploy to test environment (public repos)
 make pipeline-set-test
 
@@ -111,6 +114,9 @@ make pipeline-set-prod
 **For Private Repositories (SSH Key Required):**
 
 ```bash
+# Set your GitHub token first
+export GITHUB_TOKEN="your_github_token_here"
+
 # Deploy to test environment with SSH key
 make pipeline-set-test-with-key
 
@@ -120,7 +126,8 @@ fly -t test set-pipeline \
   -c ci/pipeline.yml \
   -l params/global.yml \
   -l params/test.yml \
-  --var git_private_key="$(cat ~/.ssh/id_ed25519)"  # or ~/.ssh/id_rsa
+  --var git_private_key="$(cat ~/.ssh/id_ed25519)" \
+  --var github_api_token="$GITHUB_TOKEN"
 ```
 
 **Note:** The SSH key is only needed if you're monitoring private repositories. For public repositories, the default targets work fine.
