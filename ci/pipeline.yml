@@ -32,9 +32,6 @@ resources:
       secret_access_key: ((s3_secret_key))
       regexp: release-downloads/(.*)
 
-  # Version database is now managed directly by the download task
-  # using S3 storage configured in parameters
-
 jobs:
   - name: monitor-releases
     plan:
