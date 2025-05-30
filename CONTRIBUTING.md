@@ -27,11 +27,32 @@ Thank you for your interest in contributing to the GitHub Release Monitor projec
 
 ### Fork and Clone
 
-1. Fork the repository on GitHub
-2. Clone your fork locally:
+We use the GitHub fork-and-pull model for contributions. This ensures a clean separation between the main repository and your development work.
+
+1. **Fork the repository on GitHub:**
+   - Navigate to https://github.com/malston/release-monitor
+   - Click the "Fork" button in the top-right corner
+   - This creates your own copy of the repository under your GitHub account
+
+2. **Clone your fork locally:**
    ```bash
    git clone https://github.com/YOUR_USERNAME/release-monitor.git
    cd release-monitor
+   ```
+
+3. **Add the upstream remote:**
+   ```bash
+   git remote add upstream https://github.com/malston/release-monitor.git
+   ```
+
+4. **Verify your remotes:**
+   ```bash
+   git remote -v
+   # You should see:
+   # origin    https://github.com/YOUR_USERNAME/release-monitor.git (fetch)
+   # origin    https://github.com/YOUR_USERNAME/release-monitor.git (push)
+   # upstream  https://github.com/malston/release-monitor.git (fetch)
+   # upstream  https://github.com/malston/release-monitor.git (push)
    ```
 
 ## Development Setup
@@ -189,37 +210,66 @@ python3 test.py
 
 ### Pull Request Process
 
-1. **Create a Feature Branch:**
+1. **Sync with Upstream:**
+   Before starting work, ensure your fork is up to date:
+   ```bash
+   git checkout main
+   git fetch upstream
+   git merge upstream/main
+   git push origin main
+   ```
+
+2. **Create a Feature Branch:**
+   Always create a new branch from main for your work:
    ```bash
    git checkout -b feature/your-feature-name
    ```
+   
+   Use descriptive branch names:
+   - `feature/add-slack-notifications`
+   - `fix/handle-empty-releases`
+   - `docs/update-setup-guide`
 
-2. **Make Your Changes:**
+3. **Make Your Changes:**
    - Write code following the standards above
    - Add tests for new functionality
    - Update documentation if needed
 
-3. **Test Your Changes:**
+4. **Test Your Changes:**
    ```bash
    python3 test.py
    ./ci/validate.sh
    ```
 
-4. **Commit Your Changes:**
+5. **Commit Your Changes:**
    ```bash
    git add .
    git commit -m "Add feature: description of your changes"
    ```
 
-5. **Push to Your Fork:**
+6. **Push to Your Fork:**
    ```bash
    git push origin feature/your-feature-name
    ```
 
-6. **Create Pull Request:**
-   - Go to GitHub and create a pull request
-   - Use the pull request template
+7. **Create Pull Request:**
+   - Go to your fork on GitHub
+   - Click "Compare & pull request" button
+   - Ensure the base repository is `malston/release-monitor` and base branch is `main`
+   - Ensure the head repository is your fork and compare branch is your feature branch
+   - Fill in the pull request template
    - Link to any related issues
+
+8. **Keep Your PR Updated:**
+   If the main branch is updated while your PR is open:
+   ```bash
+   git checkout main
+   git fetch upstream
+   git merge upstream/main
+   git checkout feature/your-feature-name
+   git rebase main
+   git push --force-with-lease origin feature/your-feature-name
+   ```
 
 ### Pull Request Guidelines
 
@@ -284,13 +334,30 @@ When making changes, consider updating:
 
 ### Typical Development Flow
 
-1. **Setup:** Use `./scripts/setup-local.sh`
-2. **Branch:** Create feature branch from `main`
-3. **Develop:** Write code, tests, and documentation
-4. **Test:** Run `python3 test.py` and `./ci/validate.sh`
-5. **Commit:** Use descriptive commit messages
-6. **Push:** Push to your fork
-7. **PR:** Create pull request with description
+1. **Fork:** Fork the repository on GitHub (one-time setup)
+2. **Clone:** Clone your fork locally
+3. **Setup:** Use `./scripts/setup-local.sh`
+4. **Sync:** Sync with upstream `main` branch
+5. **Branch:** Create feature branch from `main`
+6. **Develop:** Write code, tests, and documentation
+7. **Test:** Run `python3 test.py` and `./ci/validate.sh`
+8. **Commit:** Use descriptive commit messages
+9. **Push:** Push to your fork
+10. **PR:** Create pull request to upstream repository
+
+### Working with Forks
+
+**Why we use forks:**
+- Keeps the main repository clean
+- Allows experimentation without affecting others
+- Provides better security and access control
+- Enables easier code review process
+
+**Best practices:**
+- Keep your fork's main branch in sync with upstream
+- Never commit directly to main in your fork
+- Always work in feature branches
+- Delete branches after PRs are merged
 
 ### Working with Concourse
 
