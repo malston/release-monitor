@@ -152,11 +152,13 @@ graph TD
 ```
 release-monitor/
 ├── latest-releases.json          # Current monitor output
-├── version_db.json              # Version tracking database
+├── version_db.json              # Version tracking database (managed by download task)
 └── history/
     ├── 2024-01-15-releases.json
     └── 2024-01-16-releases.json
 ```
+
+**Note**: With S3-based version storage enabled, the version database is managed directly by the download task using the S3 API, eliminating the need for separate Concourse resources.
 
 **Releases Bucket** (`s3://releases-bucket/`):
 ```

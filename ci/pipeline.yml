@@ -32,14 +32,8 @@ resources:
       secret_access_key: ((s3_secret_key))
       regexp: release-downloads/(.*)
 
-  - name: version-db-storage
-    type: s3
-    source:
-      bucket: ((s3_bucket))
-      region_name: ((s3_region))
-      access_key_id: ((s3_access_key))
-      secret_access_key: ((s3_secret_key))
-      versioned_file: release-monitor/version_db.json
+  # Version database is now managed directly by the download task
+  # using S3 storage configured in parameters
 
 jobs:
   - name: monitor-releases
@@ -48,13 +42,9 @@ jobs:
           - get: release-monitor-repo
           - get: schedule-trigger
             trigger: true
-          - get: version-db-storage
-            optional: true
 
       - task: check-releases
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
-        input_mapping:
-          version-db: version-db-storage
 
       - put: monitor-output
         params:
@@ -68,14 +58,11 @@ jobs:
           - get: monitor-output
             trigger: true
             passed: [monitor-releases]
-          - get: version-db-storage
-            optional: true
 
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
         input_mapping:
           monitor-output: monitor-output
-          version-db: version-db-storage
         params:
           GITHUB_TOKEN: ((github_token))
           ASSET_PATTERNS: ((download_asset_patterns))
@@ -84,17 +71,18 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          # S3 version database configuration
+          USE_S3_VERSION_DB: ((use_s3_version_db))
+          VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+          VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
+          VERSION_DB_S3_REGION: ((s3_region))
+          AWS_ACCESS_KEY_ID: ((s3_access_key))
+          AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
 
-      - in_parallel:
-          - put: release-storage
-            params:
-              file: downloads/*
-              acl: private
-
-          - put: version-db-storage
-            params:
-              file: version-db/version_db.json
-              content_type: application/json
+      - put: release-storage
+        params:
+          file: downloads/*
+          acl: private
 
   - name: cleanup-old-releases
     plan:

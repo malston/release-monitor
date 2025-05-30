@@ -54,8 +54,17 @@ download:
   # Directory to store downloaded files
   directory: ./downloads
   
-  # Version database file for tracking downloads
+  # Version database file for tracking downloads (local file)
   version_db: ./version_db.json
+  
+  # S3 storage for version database (optional)
+  # Use this for cloud-native deployments and shared state
+  s3_storage:
+    enabled: false
+    bucket: my-release-monitor-bucket
+    prefix: release-monitor/
+    # region: us-west-2  # Optional, uses default region if not specified
+    # profile: default   # Optional, uses default profile if not specified
   
   # Asset filtering patterns
   asset_patterns:
