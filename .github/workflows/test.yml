@@ -81,12 +81,13 @@ jobs:
       run: |
         echo "=== Testing Basic Functionality ==="
         python -c "
-        from version_compare import compare_versions, is_newer_version
+        from version_compare import VersionComparator
         
         # Test version comparison
-        assert is_newer_version('2.1.0', '2.0.0'), 'SemVer comparison failed'
-        assert is_newer_version('1.2.3', '1.2.2'), 'SemVer comparison failed'
-        assert not is_newer_version('1.0.0', '1.0.0'), 'Equal version check failed'
+        comparator = VersionComparator()
+        assert comparator.is_newer('2.1.0', '2.0.0'), 'SemVer comparison failed'
+        assert comparator.is_newer('1.2.3', '1.2.2'), 'SemVer comparison failed'
+        assert not comparator.is_newer('1.0.0', '1.0.0'), 'Equal version check failed'
         
         print('✓ Version comparison tests passed')
         
