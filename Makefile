@@ -16,11 +16,18 @@ CONFIG := config.yaml
 LOCAL_CONFIG := config-local.yaml
 TEST_CONFIG := test-config.yaml
 
-# Colors for output
-GREEN := \033[0;32m
-YELLOW := \033[0;33m
-RED := \033[0;31m
-NC := \033[0m # No Color
+# Colors for output - set NO_COLOR=1 to disable colors
+ifndef NO_COLOR
+    GREEN := \033[0;32m
+    YELLOW := \033[0;33m
+    RED := \033[0;31m
+    NC := \033[0m
+else
+    GREEN := 
+    YELLOW := 
+    RED := 
+    NC := 
+endif
 
 # Default target - show help
 .DEFAULT_GOAL := help
