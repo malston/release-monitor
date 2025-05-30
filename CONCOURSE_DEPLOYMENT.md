@@ -359,6 +359,8 @@ jobs:
 ```
 
 **Notification Integration**:
+
+*Slack Notification:*
 ```yaml
 # Add notification on download completion
 - put: slack-notification
@@ -366,6 +368,48 @@ jobs:
     text: |
       New releases downloaded:
       $BUILD_PIPELINE_NAME/$BUILD_JOB_NAME #$BUILD_NAME
+```
+
+*Microsoft Teams Notification:*
+```yaml
+# Add Teams notification on download completion
+- put: teams-notification
+  params:
+    webhook_url: ((teams_webhook_url))
+    message: |
+      {
+        "type": "message",
+        "attachments": [{
+          "contentType": "application/vnd.microsoft.card.adaptive",
+          "content": {
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "body": [{
+              "type": "TextBlock",
+              "text": "🚀 New Releases Downloaded",
+              "size": "Large",
+              "weight": "Bolder"
+            }, {
+              "type": "FactSet",
+              "facts": [{
+                "title": "Pipeline:",
+                "value": "$BUILD_PIPELINE_NAME"
+              }, {
+                "title": "Job:",
+                "value": "$BUILD_JOB_NAME"
+              }, {
+                "title": "Build:",
+                "value": "#$BUILD_NAME"
+              }]
+            }],
+            "actions": [{
+              "type": "Action.OpenUrl",
+              "title": "View Build",
+              "url": "$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
+            }]
+          }
+        }]
+      }
 ```
 
 This completes the Concourse deployment guide for the GitHub Release Monitor with download functionality.
