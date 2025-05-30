@@ -201,6 +201,7 @@ def main():
     parser.add_argument('--format', '-f', choices=['json', 'yaml'], default='json', help='Output format')
     parser.add_argument('--state-file', '-s', default='release_state.json', help='State file path')
     parser.add_argument('--force-check', action='store_true', help='Check all releases regardless of last checked time')
+    parser.add_argument('--download', action='store_true', help='Download new releases after monitoring (requires download configuration)')
     
     args = parser.parse_args()
     
@@ -216,6 +217,12 @@ def main():
     
     if not repositories:
         logger.error("No repositories configured")
+        sys.exit(1)
+    
+    # Check download configuration if download is requested
+    download_config = config.get('download', {})
+    if args.download and not download_config.get('enabled', False):
+        logger.error("Download requested but not enabled in configuration")
         sys.exit(1)
     
     # Initialize components
@@ -252,7 +259,8 @@ def main():
                 'zipball_url': latest_release['zipball_url'],
                 'html_url': latest_release['html_url'],
                 'prerelease': latest_release['prerelease'],
-                'draft': latest_release['draft']
+                'draft': latest_release['draft'],
+                'assets': latest_release.get('assets', [])  # Include assets for download
             }
             
             new_releases.append(release_info)
@@ -268,6 +276,34 @@ def main():
         'new_releases_found': len(new_releases),
         'releases': new_releases
     }
+    
+    # Download new releases if requested
+    if args.download and new_releases:
+        try:
+            # Import download functionality (lazy import to avoid dependency when not needed)
+            from download_releases import ReleaseDownloadCoordinator
+            
+            logger.info(f"Starting downloads for {len(new_releases)} new releases...")
+            
+            # Initialize download coordinator
+            coordinator = ReleaseDownloadCoordinator(config, github_token)
+            
+            # Process the releases for download
+            download_results = coordinator.process_monitor_output(output_data)
+            
+            # Add download results to output
+            output_data['download_results'] = download_results
+            
+            logger.info(f"Downloads complete: {download_results['new_downloads']} downloaded, "
+                       f"{download_results['skipped_releases']} skipped, "
+                       f"{download_results['failed_downloads']} failed")
+                       
+        except ImportError as e:
+            logger.error(f"Download functionality not available: {e}")
+            output_data['download_error'] = "Download modules not found"
+        except Exception as e:
+            logger.error(f"Download error: {e}")
+            output_data['download_error'] = str(e)
     
     # Output results
     if args.format == 'yaml':
