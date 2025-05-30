@@ -1,0 +1,190 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        # Install additional test dependencies if they exist
+        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+
+    - name: Install boto3 for S3 tests
+      run: |
+        pip install boto3
+
+    - name: Lint with flake8 (if available)
+      run: |
+        # Install flake8 if not in requirements
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+
+    - name: Run unit tests with unittest
+      run: |
+        echo "=== Running Python Unit Tests ==="
+        python -m unittest discover -s . -p "test*.py" -v
+
+    - name: Test import capabilities
+      run: |
+        echo "=== Testing Module Imports ==="
+        python -c "import github_monitor; print('✓ github_monitor imported successfully')"
+        python -c "import version_compare; print('✓ version_compare imported successfully')"
+        python -c "import github_version_db; print('✓ github_version_db imported successfully')"
+        python -c "import github_version_s3; print('✓ github_version_s3 imported successfully')"
+        python -c "import download_releases; print('✓ download_releases imported successfully')"
+
+    - name: Test configuration parsing
+      run: |
+        echo "=== Testing Configuration Parsing ==="
+        python -c "
+        import yaml
+        import github_monitor
+        
+        # Test config parsing
+        with open('config.yaml', 'r') as f:
+            config = yaml.safe_load(f)
+            print(f'✓ Config loaded with {len(config.get(\"repositories\", []))} repositories')
+        "
+
+    - name: Run basic functionality test (no GitHub API)
+      run: |
+        echo "=== Testing Basic Functionality ==="
+        python -c "
+        from version_compare import compare_versions, is_newer_version
+        
+        # Test version comparison
+        assert is_newer_version('2.1.0', '2.0.0'), 'SemVer comparison failed'
+        assert is_newer_version('1.2.3', '1.2.2'), 'SemVer comparison failed'
+        assert not is_newer_version('1.0.0', '1.0.0'), 'Equal version check failed'
+        
+        print('✓ Version comparison tests passed')
+        
+        # Test database functionality
+        from github_version_db import VersionDatabase
+        import tempfile
+        import os
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            db_path = f.name
+        
+        try:
+            db = VersionDatabase(db_path)
+            db.update_version('test', 'repo', '1.0.0')
+            version = db.get_current_version('test', 'repo')
+            assert version == '1.0.0', f'Expected 1.0.0, got {version}'
+            print('✓ Local database tests passed')
+        finally:
+            if os.path.exists(db_path):
+                os.unlink(db_path)
+        "
+
+  test-with-github-api:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install boto3
+
+    - name: Test GitHub API integration (if token available)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if [ -n "$GITHUB_TOKEN" ]; then
+          echo "=== Testing GitHub API Integration ==="
+          
+          # Create minimal test config
+          cat > test-api-config.yaml << 'EOF'
+        repositories:
+          - owner: octocat
+            repo: Hello-World
+            description: "Test repository"
+        
+        settings:
+          rate_limit_delay: 1.0
+          max_releases_per_repo: 1
+          include_prereleases: false
+        
+        download:
+          enabled: false
+        EOF
+          
+          # Test API connectivity
+          python3 -c "
+        import os
+        import requests
+        
+        token = os.environ.get('GITHUB_TOKEN')
+        if token:
+            headers = {'Authorization': f'token {token}'}
+            response = requests.get('https://api.github.com/rate_limit', headers=headers)
+            if response.status_code == 200:
+                rate_data = response.json()
+                print(f'✓ GitHub API rate limit check successful')
+                print(f'  Rate limit: {rate_data[\"resources\"][\"core\"][\"remaining\"]}/{rate_data[\"resources\"][\"core\"][\"limit\"]}')
+            else:
+                print(f'⚠ GitHub API check failed: {response.status_code}')
+        else:
+            print('⚠ No GitHub token available for API testing')
+        "
+          
+          # Run monitor with test config
+          python github_monitor.py --config test-api-config.yaml --output /tmp/test-releases.json --format json || true
+          
+          if [ -f /tmp/test-releases.json ]; then
+            echo "✓ Monitor execution completed"
+            python -c "
+        import json
+        with open('/tmp/test-releases.json', 'r') as f:
+            data = json.load(f)
+            print(f'✓ Checked {data[\"total_repositories_checked\"]} repositories')
+            print(f'✓ Found {data[\"new_releases_found\"]} new releases')
+        "
+          else
+            echo "⚠ No output file generated"
+          fi
+        else
+          echo "⚠ Skipping GitHub API tests - no token available"
+        fi

@@ -2,8 +2,9 @@
 
 🔍 **Never miss a critical update again!** A lightweight Python tool that monitors GitHub repositories for new releases, perfect for CI/CD pipelines, dependency tracking, and security updates.
 
+[![Tests](https://github.com/malston/release-monitor/actions/workflows/test.yml/badge.svg)](https://github.com/malston/release-monitor/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org)
 [![Concourse CI](https://img.shields.io/badge/works%20with-Concourse%20CI-blue)](https://concourse-ci.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Good First Issues](https://img.shields.io/github/issues/malston/release-monitor/good%20first%20issue)](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
@@ -104,9 +105,9 @@ Perfect for newcomers to the project:
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.8+ (tested on 3.8, 3.9, 3.10, 3.11)
 - GitHub personal access token
-- Dependencies: `requests`, `PyYAML`
+- Dependencies: `requests`, `PyYAML`, `boto3` (for S3 storage)
 
 ## Installation
 
