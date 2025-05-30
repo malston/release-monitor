@@ -3,11 +3,11 @@
 set -o errexit
 set -o pipefail
 
-# Concourse Fly Script for GitHub Release Monitoring Pipeline
+# Concourse Fly Script for GitHub Release Monitor Pipeline
 # Usage: ./fly.sh set|destroy [options]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PIPELINE_NAME="github-release-monitoring"
+PIPELINE_NAME="github-release-monitor"
 TARGET=""
 FOUNDATION=""
 

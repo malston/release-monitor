@@ -8,7 +8,7 @@ image_resource:
     tag: "3.11-slim"
 
 inputs:
-  - name: release-monitoring-repo
+  - name: release-monitor-repo
     path: /app
 
 outputs:
