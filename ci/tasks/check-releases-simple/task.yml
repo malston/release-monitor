@@ -1,0 +1,22 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: python
+    tag: "3.11-slim"
+
+inputs:
+  - name: release-monitor-repo
+    path: /app
+
+outputs:
+  - name: release-output
+
+params:
+  GITHUB_TOKEN: ((github_token))
+  CONFIG_FILE: config.yaml
+
+run:
+  path: /app/ci/tasks/check-releases-simple/task.sh

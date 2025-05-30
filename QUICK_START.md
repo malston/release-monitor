@@ -84,6 +84,9 @@ make test
 
 ```bash
 make check
+
+# Or validate just the simplified pipeline
+make validate-simple
 ```
 
 ### Clean Up
@@ -98,7 +101,27 @@ make clean-all
 
 ### Deploy to Concourse
 
-**For Public Repositories (No SSH Key Required):**
+**Option 1: Simplified Pipeline (Recommended for Getting Started)**
+
+No S3 configuration required - results are logged to console:
+
+```bash
+# Set your GitHub token first
+export GITHUB_TOKEN="your_github_token_here"
+
+# Validate the simplified pipeline
+make validate-simple
+
+# Deploy simplified pipeline (public repos)
+make pipeline-set-test-simple
+
+# Deploy simplified pipeline (private repos with SSH key)
+make pipeline-set-test-simple-with-key
+```
+
+**Option 2: Full Pipeline with S3 Storage**
+
+Requires S3 configuration for storing results and downloads:
 
 ```bash
 # Set your GitHub token first
@@ -129,6 +152,11 @@ fly -t test set-pipeline \
   --var git_private_key="$(cat ~/.ssh/id_ed25519)" \
   --var github_token="$GITHUB_TOKEN"
 ```
+
+**Which Option Should I Choose?**
+
+- **Simplified Pipeline**: Perfect for getting started, testing, or when you just need to monitor releases without storing artifacts
+- **Full Pipeline**: Use when you need to store results in S3, download release artifacts, or have advanced storage requirements
 
 **Note:** The SSH key is only needed if you're monitoring private repositories. For public repositories, the default targets work fine.
 

@@ -141,10 +141,16 @@ validate: ## Validate Concourse pipeline and configurations
 	@echo "$(GREEN)Validating pipeline configuration...$(NC)"
 	@./ci/validate.sh
 
+.PHONY: validate-simple
+validate-simple: ## Validate simplified Concourse pipeline (no S3 required)
+	@echo "$(GREEN)Validating simplified pipeline configuration...$(NC)"
+	@./ci/validate-simple.sh
+
 .PHONY: pipeline-set-test
-pipeline-set-test: ## Deploy pipeline to test environment (public repos only)
+pipeline-set-test: ## Deploy pipeline to test environment (public repos only, requires S3)
 	@echo "$(GREEN)Deploying pipeline to test (public repositories)...$(NC)"
 	@echo "$(YELLOW)Note: For private repos, use 'make pipeline-set-test-with-key'$(NC)"
+	@echo "$(YELLOW)Note: For simplified setup without S3, use 'make pipeline-set-test-simple'$(NC)"
 	@if [ -z "$$GITHUB_TOKEN" ]; then \
 		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
 		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
@@ -158,8 +164,55 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only)
 		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
 
+.PHONY: pipeline-set-test-simple
+pipeline-set-test-simple: ## Deploy simplified pipeline to test environment (no S3 required)
+	@echo "$(GREEN)Deploying simplified pipeline to test (no S3 required)...$(NC)"
+	@echo "$(YELLOW)This pipeline doesn't require S3 configuration - perfect for getting started!$(NC)"
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
+		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		exit 1; \
+	fi
+	@fly -t test set-pipeline \
+		-p github-release-monitor-simple \
+		-c ci/pipeline-simple.yml \
+		-l params/global.yml \
+		-l params/test.yml \
+		--var github_token="$$GITHUB_TOKEN" \
+		--non-interactive
+
+.PHONY: pipeline-set-test-simple-with-key
+pipeline-set-test-simple-with-key: ## Deploy simplified pipeline with SSH key for private repos (no S3 required)
+	@echo "$(GREEN)Deploying simplified pipeline with SSH key (no S3 required)...$(NC)"
+	@SSH_KEY=""; \
+	if [ -f ~/.ssh/id_ed25519 ]; then \
+		SSH_KEY=~/.ssh/id_ed25519; \
+		echo "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)"; \
+	elif [ -f ~/.ssh/id_rsa ]; then \
+		SSH_KEY=~/.ssh/id_rsa; \
+		echo "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)"; \
+	else \
+		echo "$(RED)Error: No SSH key found$(NC)"; \
+		echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
+		echo "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test-simple' for public repos$(NC)"; \
+		exit 1; \
+	fi; \
+	if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
+		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		exit 1; \
+	fi; \
+	fly -t test set-pipeline \
+		-p github-release-monitor-simple \
+		-c ci/pipeline-simple.yml \
+		-l params/global.yml \
+		-l params/test.yml \
+		--var git_private_key="$$(cat $$SSH_KEY)" \
+		--var github_token="$$GITHUB_TOKEN" \
+		--non-interactive
+
 .PHONY: pipeline-set-test-with-key
-pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos
+pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos (requires S3)
 	@echo "$(GREEN)Deploying pipeline to test with SSH key...$(NC)"
 	@SSH_KEY=""; \
 	if [ -f ~/.ssh/id_ed25519 ]; then \
