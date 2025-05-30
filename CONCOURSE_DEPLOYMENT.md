@@ -24,7 +24,7 @@ Store these secrets in your Concourse credential manager:
 
 ```yaml
 # GitHub API access
-github_api_token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+github_token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # Git repository access (if private)
 # Note: For public repositories, you can use empty values or skip this entirely
@@ -92,7 +92,7 @@ fly -t test set-pipeline \
   -l params/global.yml \
   -l params/test.yml \
   --var git_private_key="$(cat ~/.ssh/id_ed25519)" \
-  --var github_api_token="$GITHUB_TOKEN"
+  --var github_token="$GITHUB_TOKEN"
 
 # Verify deployment
 fly -t test pipelines
