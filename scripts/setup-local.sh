@@ -44,7 +44,7 @@ fi
 # Install dependencies
 echo "Installing Python dependencies..."
 source "${PROJECT_ROOT}/venv/bin/activate"
-pip install -r "${PROJECT_ROOT}/requirements.txt"
+"${PROJECT_ROOT}/venv/bin/pip" install -r "${PROJECT_ROOT}/requirements.txt"
 echo "✓ Dependencies installed"
 
 # Check git status
