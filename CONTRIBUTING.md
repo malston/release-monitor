@@ -15,6 +15,17 @@ Thank you for your interest in contributing to the GitHub Release Monitor projec
 
 ## Getting Started
 
+### Finding Ways to Contribute
+
+Looking for something to work on? Here are the best places to start:
+
+1. **[Good First Issues](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)** - Perfect for your first contribution
+2. **[Help Wanted](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)** - Issues where we particularly need help
+3. **[All Open Issues](https://github.com/malston/release-monitor/issues)** - Browse all available tasks
+4. **[Enhancement Requests](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)** - New features to implement
+
+Not sure where to start? Comment on any issue that interests you and we'll help you get started!
+
 ### Prerequisites
 
 - Python 3.7 or higher
