@@ -135,9 +135,25 @@ validate: ## Validate Concourse pipeline and configurations
 	@./ci/validate.sh
 
 .PHONY: pipeline-set-test
-pipeline-set-test: ## Deploy pipeline to test environment
-	@echo "$(GREEN)Deploying pipeline to test...$(NC)"
+pipeline-set-test: ## Deploy pipeline to test environment (public repos only)
+	@echo "$(GREEN)Deploying pipeline to test (public repositories)...$(NC)"
+	@echo "$(YELLOW)Note: For private repos, use 'make pipeline-set-test-with-key'$(NC)"
 	./ci/fly.sh set -t test -f test
+
+.PHONY: pipeline-set-test-with-key
+pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos
+	@echo "$(GREEN)Deploying pipeline to test with SSH key...$(NC)"
+	@if [ ! -f ~/.ssh/id_rsa ]; then \
+		echo "$(RED)Error: SSH key not found at ~/.ssh/id_rsa$(NC)"; \
+		echo "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)"; \
+		exit 1; \
+	fi
+	@fly -t test set-pipeline \
+		-p github-release-monitor \
+		-c ci/pipeline.yml \
+		-l params/global.yml \
+		-l params/test.yml \
+		--var test_git_private_key="$$(cat ~/.ssh/id_rsa)"
 
 .PHONY: pipeline-set-prod
 pipeline-set-prod: ## Deploy pipeline to production
@@ -147,6 +163,27 @@ pipeline-set-prod: ## Deploy pipeline to production
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		./ci/fly.sh set -t prod -f prod; \
+	else \
+		echo "$(RED)Deployment cancelled$(NC)"; \
+	fi
+
+.PHONY: pipeline-set-prod-with-key
+pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for private repos
+	@echo "$(GREEN)Deploying pipeline to production with SSH key...$(NC)"
+	@echo "$(RED)Warning: This will deploy to production with SSH key access!$(NC)"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		if [ ! -f ~/.ssh/id_rsa ]; then \
+			echo "$(RED)Error: SSH key not found at ~/.ssh/id_rsa$(NC)"; \
+			exit 1; \
+		fi; \
+		fly -t prod set-pipeline \
+			-p github-release-monitor \
+			-c ci/pipeline.yml \
+			-l params/global.yml \
+			-l params/prod.yml \
+			--var test_git_private_key="$$(cat ~/.ssh/id_rsa)"; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
 	fi

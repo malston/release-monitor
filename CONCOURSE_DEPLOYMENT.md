@@ -27,6 +27,7 @@ Store these secrets in your Concourse credential manager:
 github_api_token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # Git repository access (if private)
+# Note: For public repositories, you can use empty values or skip this entirely
 test_git_private_key: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   ...
@@ -84,8 +85,16 @@ cd /path/to/release-monitor
 # Validate pipeline configuration
 ./ci/validate.sh
 
-# Deploy to test environment
+# Deploy to test environment (public repos)
 ./ci/fly.sh set -t test -f test
+
+# OR deploy with SSH key for private repositories
+fly -t test set-pipeline \
+  -p github-release-monitor \
+  -c ci/pipeline.yml \
+  -l params/global.yml \
+  -l params/test.yml \
+  --var test_git_private_key="$(cat ~/.ssh/id_rsa)"
 
 # Verify deployment
 fly -t test pipelines
