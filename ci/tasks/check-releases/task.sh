@@ -31,20 +31,27 @@ if [[ ! -f "/release-output/releases.json" ]]; then
     exit 1
 fi
 
-# Display summary
-NEW_RELEASES=$(jq '.new_releases_found' /release-output/releases.json)
-TOTAL_REPOS=$(jq '.total_repositories_checked' /release-output/releases.json)
+# Display summary using Python instead of jq
+python3 << 'EOF'
+import json
 
-cat <<EOF
-Release monitoring completed:
-✓ Checked ${TOTAL_REPOS} repositories
-✓ Found ${NEW_RELEASES} new releases
+# Read and parse the JSON output
+with open('/release-output/releases.json', 'r') as f:
+    data = json.load(f)
+
+new_releases = data.get('new_releases_found', 0)
+total_repos = data.get('total_repositories_checked', 0)
+
+print(f"""Release monitoring completed:
+✓ Checked {total_repos} repositories
+✓ Found {new_releases} new releases""")
+
+if new_releases > 0:
+    print("\nNew releases found:")
+    for release in data.get('releases', []):
+        repo = release.get('repository', 'unknown')
+        tag = release.get('tag_name', 'unknown')
+        print(f"  - {repo}: {tag}")
 EOF
-
-if [[ "${NEW_RELEASES}" -gt 0 ]]; then
-    echo ""
-    echo "New releases found:"
-    jq -r '.releases[] | "  - \(.repository): \(.tag_name)"' /release-output/releases.json
-fi
 
 echo "Release monitoring task completed successfully"
