@@ -2,8 +2,9 @@
 # These parameters are shared across all foundations/environments
 
 # Git repository configuration
-git_repo_uri: git@github.com:your-org/release-monitor.git
+git_repo_uri: git@github.com:malston/release-monitor.git
 git_branch: main
+git_private_key: ((git_private_key))
 
 # GitHub API configuration
 github_token: ((github_api_token))

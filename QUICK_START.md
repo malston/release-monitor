@@ -120,7 +120,7 @@ fly -t test set-pipeline \
   -c ci/pipeline.yml \
   -l params/global.yml \
   -l params/test.yml \
-  --var test_git_private_key="$(cat ~/.ssh/id_rsa)"
+  --var git_private_key="$(cat ~/.ssh/id_rsa)"
 ```
 
 **Note:** The SSH key is only needed if you're monitoring private repositories. For public repositories, the default targets work fine.

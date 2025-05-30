@@ -28,12 +28,8 @@ github_api_token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # Git repository access (if private)
 # Note: For public repositories, you can use empty values or skip this entirely
-test_git_private_key: |
-  -----BEGIN OPENSSH PRIVATE KEY-----
-  ...
-  -----END OPENSSH PRIVATE KEY-----
-
-prod_git_private_key: |
+# When using the Makefile targets, this will be passed as --var git_private_key="$(cat ~/.ssh/id_rsa)"
+git_private_key: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   ...
   -----END OPENSSH PRIVATE KEY-----
@@ -94,7 +90,7 @@ fly -t test set-pipeline \
   -c ci/pipeline.yml \
   -l params/global.yml \
   -l params/test.yml \
-  --var test_git_private_key="$(cat ~/.ssh/id_rsa)"
+  --var git_private_key="$(cat ~/.ssh/id_rsa)"
 
 # Verify deployment
 fly -t test pipelines
