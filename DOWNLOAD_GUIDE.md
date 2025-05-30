@@ -14,6 +14,7 @@ The release monitor can automatically download GitHub release assets based on co
 ## Quick Start
 
 1. **Enable downloads in configuration:**
+
    ```yaml
    download:
      enabled: true
@@ -21,12 +22,14 @@ The release monitor can automatically download GitHub release assets based on co
    ```
 
 2. **Run monitor with download flag:**
-   ```bash
+
+   ```sh
    python3 github_monitor.py --config config.yaml --download
    ```
 
 3. **Check downloaded files:**
-   ```bash
+
+   ```sh
    ls -la downloads/
    ```
 
@@ -60,6 +63,7 @@ download:
 ```
 
 Pattern syntax:
+
 - `*` matches any characters within a filename
 - `!` excludes files matching the pattern
 - Patterns are case-insensitive
@@ -106,7 +110,7 @@ download:
 
 Run the monitor with download enabled:
 
-```bash
+```sh
 export GITHUB_TOKEN="your_token_here"
 python3 github_monitor.py --config config.yaml --download
 ```
@@ -115,7 +119,7 @@ python3 github_monitor.py --config config.yaml --download
 
 Use with the monitoring script:
 
-```bash
+```sh
 # Monitor and download in one step
 ./scripts/monitor.sh --download
 
@@ -127,7 +131,7 @@ Use with the monitoring script:
 
 Process existing monitor output:
 
-```bash
+```sh
 # Save monitor output first
 python3 github_monitor.py --config config.yaml --output releases.json
 
@@ -139,7 +143,7 @@ python3 download_releases.py --config config.yaml --input releases.json
 
 Downloads are organized by repository and version:
 
-```
+```sh
 downloads/
 ├── kubernetes_kubernetes/
 │   ├── v1.29.0/
@@ -178,12 +182,14 @@ download:
 ```
 
 Benefits of S3 storage:
+
 - **Shared State**: Multiple instances can share version information
 - **Durability**: No local file management needed
 - **Scalability**: Works seamlessly in containerized environments
 - **Audit Trail**: Version history preserved in S3
 
 Required AWS permissions:
+
 ```json
 {
   "Version": "2012-10-17",
@@ -219,7 +225,7 @@ Checksum files (`.sha256`) are created alongside each downloaded asset.
 
 Check download status:
 
-```bash
+```sh
 # Get download statistics
 python3 download_releases.py --status
 
@@ -228,6 +234,7 @@ python3 github_monitor.py --config config.yaml --download --output results.json
 ```
 
 Status information includes:
+
 - Total downloads and sizes
 - Version database statistics
 - Recent download activity
@@ -238,21 +245,25 @@ Status information includes:
 ### Common Issues
 
 1. **Downloads disabled error:**
-   ```
+
    Download requested but not enabled in configuration
-   ```
+
    - Solution: Set `download.enabled: true` in config.yaml
 
 2. **Permission errors:**
-   ```
+
+   ```text
    Permission denied: ./downloads
    ```
+
    - Solution: Ensure download directory is writable
 
 3. **Token permissions:**
-   ```
+
+   ```text
    403 Forbidden: Insufficient permissions
    ```
+
    - Solution: Ensure GITHUB_TOKEN has repository read access
 
 4. **Version comparison issues:**
@@ -263,7 +274,7 @@ Status information includes:
 
 Enable verbose logging:
 
-```bash
+```sh
 python3 github_monitor.py --config config.yaml --download --verbose
 ```
 
@@ -271,13 +282,13 @@ python3 github_monitor.py --config config.yaml --download --verbose
 
 Reset version database:
 
-```bash
+```sh
 rm version_db.json
 ```
 
 Reset downloads:
 
-```bash
+```sh
 rm -rf downloads/
 ```
 
@@ -299,7 +310,7 @@ download:
   verify_downloads: true
 ```
 
-```bash
+```sh
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 python3 github_monitor.py --config config.yaml --download
 ```
@@ -327,7 +338,7 @@ download:
 
 ### Example 3: CI/CD Integration
 
-```bash
+```sh
 #!/bin/bash
 # ci-download.sh
 

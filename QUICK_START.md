@@ -5,6 +5,7 @@ This guide helps you get started with the GitHub Release Monitor tool without ne
 ## Prerequisites
 
 You need:
+
 - A computer with macOS, Linux, or WSL on Windows
 - Git installed
 - Python 3.7+ installed (check with `python3 --version`)
@@ -28,6 +29,7 @@ make setup
 ## 2. Configure Your GitHub Token
 
 Edit the `.env` file:
+
 ```bash
 # Open in your favorite editor
 nano .env  # or vim, code, etc.
@@ -39,6 +41,7 @@ GITHUB_TOKEN=ghp_your_actual_token_here
 ## 3. Configure Repositories to Monitor
 
 Edit `config-local.yaml`:
+
 ```yaml
 repositories:
   - owner: kubernetes
@@ -66,21 +69,25 @@ make watch
 ## 5. Common Tasks
 
 ### See Available Commands
+
 ```bash
 make help
 ```
 
 ### Run Tests
+
 ```bash
 make test
 ```
 
 ### Validate Everything
+
 ```bash
 make check
 ```
 
 ### Clean Up
+
 ```bash
 # Clean generated files
 make clean
@@ -90,6 +97,7 @@ make clean-all
 ```
 
 ### Deploy to Concourse
+
 ```bash
 # Deploy to lab environment
 make pipeline-set-lab
@@ -101,27 +109,34 @@ make pipeline-set-prod
 ## 6. Troubleshooting
 
 ### "Command not found: make"
+
 Install make:
+
 - macOS: `xcode-select --install`
 - Ubuntu/Debian: `sudo apt-get install build-essential`
 - RHEL/CentOS: `sudo yum groupinstall "Development Tools"`
 
 ### "Python not found"
+
 Install Python 3:
+
 - macOS: `brew install python3`
 - Ubuntu/Debian: `sudo apt-get install python3`
 - RHEL/CentOS: `sudo yum install python3`
 
 ### "No module named 'yaml'"
+
 ```bash
 # The setup should handle this, but if not:
 make install
 ```
 
 ### "GITHUB_TOKEN environment variable is required"
+
 Make sure you edited `.env` with your actual GitHub token.
 
 ### See What's Configured
+
 ```bash
 make show-config
 ```
@@ -129,16 +144,19 @@ make show-config
 ## 7. Examples
 
 ### See JSON Output
+
 ```bash
 make example-json
 ```
 
 ### See YAML Output
+
 ```bash
 make example-yaml
 ```
 
 ### Show Only New Releases
+
 ```bash
 make example-new-releases
 ```
