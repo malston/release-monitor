@@ -1,6 +1,6 @@
 # Concourse CI Structure
 
-This directory contains the Concourse CI/CD pipeline for GitHub release monitoring.
+This directory contains the Concourse CI/CD pipeline for the GitHub release monitor.
 
 ## Structure
 

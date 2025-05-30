@@ -1,6 +1,6 @@
-# Contributing to GitHub Release Monitoring
+# Contributing to GitHub Release Monitor
 
-Thank you for your interest in contributing to the GitHub Release Monitoring project! This document provides guidelines and instructions for contributing code, reporting issues, and improving the project.
+Thank you for your interest in contributing to the GitHub Release Monitor project! This document provides guidelines and instructions for contributing code, reporting issues, and improving the project.
 
 ## Table of Contents
 
@@ -30,8 +30,8 @@ Thank you for your interest in contributing to the GitHub Release Monitoring pro
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/release-monitoring.git
-   cd release-monitoring
+   git clone https://github.com/YOUR_USERNAME/release-monitor.git
+   cd release-monitor
    ```
 
 ## Development Setup
@@ -362,4 +362,4 @@ Contributors will be recognized in:
 - Pull request acknowledgments
 - Release notes for significant contributions
 
-Thank you for contributing to GitHub Release Monitoring! 🎉
+Thank you for contributing to GitHub Release Monitor! 🎉

@@ -1,4 +1,4 @@
-# GitHub Repository Release Monitoring
+# GitHub Repository Release Monitor
 
 A Python script designed for Concourse CI/CD pipelines that monitors GitHub repositories for new releases and outputs structured information about available updates.
 
@@ -177,7 +177,7 @@ params/
 3. Unpause the pipeline:
 
    ```bash
-   fly -t your-target unpause-pipeline -p github-release-monitoring
+   fly -t your-target unpause-pipeline -p github-release-monitor
    ```
 
 ### Pipeline Features

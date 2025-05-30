@@ -1,8 +1,8 @@
-# Global parameters for GitHub Release Monitoring Pipeline
+# Global parameters for GitHub Release Monitor Pipeline
 # These parameters are shared across all foundations/environments
 
 # Git repository configuration
-git_repo_uri: git@github.com:your-org/release-monitoring.git
+git_repo_uri: git@github.com:your-org/release-monitor.git
 git_branch: main
 
 # GitHub API configuration

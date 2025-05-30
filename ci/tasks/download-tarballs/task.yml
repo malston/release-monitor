@@ -8,7 +8,7 @@ image_resource:
     tag: latest
 
 inputs:
-  - name: release-monitoring-repo
+  - name: release-monitor-repo
     path: /app
   - name: s3-output
     path: /input

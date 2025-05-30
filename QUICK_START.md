@@ -1,6 +1,6 @@
 # Quick Start Guide for Non-Python Developers
 
-This guide helps you get started with the GitHub Release Monitoring tool without needing deep Python knowledge.
+This guide helps you get started with the GitHub Release Monitor tool without needing deep Python knowledge.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ You need:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd release-monitoring
+cd release-monitor
 
 # Run the setup (creates everything you need)
 make setup
