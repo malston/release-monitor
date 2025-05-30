@@ -217,7 +217,7 @@ if data['new_releases_found'] > 0:
 ```yaml
 resource_types:
 - name: github-release-monitor
-  type: docker-image
+  type: registry-image
   source:
     repository: your-registry/github-release-monitor
 
@@ -243,7 +243,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
       inputs:
       - name: release-monitor
@@ -266,7 +266,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: 
           repository: python
           tag: 3.9-slim
@@ -284,7 +284,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: busybox}
       run:
         path: sh
