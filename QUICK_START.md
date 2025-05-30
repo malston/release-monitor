@@ -127,7 +127,7 @@ fly -t test set-pipeline \
   -l params/global.yml \
   -l params/test.yml \
   --var git_private_key="$(cat ~/.ssh/id_ed25519)" \
-  --var github_api_token="$GITHUB_TOKEN"
+  --var github_token="$GITHUB_TOKEN"
 ```
 
 **Note:** The SSH key is only needed if you're monitoring private repositories. For public repositories, the default targets work fine.

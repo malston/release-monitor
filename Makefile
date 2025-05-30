@@ -148,7 +148,7 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only)
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
-		--var github_api_token="$$GITHUB_TOKEN" \
+		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
 
 .PHONY: pipeline-set-test-with-key
@@ -178,7 +178,7 @@ pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key 
 		-l params/global.yml \
 		-l params/test.yml \
 		--var git_private_key="$$(cat $$SSH_KEY)" \
-		--var github_api_token="$$GITHUB_TOKEN" \
+		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
 
 .PHONY: pipeline-set-prod
@@ -198,7 +198,7 @@ pipeline-set-prod: ## Deploy pipeline to production
 			-c ci/pipeline.yml \
 			-l params/global.yml \
 			-l params/prod.yml \
-			--var github_api_token="$$GITHUB_TOKEN" \
+			--var github_token="$$GITHUB_TOKEN" \
 			--non-interactive; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
@@ -234,7 +234,7 @@ pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for pr
 			-l params/global.yml \
 			-l params/prod.yml \
 			--var git_private_key="$$(cat $$SSH_KEY)" \
-			--var github_api_token="$$GITHUB_TOKEN" \
+			--var github_token="$$GITHUB_TOKEN" \
 			--non-interactive; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
