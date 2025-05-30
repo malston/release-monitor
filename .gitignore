@@ -1,0 +1,198 @@
+# GitHub Release Monitor - Git Ignore File
+
+# State and runtime files
+release_state.json
+*.state
+*.lock
+
+# Output files
+releases.json
+releases.yaml
+*.out
+*.log
+
+# Secrets and credentials (but keep examples)
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# API tokens and sensitive data
+github_token.txt
+api_keys.txt
+*token*
+*secret*
+*password*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+test-env/
+.venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.claude/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.backup
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Concourse specific
+fly.log
+concourse.log
+pipeline-vars.yml
+vars/
+local-vars.yml
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# Local development (but keep examples and scripts)
+local/
+dev/
+debug/
+.local/
+*-local.yaml
+*-local.yml
+!*-local.yaml.example
+!*-local.yml.example
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Terraform (if used for infrastructure)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfplan
+
+# AWS CLI output
+.aws/
+
+# Certificates
+*.crt
+*.cert
+*.cer
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Node.js (if any frontend tools are added)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Package manager files with sensitive data
+pip.conf
+.pip/pip.conf
+
+# Any override configuration files
+*-override.*
+*.local
+local-*
+
+# Cache directories
+.cache/
+*.cache
+
+# Jupyter notebooks checkpoints (if any data analysis is done)
+.ipynb_checkpoints/
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+*.exe
+*.msi
+*.cab
+*.dmp
+
+# Linux
+*~
+.nfs*
+
+# Generated documentation
+docs/_build/
+site/
+
+# Performance and profiling
+*.prof
+*.trace
+
+# Database files (if any local testing)
+*.db
+*.sqlite
+*.sqlite3

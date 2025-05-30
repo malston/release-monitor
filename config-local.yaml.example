@@ -1,0 +1,13 @@
+# Example local configuration file
+# Copy this to config-local.yaml and customize for your local development
+# NOTE: config-local.yaml will be ignored by git
+
+repositories:
+  - owner: your-test-org
+    repo: test-repo
+    description: "Test repository for local development"
+
+settings:
+  rate_limit_delay: 0.5  # Faster for local testing
+  max_releases_per_repo: 3  # Fewer releases for testing
+  include_prereleases: true  # Include pre-releases for testing

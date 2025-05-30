@@ -1,0 +1,365 @@
+# Contributing to GitHub Release Monitoring
+
+Thank you for your interest in contributing to the GitHub Release Monitoring project! This document provides guidelines and instructions for contributing code, reporting issues, and improving the project.
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Development Setup](#development-setup)
+- [Code Standards](#code-standards)
+- [Testing](#testing)
+- [Submitting Changes](#submitting-changes)
+- [Security Considerations](#security-considerations)
+- [Documentation](#documentation)
+- [Getting Help](#getting-help)
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.7 or higher
+- Git
+- A GitHub account and personal access token
+- Basic knowledge of:
+  - Python and bash scripting
+  - YAML configuration
+  - Concourse CI/CD (for pipeline contributions)
+
+### Fork and Clone
+
+1. Fork the repository on GitHub
+2. Clone your fork locally:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/release-monitoring.git
+   cd release-monitoring
+   ```
+
+## Development Setup
+
+### Quick Setup
+
+Use the Makefile for simple setup (recommended for non-Python developers):
+
+```bash
+make setup
+```
+
+Or use the setup script directly:
+
+```bash
+./scripts/setup-local.sh
+```
+
+This will:
+- Create local configuration files from templates
+- Set up Python virtual environment
+- Install dependencies
+- Check for potential security issues
+
+### Manual Setup
+
+If you prefer manual setup:
+
+1. **Create Virtual Environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+2. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   cp config-local.yaml.example config-local.yaml
+   ```
+
+4. **Set Your GitHub Token:**
+   Edit `.env` and add your GitHub personal access token:
+   ```bash
+   GITHUB_TOKEN=your_github_token_here
+   ```
+
+5. **Configure Test Repositories:**
+   Edit `config-local.yaml` with repositories you want to test against.
+
+## Code Standards
+
+### Python Code
+
+- Follow [PEP 8](https://pep8.org/) style guidelines
+- Use type hints where appropriate
+- Include docstrings for functions and classes
+- Maximum line length: 100 characters
+- Use meaningful variable and function names
+
+### Bash Scripts
+
+- Use `set -o errexit` and `set -o pipefail`
+- Quote variables: `"${VARIABLE}"` not `$VARIABLE`
+- Use descriptive function names
+- Include comments for complex logic
+- Follow existing script patterns in the codebase
+
+### YAML Configuration
+
+- Use 2-space indentation
+- Follow existing structure and naming conventions
+- Include comments for complex configurations
+- Use underscore notation for Concourse variables (e.g., `github_token`)
+
+### Commit Messages
+
+Write clear, descriptive commit messages:
+
+```
+Short summary (50 chars or less)
+
+More detailed explanation if needed. Wrap at 72 characters.
+Include the motivation for the change and contrast with previous behavior.
+
+- Bullet points are okay
+- Use present tense: "Add feature" not "Added feature"
+- Reference issues: "Fixes #123"
+```
+
+## Testing
+
+### Running Tests
+
+Using Make (recommended):
+```bash
+# Run all tests
+make test
+
+# Run all checks (lint, validate, test)
+make check
+```
+
+Or manually:
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run the test suite
+python3 test.py
+
+# Test specific functionality
+./scripts/monitor.sh --config config-local.yaml --help
+```
+
+### Test Requirements
+
+- All new features must include tests
+- Maintain or improve code coverage
+- Test both success and error conditions
+- Mock external dependencies (GitHub API calls)
+
+### Validation
+
+Before submitting changes, use the Makefile:
+
+```bash
+# Run all pre-commit checks
+make pre-commit
+
+# Or run individual checks:
+make validate   # Validate pipeline syntax
+make test       # Run test suite
+make lint       # Check code style
+```
+
+Or manually:
+```bash
+# Validate Concourse pipeline syntax
+./ci/validate.sh
+
+# Run full test suite
+python3 test.py
+
+# Test scripts manually
+./scripts/monitor.sh --config test-config.yaml --help
+./ci/fly.sh --help
+```
+
+## Submitting Changes
+
+### Pull Request Process
+
+1. **Create a Feature Branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make Your Changes:**
+   - Write code following the standards above
+   - Add tests for new functionality
+   - Update documentation if needed
+
+3. **Test Your Changes:**
+   ```bash
+   python3 test.py
+   ./ci/validate.sh
+   ```
+
+4. **Commit Your Changes:**
+   ```bash
+   git add .
+   git commit -m "Add feature: description of your changes"
+   ```
+
+5. **Push to Your Fork:**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+6. **Create Pull Request:**
+   - Go to GitHub and create a pull request
+   - Use the pull request template
+   - Link to any related issues
+
+### Pull Request Guidelines
+
+- Keep changes focused and atomic
+- Include tests for new functionality
+- Update documentation for user-facing changes
+- Ensure CI/CD pipeline passes
+- Respond to review feedback promptly
+
+## Security Considerations
+
+### Never Commit Secrets
+
+- Never commit API tokens, passwords, or credentials
+- Use `.env` files for local secrets (already in `.gitignore`)
+- Use Concourse credential management for CI/CD
+- Review the `.gitignore` file to understand what's excluded
+
+### Security Best Practices
+
+- Validate all user inputs
+- Use secure defaults
+- Avoid logging sensitive information
+- Keep dependencies up to date
+- Follow the principle of least privilege
+
+### Reporting Security Issues
+
+If you discover a security vulnerability:
+1. **DO NOT** create a public issue
+2. Email the maintainers directly (see README for contact info)
+3. Include detailed information about the vulnerability
+4. Allow time for the issue to be addressed before public disclosure
+
+## Documentation
+
+### What to Document
+
+- New features and their usage
+- Configuration options
+- API changes
+- Breaking changes
+- Troubleshooting guides
+
+### Documentation Standards
+
+- Use clear, concise language
+- Include code examples
+- Update both inline comments and external docs
+- Use proper markdown formatting
+- Test all examples
+
+### Files to Update
+
+When making changes, consider updating:
+- `README.md` - Main project documentation
+- `ci/README.md` - CI/CD specific documentation
+- `scripts/README.md` - Script usage documentation
+- Inline code comments and docstrings
+
+## Development Workflow
+
+### Typical Development Flow
+
+1. **Setup:** Use `./scripts/setup-local.sh`
+2. **Branch:** Create feature branch from `main`
+3. **Develop:** Write code, tests, and documentation
+4. **Test:** Run `python3 test.py` and `./ci/validate.sh`
+5. **Commit:** Use descriptive commit messages
+6. **Push:** Push to your fork
+7. **PR:** Create pull request with description
+
+### Working with Concourse
+
+If modifying CI/CD components:
+
+1. **Validate Syntax:**
+   ```bash
+   ./ci/validate.sh
+   ```
+
+2. **Test Locally:**
+   ```bash
+   # Test individual tasks
+   ./scripts/monitor.sh --config test-config.yaml
+   ```
+
+3. **Document Changes:**
+   - Update pipeline documentation
+   - Include parameter changes in PR description
+
+## Getting Help
+
+### Resources
+
+- **Documentation:** Start with the main README.md
+- **Examples:** Check the `test-config.yaml` and example files
+- **Issues:** Search existing GitHub issues
+- **Code:** Read the existing codebase for patterns
+
+### Asking Questions
+
+When asking for help:
+1. Search existing issues first
+2. Provide context and specific error messages
+3. Include steps to reproduce problems
+4. Share relevant configuration (without secrets!)
+5. Be respectful and patient
+
+### Communication
+
+- Use GitHub issues for bugs and feature requests
+- Keep discussions focused and constructive
+- Follow the project's code of conduct
+- Be open to feedback and collaboration
+
+## Code of Conduct
+
+- Be respectful and inclusive
+- Focus on constructive feedback
+- Help others learn and grow
+- Maintain a welcoming environment
+
+## Types of Contributions
+
+We welcome various types of contributions:
+
+- **Bug fixes** - Fix issues in existing functionality
+- **Features** - Add new monitoring capabilities
+- **Documentation** - Improve guides and examples
+- **Testing** - Add test coverage and validation
+- **Performance** - Optimize existing code
+- **CI/CD** - Improve pipeline and automation
+- **Security** - Enhance security practices
+
+## Recognition
+
+Contributors will be recognized in:
+- Git commit history
+- Pull request acknowledgments
+- Release notes for significant contributions
+
+Thank you for contributing to GitHub Release Monitoring! 🎉

@@ -1,0 +1,12 @@
+# Production environment specific parameters
+# Override common parameters for production environment
+
+# Production Git configuration
+git_branch: main
+
+# Production S3 bucket
+s3_bucket: prod-releases-bucket
+s3_region: us-east-1
+
+# SSH key for private repositories (production)
+git_private_key: ((prod_git_private_key))
