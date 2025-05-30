@@ -252,12 +252,15 @@ create-release: ## Create a GitHub release (requires TAG, NAME, and optionally N
 	@echo "  Name: $(NAME)"
 	@echo "  Notes: $(or $(NOTES),New release)"
 	@if command -v gh &> /dev/null; then \
-		gh workflow run create-release.yml \
-			-f tag="$(TAG)" \
-			-f release_name="$(NAME)" \
-			-f release_notes="$(or $(NOTES),New release)"; \
-		echo "$(GREEN)✓ Release workflow triggered$(NC)"; \
-		echo "$(YELLOW)Check GitHub Actions for workflow status$(NC)"; \
+		echo "$(YELLOW)Note: This requires a GitHub token with 'workflow' scope$(NC)"; \
+		gh release create "$(TAG)" \
+			--title "$(NAME)" \
+			--notes "$(or $(NOTES),New release)" \
+			--target main || \
+		(echo "$(YELLOW)If the above failed due to permissions, you can:$(NC)" && \
+		 echo "  1. Create the release manually on GitHub" && \
+		 echo "  2. Update your token permissions at https://github.com/settings/tokens" && \
+		 echo "  3. Use: gh auth refresh -s workflow"); \
 	else \
 		echo "$(RED)Error: GitHub CLI (gh) not installed. Install from: https://cli.github.com/$(NC)"; \
 		exit 1; \

@@ -205,6 +205,8 @@ make create-release TAG=v1.0.0 NAME='Test Release 1.0.0' NOTES='Optional release
 #### Integration Test Requirements
 
 - GitHub personal access token (set in `.env` file or `GITHUB_TOKEN` environment variable)
+  - For basic monitoring: token needs `repo` scope
+  - For creating releases: token needs `workflow` scope (or create releases manually on GitHub)
 - Python virtual environment with dependencies installed
 - GitHub CLI (`gh`) for creating test releases (optional)
 
