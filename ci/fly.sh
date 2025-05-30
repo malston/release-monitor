@@ -27,7 +27,7 @@ Options:
   -h, --help              Show this help message
 
 Examples:
-  ./fly.sh set -t prod -f lab
+  ./fly.sh set -t prod -f test
   ./fly.sh destroy -t prod
 
 EOF

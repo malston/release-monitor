@@ -27,7 +27,7 @@ Store these secrets in your Concourse credential manager:
 github_api_token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # Git repository access (if private)
-lab_git_private_key: |
+test_git_private_key: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   ...
   -----END OPENSSH PRIVATE KEY-----
@@ -72,10 +72,10 @@ download_repository_overrides: |
 
 **Environment-Specific Configuration**:
 
-- `params/lab.yml`: Development/testing settings
+- `params/test.yml`: Development/testing settings
 - `params/prod.yml`: Production settings
 
-### 2. Deploy to Lab Environment
+### 2. Deploy to Test Environment
 
 ```bash
 # Navigate to project directory
@@ -84,24 +84,24 @@ cd /path/to/release-monitor
 # Validate pipeline configuration
 ./ci/validate.sh
 
-# Deploy to lab environment
-./ci/fly.sh set -t lab -f lab
+# Deploy to test environment
+./ci/fly.sh set -t test -f test
 
 # Verify deployment
-fly -t lab pipelines
+fly -t test pipelines
 ```
 
-### 3. Test in Lab
+### 3. Test in Test Environment
 
 ```bash
 # Trigger the pipeline manually
-fly -t lab trigger-job -j github-release-monitor/monitor-releases
+fly -t test trigger-job -j github-release-monitor/monitor-releases
 
 # Monitor job execution
-fly -t lab watch -j github-release-monitor/monitor-releases
+fly -t test watch -j github-release-monitor/monitor-releases
 
 # Check download job
-fly -t lab watch -j github-release-monitor/download-new-releases
+fly -t test watch -j github-release-monitor/download-new-releases
 ```
 
 ### 4. Deploy to Production
@@ -345,8 +345,8 @@ aws s3 sync s3://releases-bucket/release-downloads/ ./release-backups/
 git pull origin main
 ./ci/fly.sh set -t prod -f prod
 
-# Test in lab first
-./ci/fly.sh set -t lab -f lab
+# Test in test first
+./ci/fly.sh set -t test -f test
 ```
 
 ## Integration Examples

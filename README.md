@@ -275,7 +275,7 @@ scripts/
 
 params/
 ├── global.yml                       # Global parameters
-├── lab.yml                         # Lab environment parameters
+├── test.yml                        # Test environment parameters
 └── prod.yml                        # Production environment parameters
 ```
 
@@ -283,13 +283,13 @@ params/
 
 1. Configure parameters in `params/` directory:
    - Edit `global.yml` for shared configuration
-   - Create environment-specific files (e.g., `lab.yml`, `prod.yml`)
+   - Create environment-specific files (e.g., `test.yml`, `prod.yml`)
 
 2. Deploy the pipeline using the fly script:
 
    ```bash
-   # Deploy to lab environment
-   ./ci/fly.sh set -t lab -f lab
+   # Deploy to test environment
+   ./ci/fly.sh set -t test -f test
 
    # Deploy to production
    ./ci/fly.sh set -t prod -f prod
@@ -427,7 +427,7 @@ make watch          # Run continuously (every 5 minutes)
 
 # CI/CD Pipeline
 make validate       # Validate pipeline configuration
-make pipeline-set-lab   # Deploy to lab
+make pipeline-set-test  # Deploy to test
 make pipeline-set-prod  # Deploy to production
 
 # Help
