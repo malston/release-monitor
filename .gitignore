@@ -109,6 +109,11 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+integration_test_config.yaml
+integration_test_*.json
+integration_test_*.yaml
+test_release_state.json
+test_state.json
 
 # Local development (but keep examples and scripts)
 local/

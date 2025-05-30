@@ -237,6 +237,44 @@ pre-commit: check ## Run checks before committing
 	fi
 	@echo "$(GREEN)✓ Ready to commit!$(NC)"
 
+.PHONY: create-release
+create-release: ## Create a GitHub release (requires TAG, NAME, and optionally NOTES)
+	@if [ -z "$(TAG)" ]; then \
+		echo "$(RED)Error: TAG is required. Usage: make create-release TAG=v1.0.0 NAME='Release 1.0.0'$(NC)"; \
+		exit 1; \
+	fi
+	@if [ -z "$(NAME)" ]; then \
+		echo "$(RED)Error: NAME is required. Usage: make create-release TAG=v1.0.0 NAME='Release 1.0.0'$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Creating GitHub release...$(NC)"
+	@echo "  Tag: $(TAG)"
+	@echo "  Name: $(NAME)"
+	@echo "  Notes: $(or $(NOTES),New release)"
+	@if command -v gh &> /dev/null; then \
+		gh workflow run create-release.yml \
+			-f tag="$(TAG)" \
+			-f release_name="$(NAME)" \
+			-f release_notes="$(or $(NOTES),New release)"; \
+		echo "$(GREEN)✓ Release workflow triggered$(NC)"; \
+		echo "$(YELLOW)Check GitHub Actions for workflow status$(NC)"; \
+	else \
+		echo "$(RED)Error: GitHub CLI (gh) not installed. Install from: https://cli.github.com/$(NC)"; \
+		exit 1; \
+	fi
+
+##@ Integration Testing
+
+.PHONY: integration-test
+integration-test: venv ## Run integration tests for monitoring releases
+	@echo "$(GREEN)Running integration tests...$(NC)"
+	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_self.sh
+
+.PHONY: test-monitor-self
+test-monitor-self: venv ## Test monitoring this repository's releases
+	@echo "$(GREEN)Testing monitor on release-monitor repository...$(NC)"
+	@source .env 2>/dev/null || true && $(PYTHON) tests/integration/test_monitor_self.py
+
 ##@ Examples
 
 .PHONY: example-json
