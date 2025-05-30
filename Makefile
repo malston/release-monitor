@@ -153,7 +153,7 @@ pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key 
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
-		--var test_git_private_key="$$(cat ~/.ssh/id_rsa)"
+		--var git_private_key="$$(cat ~/.ssh/id_rsa)"
 
 .PHONY: pipeline-set-prod
 pipeline-set-prod: ## Deploy pipeline to production
@@ -183,7 +183,7 @@ pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for pr
 			-c ci/pipeline.yml \
 			-l params/global.yml \
 			-l params/prod.yml \
-			--var test_git_private_key="$$(cat ~/.ssh/id_rsa)"; \
+			--var git_private_key="$$(cat ~/.ssh/id_rsa)"; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
 	fi

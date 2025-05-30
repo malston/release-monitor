@@ -10,7 +10,7 @@ s3_releases_bucket: test-releases-bucket
 s3_region: us-west-2
 
 # SSH key for private repositories (test environment)
-git_private_key: ((test_git_private_key))
+# This will be overridden by the --var parameter when using make pipeline-set-test-with-key
 
 # Test download configuration (more aggressive for testing)
 download_include_prereleases: "true"
