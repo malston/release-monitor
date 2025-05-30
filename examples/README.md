@@ -5,6 +5,7 @@ This directory contains example configurations and use cases for the GitHub Rele
 ## Basic Examples
 
 ### 1. Monitor a Single Repository
+
 ```yaml
 # single-repo.yaml
 repositories:
@@ -19,6 +20,7 @@ settings:
 ```
 
 ### 2. Monitor Multiple Projects
+
 ```yaml
 # multi-project.yaml
 repositories:
@@ -49,6 +51,7 @@ settings:
 ## Advanced Examples
 
 ### 3. Include Pre-releases
+
 ```yaml
 # with-prereleases.yaml
 repositories:
@@ -62,6 +65,7 @@ settings:
 ```
 
 ### 4. Cron Job Setup
+
 ```bash
 #!/bin/bash
 # monitor-releases.sh - Run this via cron
@@ -80,12 +84,14 @@ fi
 ```
 
 Add to crontab:
+
 ```bash
 # Check for new releases every 6 hours
 0 */6 * * * /path/to/monitor-releases.sh
 ```
 
 ### 5. Slack Notification Integration
+
 ```python
 # notify-slack.py
 import json
@@ -120,9 +126,94 @@ if data['new_releases_found'] > 0:
         requests.post(webhook_url, json=message)
 ```
 
+### 6. Microsoft Teams Notification Integration
+
+```python
+# notify-teams.py
+import json
+import requests
+import subprocess
+
+# Run the monitor
+result = subprocess.run([
+    'python3', 'github_monitor.py',
+    '--config', 'config.yaml',
+    '--format', 'json'
+], capture_output=True, text=True)
+
+data = json.loads(result.stdout)
+
+if data['new_releases_found'] > 0:
+    # Microsoft Teams webhook URL (create via Workflows app)
+    webhook_url = 'https://your-tenant.webhook.office.com/webhookb2/...'
+    
+    # Create adaptive card for Teams
+    for release in data['releases']:
+        card = {
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "type": "AdaptiveCard",
+                        "version": "1.4",
+                        "body": [
+                            {
+                                "type": "TextBlock",
+                                "text": f"New Release: {release['repository']}",
+                                "size": "Large",
+                                "weight": "Bolder",
+                                "color": "Accent"
+                            },
+                            {
+                                "type": "FactSet",
+                                "facts": [
+                                    {
+                                        "title": "Version:",
+                                        "value": release['tag_name']
+                                    },
+                                    {
+                                        "title": "Repository:",
+                                        "value": release['repository']
+                                    },
+                                    {
+                                        "title": "Published:",
+                                        "value": release['published_at']
+                                    }
+                                ]
+                            }
+                        ],
+                        "actions": [
+                            {
+                                "type": "Action.OpenUrl",
+                                "title": "View Release",
+                                "url": release['html_url']
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+        
+        response = requests.post(webhook_url, json=card)
+        if response.status_code != 200:
+            print(f"Failed to send Teams notification: {response.status_code}")
+```
+
+**Setting up Teams Webhook:**
+
+1. In Microsoft Teams, go to your channel
+2. Click "..." → "Workflows" (or "Connectors" for legacy)
+3. Search for "When a Teams webhook request is received"
+4. Configure the workflow and copy the webhook URL
+5. Use the URL in your script
+
+**Note:** Microsoft is transitioning from Connectors to Power Automate Workflows. Use Workflows for new integrations.
+
 ## Concourse Pipeline Examples
 
-### 6. Basic Concourse Resource
+### 7. Basic Concourse Resource
+
 ```yaml
 resource_types:
 - name: github-release-monitor
@@ -165,7 +256,8 @@ jobs:
           # Process new releases here
 ```
 
-### 7. Multi-Stage Pipeline
+### 8. Multi-Stage Pipeline
+
 ```yaml
 jobs:
 - name: monitor-releases
@@ -208,7 +300,8 @@ jobs:
 
 ## Integration Patterns
 
-### 8. Dependency Update Automation
+### 9. Dependency Update Automation
+
 ```yaml
 # Monitor your dependencies and create PRs automatically
 repositories:
@@ -231,7 +324,8 @@ settings:
 
 Use with a script to automatically create PRs when new versions are available.
 
-### 9. Security Monitoring
+### 10. Security Monitoring
+
 ```yaml
 # Monitor security tools for updates
 repositories:
