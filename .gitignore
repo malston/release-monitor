@@ -167,6 +167,9 @@ pip.conf
 *.local
 local-*
 
+# Feature prompts and planning (internal documentation)
+.prompts/
+
 # Cache directories
 .cache/
 *.cache
