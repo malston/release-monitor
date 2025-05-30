@@ -29,6 +29,16 @@ params:
   DOWNLOAD_DIR: /tmp/downloads
   VERSION_DB_PATH: /tmp/version-db/version_db.json
   
+  # S3 version database configuration (optional)
+  USE_S3_VERSION_DB: ((use_s3_version_db))
+  VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+  VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
+  VERSION_DB_S3_REGION: ((version_db_s3_region))
+  
+  # AWS credentials (required if USE_S3_VERSION_DB is true)
+  AWS_ACCESS_KEY_ID: ((aws_access_key_id))
+  AWS_SECRET_ACCESS_KEY: ((aws_secret_access_key))
+  
   # Optional parameters
   CONFIG_FILE: config.yaml
   VERBOSE: "false"

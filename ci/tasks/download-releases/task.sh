@@ -64,10 +64,20 @@ CONFIG_FILE="${CONFIG_FILE:-config.yaml}"
 VERBOSE="${VERBOSE:-false}"
 DRY_RUN="${DRY_RUN:-false}"
 
+# S3 storage configuration (optional)
+USE_S3_VERSION_DB="${USE_S3_VERSION_DB:-false}"
+VERSION_DB_S3_BUCKET="${VERSION_DB_S3_BUCKET:-}"
+VERSION_DB_S3_PREFIX="${VERSION_DB_S3_PREFIX:-release-monitor/}"
+VERSION_DB_S3_REGION="${VERSION_DB_S3_REGION:-}"
+
 # Log configuration
 log_info "Configuration:"
 log_info "  Download Directory: $DOWNLOAD_DIR"
-log_info "  Version DB Path: $VERSION_DB_PATH"
+if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+    log_info "  Version DB: S3 (s3://$VERSION_DB_S3_BUCKET/$VERSION_DB_S3_PREFIX)"
+else
+    log_info "  Version DB Path: $VERSION_DB_PATH"
+fi
 log_info "  Config File: $CONFIG_FILE"
 log_info "  Verbose: $VERBOSE"
 log_info "  Dry Run: $DRY_RUN"
@@ -91,6 +101,12 @@ if [[ -f requirements.txt ]]; then
 else
     log_warn "requirements.txt not found, installing basic dependencies"
     pip3 install --quiet requests PyYAML
+fi
+
+# Install AWS SDK if using S3 version database
+if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+    log_info "Installing AWS SDK for S3 version database..."
+    pip3 install --quiet boto3
 fi
 
 # Verify input files exist
@@ -153,6 +169,15 @@ download_config = config.setdefault('download', {})
 download_config['enabled'] = True
 download_config['directory'] = '$DOWNLOAD_DIR'
 download_config['version_db'] = '$VERSION_DB_PATH'
+
+# Configure S3 storage if enabled
+if '${USE_S3_VERSION_DB}' == 'true':
+    s3_config = download_config.setdefault('s3_storage', {})
+    s3_config['enabled'] = True
+    s3_config['bucket'] = '${VERSION_DB_S3_BUCKET}'
+    s3_config['prefix'] = '${VERSION_DB_S3_PREFIX}'
+    if '${VERSION_DB_S3_REGION}':
+        s3_config['region'] = '${VERSION_DB_S3_REGION}'
 
 # Parse JSON parameters from environment
 try:

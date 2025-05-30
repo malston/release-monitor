@@ -53,9 +53,26 @@ class ReleaseDownloadCoordinator:
         # Initialize components
         download_config = config.get('download', {})
         
-        self.version_db = VersionDatabase(
-            download_config.get('version_db', 'version_db.json')
-        )
+        # Check if S3 storage is configured
+        s3_config = download_config.get('s3_storage', {})
+        use_s3 = s3_config.get('enabled', False)
+        
+        if use_s3:
+            # Use S3-based version storage
+            from github_version_s3 import VersionDatabase
+            self.version_db = VersionDatabase(
+                use_s3=True,
+                s3_bucket=s3_config.get('bucket'),
+                s3_prefix=s3_config.get('prefix', 'release-monitor/'),
+                aws_region=s3_config.get('region'),
+                aws_profile=s3_config.get('profile')
+            )
+            logger.info(f"Using S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json")
+        else:
+            # Use local file storage
+            self.version_db = VersionDatabase(
+                download_config.get('version_db', 'version_db.json')
+            )
         
         self.version_comparator = VersionComparator(
             include_prereleases=download_config.get('include_prereleases', False)
