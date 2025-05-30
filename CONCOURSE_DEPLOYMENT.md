@@ -90,7 +90,7 @@ fly -t test set-pipeline \
   -c ci/pipeline.yml \
   -l params/global.yml \
   -l params/test.yml \
-  --var git_private_key="$(cat ~/.ssh/id_rsa)"
+  --var git_private_key="$(cat ~/.ssh/id_ed25519)"  # or ~/.ssh/id_rsa
 
 # Verify deployment
 fly -t test pipelines

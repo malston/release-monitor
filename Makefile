@@ -143,17 +143,25 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only)
 .PHONY: pipeline-set-test-with-key
 pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos
 	@echo "$(GREEN)Deploying pipeline to test with SSH key...$(NC)"
-	@if [ ! -f ~/.ssh/id_rsa ]; then \
-		echo "$(RED)Error: SSH key not found at ~/.ssh/id_rsa$(NC)"; \
+	@SSH_KEY=""; \
+	if [ -f ~/.ssh/id_ed25519 ]; then \
+		SSH_KEY=~/.ssh/id_ed25519; \
+		echo "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)"; \
+	elif [ -f ~/.ssh/id_rsa ]; then \
+		SSH_KEY=~/.ssh/id_rsa; \
+		echo "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)"; \
+	else \
+		echo "$(RED)Error: No SSH key found$(NC)"; \
+		echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
 		echo "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)"; \
 		exit 1; \
-	fi
-	@fly -t test set-pipeline \
+	fi; \
+	fly -t test set-pipeline \
 		-p github-release-monitor \
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
-		--var git_private_key="$$(cat ~/.ssh/id_rsa)"
+		--var git_private_key="$$(cat $$SSH_KEY)"
 
 .PHONY: pipeline-set-prod
 pipeline-set-prod: ## Deploy pipeline to production
@@ -174,8 +182,16 @@ pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for pr
 	@read -p "Continue? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		if [ ! -f ~/.ssh/id_rsa ]; then \
-			echo "$(RED)Error: SSH key not found at ~/.ssh/id_rsa$(NC)"; \
+		SSH_KEY=""; \
+		if [ -f ~/.ssh/id_ed25519 ]; then \
+			SSH_KEY=~/.ssh/id_ed25519; \
+			echo "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)"; \
+		elif [ -f ~/.ssh/id_rsa ]; then \
+			SSH_KEY=~/.ssh/id_rsa; \
+			echo "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)"; \
+		else \
+			echo "$(RED)Error: No SSH key found$(NC)"; \
+			echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
 			exit 1; \
 		fi; \
 		fly -t prod set-pipeline \
@@ -183,7 +199,7 @@ pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for pr
 			-c ci/pipeline.yml \
 			-l params/global.yml \
 			-l params/prod.yml \
-			--var git_private_key="$$(cat ~/.ssh/id_rsa)"; \
+			--var git_private_key="$$(cat $$SSH_KEY)"; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
 	fi
