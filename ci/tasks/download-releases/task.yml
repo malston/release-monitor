@@ -1,0 +1,51 @@
+# Concourse Task: Download GitHub Releases
+# Downloads GitHub release assets based on monitor output
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: python
+    tag: 3.9-slim
+
+inputs:
+  - name: release-monitor
+    path: /opt/release-monitor
+  - name: monitor-output
+    path: /tmp/monitor-output
+
+outputs:
+  - name: downloads
+    path: /tmp/downloads
+  - name: version-db
+    path: /tmp/version-db
+
+params:
+  # Required parameters
+  GITHUB_TOKEN: ((github_token))
+  
+  # Download configuration
+  DOWNLOAD_DIR: /tmp/downloads
+  VERSION_DB_PATH: /tmp/version-db/version_db.json
+  
+  # Optional parameters
+  CONFIG_FILE: config.yaml
+  VERBOSE: "false"
+  DRY_RUN: "false"
+  
+  # Asset filtering patterns (JSON array)
+  ASSET_PATTERNS: '["*.tar.gz", "*.zip", "!*-sources.zip"]'
+  
+  # Download settings
+  INCLUDE_PRERELEASES: "false"
+  VERIFY_DOWNLOADS: "true"
+  CLEANUP_OLD_VERSIONS: "true"
+  KEEP_VERSIONS: "5"
+  DOWNLOAD_TIMEOUT: "300"
+  
+  # Repository overrides (JSON object)
+  REPOSITORY_OVERRIDES: '{}'
+
+run:
+  path: /opt/release-monitor/ci/tasks/download-releases/task.sh

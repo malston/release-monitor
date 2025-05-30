@@ -4,9 +4,46 @@
 # Production Git configuration
 git_branch: main
 
-# Production S3 bucket
-s3_bucket: prod-releases-bucket
+# Production S3 buckets
+s3_bucket: prod-monitor-bucket
+s3_releases_bucket: prod-releases-bucket
 s3_region: us-east-1
 
 # SSH key for private repositories (production)
 git_private_key: ((prod_git_private_key))
+
+# Production download configuration (conservative settings)
+download_include_prereleases: "false"
+download_verify_downloads: "true"
+download_cleanup_old_versions: "true"
+download_keep_versions: "10"
+cleanup_days_to_keep: "90"
+
+# Production-specific repository overrides (comprehensive set)
+download_repository_overrides: |
+  {
+    "kubernetes/kubernetes": {
+      "asset_patterns": [
+        "kubernetes-client-linux-amd64.tar.gz",
+        "kubernetes-server-linux-amd64.tar.gz",
+        "kubernetes-node-linux-amd64.tar.gz"
+      ],
+      "include_prereleases": false
+    },
+    "istio/istio": {
+      "asset_patterns": ["istio-*.tar.gz"],
+      "include_prereleases": false
+    },
+    "prometheus/prometheus": {
+      "asset_patterns": ["prometheus-*.tar.gz"],
+      "include_prereleases": false
+    },
+    "grafana/grafana": {
+      "asset_patterns": ["grafana-*.tar.gz", "grafana_*.tar.gz"],
+      "include_prereleases": false
+    },
+    "hashicorp/terraform": {
+      "asset_patterns": ["terraform_*_linux_amd64.zip"],
+      "include_prereleases": false
+    }
+  }

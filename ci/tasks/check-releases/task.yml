@@ -10,12 +10,19 @@ image_resource:
 inputs:
   - name: release-monitor-repo
     path: /app
+  - name: version-db
+    path: /tmp/version-db
+    optional: true
 
 outputs:
   - name: release-output
+  - name: release-state
+    path: /tmp/release-state
 
 params:
   GITHUB_TOKEN: ((github_token))
+  CONFIG_FILE: config.yaml
+  STATE_FILE: /tmp/release-state/release_state.json
 
 run:
   path: /app/ci/tasks/check-releases/task.sh
