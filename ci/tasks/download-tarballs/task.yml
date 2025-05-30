@@ -1,0 +1,26 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: alpine/curl
+    tag: latest
+
+inputs:
+  - name: release-monitoring-repo
+    path: /app
+  - name: s3-output
+    path: /input
+
+outputs:
+  - name: tarballs
+
+params:
+  AWS_ACCESS_KEY_ID: ((s3_access_key))
+  AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+  S3_BUCKET: ((s3_bucket))
+  S3_REGION: ((s3_region))
+
+run:
+  path: /app/ci/tasks/download-tarballs/task.sh

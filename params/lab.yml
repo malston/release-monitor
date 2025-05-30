@@ -1,0 +1,12 @@
+# Lab environment specific parameters
+# Override common parameters for lab/development environment
+
+# Lab-specific Git configuration
+git_branch: develop
+
+# Lab S3 bucket
+s3_bucket: lab-releases-bucket
+s3_region: us-west-2
+
+# SSH key for private repositories (lab environment)
+git_private_key: ((lab_git_private_key))

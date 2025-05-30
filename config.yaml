@@ -1,0 +1,46 @@
+# GitHub Repository Monitoring Configuration
+# List of repositories to monitor for new releases
+
+repositories:
+  - owner: kubernetes
+    repo: kubernetes
+    description: "Kubernetes container orchestration platform"
+  
+  - owner: istio
+    repo: istio
+    description: "Istio service mesh"
+  
+  - owner: helm
+    repo: helm
+    description: "Kubernetes package manager"
+  
+  - owner: prometheus
+    repo: prometheus
+    description: "Monitoring and alerting toolkit"
+  
+  - owner: grafana
+    repo: grafana
+    description: "Analytics and monitoring platform"
+  
+  - owner: hashicorp
+    repo: terraform
+    description: "Infrastructure as code tool"
+  
+  - owner: docker
+    repo: cli
+    description: "Docker CLI"
+  
+  - owner: etcd-io
+    repo: etcd
+    description: "Distributed key-value store"
+
+# Optional settings
+settings:
+  # Rate limit delay between API calls (seconds)
+  rate_limit_delay: 1.0
+  
+  # Maximum number of releases to fetch per repository
+  max_releases_per_repo: 10
+  
+  # Include pre-releases in monitoring
+  include_prereleases: false

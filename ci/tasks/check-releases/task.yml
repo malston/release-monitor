@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: python
+    tag: "3.11-slim"
+
+inputs:
+  - name: release-monitoring-repo
+    path: /app
+
+outputs:
+  - name: release-output
+
+params:
+  GITHUB_TOKEN: ((github_token))
+
+run:
+  path: /app/ci/tasks/check-releases/task.sh
