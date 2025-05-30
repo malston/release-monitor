@@ -15,6 +15,9 @@ cd /app
 echo "Installing Python dependencies..."
 pip install -r requirements.txt --quiet
 
+# Create output directory
+mkdir -p /release-output
+
 # Run the monitoring script using the wrapper
 echo "Running release monitoring script..."
 ./scripts/monitor.sh \
