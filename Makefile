@@ -134,10 +134,10 @@ validate: ## Validate Concourse pipeline and configurations
 	@echo "$(GREEN)Validating pipeline configuration...$(NC)"
 	@./ci/validate.sh
 
-.PHONY: pipeline-set-lab
-pipeline-set-lab: ## Deploy pipeline to lab environment
-	@echo "$(GREEN)Deploying pipeline to lab...$(NC)"
-	./ci/fly.sh set -t lab -f lab
+.PHONY: pipeline-set-test
+pipeline-set-test: ## Deploy pipeline to test environment
+	@echo "$(GREEN)Deploying pipeline to test...$(NC)"
+	./ci/fly.sh set -t test -f test
 
 .PHONY: pipeline-set-prod
 pipeline-set-prod: ## Deploy pipeline to production
@@ -153,7 +153,7 @@ pipeline-set-prod: ## Deploy pipeline to production
 
 .PHONY: pipeline-destroy
 pipeline-destroy: ## Destroy pipeline (prompts for target)
-	@read -p "Target (lab/prod): " target; \
+	@read -p "Target (test/prod): " target; \
 	echo "$(RED)Destroying pipeline from $$target...$(NC)"; \
 	./ci/fly.sh destroy -t $$target
 

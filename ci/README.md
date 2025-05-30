@@ -45,8 +45,8 @@ Deploy the pipeline using the fly script from the repository root:
 # Validate pipeline before deployment
 ./ci/validate.sh
 
-# Deploy to lab environment
-./ci/fly.sh set -t lab -f lab
+# Deploy to test environment
+./ci/fly.sh set -t test -f test
 
 # Deploy to production
 ./ci/fly.sh set -t prod -f prod
@@ -60,7 +60,7 @@ Deploy the pipeline using the fly script from the repository root:
 Pipeline parameters are managed in the `../params/` directory:
 
 - `global.yml`: Shared parameters across environments
-- `lab.yml`: Lab environment specific parameters
+- `test.yml`: Test environment specific parameters
 - `prod.yml`: Production environment specific parameters
 
 ### Variable Naming Convention

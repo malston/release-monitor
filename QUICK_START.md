@@ -99,8 +99,8 @@ make clean-all
 ### Deploy to Concourse
 
 ```bash
-# Deploy to lab environment
-make pipeline-set-lab
+# Deploy to test environment
+make pipeline-set-test
 
 # Deploy to production (be careful!)
 make pipeline-set-prod

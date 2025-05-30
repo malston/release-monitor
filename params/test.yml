@@ -1,0 +1,27 @@
+# Test environment specific parameters
+# Override common parameters for test/development environment
+
+# Test-specific Git configuration
+git_branch: develop
+
+# Test S3 buckets
+s3_bucket: test-monitor-bucket
+s3_releases_bucket: test-releases-bucket
+s3_region: us-west-2
+
+# SSH key for private repositories (test environment)
+git_private_key: ((test_git_private_key))
+
+# Test download configuration (more aggressive for testing)
+download_include_prereleases: "true"
+download_keep_versions: "3"
+cleanup_days_to_keep: "7"
+
+# Test-specific repository overrides (smaller set for faster testing)
+download_repository_overrides: |
+  {
+    "prometheus/prometheus": {
+      "asset_patterns": ["prometheus-*.tar.gz"],
+      "include_prereleases": false
+    }
+  }
