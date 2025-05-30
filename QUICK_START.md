@@ -120,10 +120,23 @@ fly -t test set-pipeline \
   -c ci/pipeline.yml \
   -l params/global.yml \
   -l params/test.yml \
-  --var git_private_key="$(cat ~/.ssh/id_rsa)"
+  --var git_private_key="$(cat ~/.ssh/id_ed25519)"  # or ~/.ssh/id_rsa
 ```
 
 **Note:** The SSH key is only needed if you're monitoring private repositories. For public repositories, the default targets work fine.
+
+**SSH Key Setup:** If you don't have an SSH key, create one:
+
+```bash
+# Modern Ed25519 key (recommended)
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Or traditional RSA key
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+# Add to GitHub
+cat ~/.ssh/id_ed25519.pub  # Copy and add to GitHub SSH keys
+```
 
 ## 6. Troubleshooting
 
