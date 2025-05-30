@@ -164,6 +164,47 @@ The download system uses intelligent version comparison:
 
 Only newer versions are downloaded based on the stored version database.
 
+### S3-Based Version Storage
+
+For cloud deployments, use S3 to store version information:
+
+```yaml
+download:
+  s3_storage:
+    enabled: true
+    bucket: my-release-monitor-bucket
+    prefix: release-monitor/
+    region: us-west-2  # Optional
+```
+
+Benefits of S3 storage:
+- **Shared State**: Multiple instances can share version information
+- **Durability**: No local file management needed
+- **Scalability**: Works seamlessly in containerized environments
+- **Audit Trail**: Version history preserved in S3
+
+Required AWS permissions:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:HeadObject",
+        "s3:HeadBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-release-monitor-bucket/*",
+        "arn:aws:s3:::my-release-monitor-bucket"
+      ]
+    }
+  ]
+}
+```
+
 ## Verification
 
 Downloaded files are verified using:

@@ -22,6 +22,11 @@ download_verify_downloads: "true"
 download_cleanup_old_versions: "true"
 download_keep_versions: "5"
 
+# S3 version database configuration
+use_s3_version_db: "true"
+version_db_s3_bucket: ((s3_bucket))
+version_db_s3_prefix: "release-monitor/"
+
 # Repository-specific download overrides (JSON format)
 download_repository_overrides: |
   {
