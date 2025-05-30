@@ -426,9 +426,11 @@ make check          # Run lint, validate, and test
 make watch          # Run continuously (every 5 minutes)
 
 # CI/CD Pipeline
-make validate       # Validate pipeline configuration
-make pipeline-set-test  # Deploy to test
-make pipeline-set-prod  # Deploy to production
+make validate                    # Validate pipeline configuration
+make pipeline-set-test           # Deploy to test (public repos)
+make pipeline-set-test-with-key  # Deploy to test (private repos with SSH key)
+make pipeline-set-prod           # Deploy to production
+make pipeline-set-prod-with-key  # Deploy to production (private repos with SSH key)
 
 # Help
 make help           # Show all available commands

@@ -98,13 +98,32 @@ make clean-all
 
 ### Deploy to Concourse
 
+**For Public Repositories (No SSH Key Required):**
+
 ```bash
-# Deploy to test environment
+# Deploy to test environment (public repos)
 make pipeline-set-test
 
 # Deploy to production (be careful!)
 make pipeline-set-prod
 ```
+
+**For Private Repositories (SSH Key Required):**
+
+```bash
+# Deploy to test environment with SSH key
+make pipeline-set-test-with-key
+
+# Or manually specify the SSH key
+fly -t test set-pipeline \
+  -p github-release-monitor \
+  -c ci/pipeline.yml \
+  -l params/global.yml \
+  -l params/test.yml \
+  --var test_git_private_key="$(cat ~/.ssh/id_rsa)"
+```
+
+**Note:** The SSH key is only needed if you're monitoring private repositories. For public repositories, the default targets work fine.
 
 ## 6. Troubleshooting
 
