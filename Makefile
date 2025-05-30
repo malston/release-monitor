@@ -138,7 +138,17 @@ validate: ## Validate Concourse pipeline and configurations
 pipeline-set-test: ## Deploy pipeline to test environment (public repos only)
 	@echo "$(GREEN)Deploying pipeline to test (public repositories)...$(NC)"
 	@echo "$(YELLOW)Note: For private repos, use 'make pipeline-set-test-with-key'$(NC)"
-	./ci/fly.sh set -t test -f test
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
+		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		exit 1; \
+	fi
+	@fly -t test set-pipeline \
+		-p github-release-monitor \
+		-c ci/pipeline.yml \
+		-l params/global.yml \
+		-l params/test.yml \
+		--var github_api_token="$$GITHUB_TOKEN"
 
 .PHONY: pipeline-set-test-with-key
 pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos
@@ -156,21 +166,37 @@ pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key 
 		echo "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)"; \
 		exit 1; \
 	fi; \
+	if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
+		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		exit 1; \
+	fi; \
 	fly -t test set-pipeline \
 		-p github-release-monitor \
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
-		--var git_private_key="$$(cat $$SSH_KEY)"
+		--var git_private_key="$$(cat $$SSH_KEY)" \
+		--var github_api_token="$$GITHUB_TOKEN"
 
 .PHONY: pipeline-set-prod
 pipeline-set-prod: ## Deploy pipeline to production
 	@echo "$(GREEN)Deploying pipeline to production...$(NC)"
 	@echo "$(YELLOW)Warning: This will deploy to production!$(NC)"
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
+		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		exit 1; \
+	fi
 	@read -p "Continue? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		./ci/fly.sh set -t prod -f prod; \
+		fly -t prod set-pipeline \
+			-p github-release-monitor \
+			-c ci/pipeline.yml \
+			-l params/global.yml \
+			-l params/prod.yml \
+			--var github_api_token="$$GITHUB_TOKEN"; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
 	fi
@@ -194,12 +220,18 @@ pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for pr
 			echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
 			exit 1; \
 		fi; \
+		if [ -z "$$GITHUB_TOKEN" ]; then \
+			echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
+			echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+			exit 1; \
+		fi; \
 		fly -t prod set-pipeline \
 			-p github-release-monitor \
 			-c ci/pipeline.yml \
 			-l params/global.yml \
 			-l params/prod.yml \
-			--var git_private_key="$$(cat $$SSH_KEY)"; \
+			--var git_private_key="$$(cat $$SSH_KEY)" \
+			--var github_api_token="$$GITHUB_TOKEN"; \
 	else \
 		echo "$(RED)Deployment cancelled$(NC)"; \
 	fi
