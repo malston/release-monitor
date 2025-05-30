@@ -10,8 +10,6 @@
 
 **Quick Start**: New to Python? See our [Quick Start Guide](QUICK_START.md) for non-Python developers.
 
-**Contributing**: Want to contribute? Please read our [Contributing Guide](CONTRIBUTING.md) for development setup, coding standards, and submission guidelines.
-
 ## 🚀 Why Use GitHub Release Monitor?
 
 - **🔄 Automated Dependency Tracking**: Know instantly when your dependencies release new versions
@@ -64,6 +62,41 @@ $ python3 github_monitor.py --config config.yaml
 - **Concourse Integration**: Designed for use in Concourse pipelines with bash wrapper
 - **Error Handling**: Comprehensive error handling for network issues and API failures
 - **Configurable**: YAML-based configuration for repository lists and settings
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information.
+
+### 🎯 Where to Start Contributing
+
+#### Good First Issues
+Perfect for newcomers to the project:
+- [🏷️ Good First Issues](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Beginner-friendly tasks
+- [🤝 Help Wanted](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) - Issues where we need help
+- [✨ Enhancements](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) - New features and improvements
+
+#### Types of Contributions We're Looking For
+- 🐛 **Bug Fixes** - Help us squash bugs
+- 📚 **Documentation** - Improve docs, add examples, fix typos
+- ✨ **New Features** - Add support for new CI/CD tools (GitHub Actions, GitLab CI, etc.)
+- 🧪 **Tests** - Increase test coverage
+- 🎨 **Code Quality** - Refactoring and improvements
+- 🌍 **Examples** - Add more use cases and integration examples
+
+#### Quick Start for Contributors
+1. **Find an Issue**: Browse [open issues](https://github.com/malston/release-monitor/issues) or create a new one
+2. **Comment**: Let us know you're working on it
+3. **Fork & Clone**: See our [Contributing Guide](CONTRIBUTING.md#fork-and-clone)
+4. **Make Changes**: Follow our coding standards
+5. **Submit PR**: We'll review and provide feedback
+
+### Quick Links
+- [🍴 Fork the repository](https://github.com/malston/release-monitor/fork)
+- [🐛 Report a bug](https://github.com/malston/release-monitor/issues/new?template=bug_report.md)
+- [💡 Request a feature](https://github.com/malston/release-monitor/issues/new?template=feature_request.md)
+- [📖 Contributing Guide](CONTRIBUTING.md)
+- [👥 Contributors](CONTRIBUTORS.md)
+- [💬 Discussions](https://github.com/malston/release-monitor/discussions) (coming soon)
 
 ## Requirements
 
@@ -335,21 +368,6 @@ logging.basicConfig(level=logging.DEBUG)
 - Memory usage: < 50MB for typical workloads
 - Network usage: ~1KB per repository check
 
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
-
-- Setting up your development environment
-- Code standards and best practices
-- Testing requirements
-- Pull request process
-- Security considerations
-
-For quick local setup, run:
-```bash
-./scripts/setup-local.sh
-```
-
 ## Development Tools
 
 ### Makefile Commands
@@ -378,42 +396,6 @@ make pipeline-set-prod  # Deploy to production
 # Help
 make help           # Show all available commands
 ```
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information.
-
-### 🎯 Where to Start Contributing
-
-#### Good First Issues
-Perfect for newcomers to the project:
-- [🏷️ Good First Issues](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Beginner-friendly tasks
-- [🤝 Help Wanted](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) - Issues where we need help
-- [✨ Enhancements](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) - New features and improvements
-
-#### Types of Contributions We're Looking For
-- 🐛 **Bug Fixes** - Help us squash bugs
-- 📚 **Documentation** - Improve docs, add examples, fix typos
-- ✨ **New Features** - Add support for new CI/CD tools (GitHub Actions, GitLab CI, etc.)
-- 🧪 **Tests** - Increase test coverage
-- 🎨 **Code Quality** - Refactoring and improvements
-- 🌍 **Examples** - Add more use cases and integration examples
-
-#### Quick Start for Contributors
-1. **Find an Issue**: Browse [open issues](https://github.com/malston/release-monitor/issues) or create a new one
-2. **Comment**: Let us know you're working on it
-3. **Fork & Clone**: See our [Contributing Guide](CONTRIBUTING.md#fork-and-clone)
-4. **Make Changes**: Follow our coding standards
-5. **Submit PR**: We'll review and provide feedback
-
-### Quick Links for Contributors
-
-- [🍴 Fork the repository](https://github.com/malston/release-monitor/fork)
-- [🐛 Report a bug](https://github.com/malston/release-monitor/issues/new?template=bug_report.md)
-- [💡 Request a feature](https://github.com/malston/release-monitor/issues/new?template=feature_request.md)
-- [📖 Contributing Guide](CONTRIBUTING.md)
-- [👥 Contributors](CONTRIBUTORS.md)
-- [💬 Discussions](https://github.com/malston/release-monitor/discussions) (coming soon)
 
 ## License
 
