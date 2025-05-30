@@ -172,6 +172,42 @@ python3 test.py
 ./scripts/monitor.sh --config config-local.yaml --help
 ```
 
+### Integration Tests
+
+The project includes integration tests that demonstrate monitoring releases outside of Concourse pipelines. These tests are useful for verifying functionality in local development, cron jobs, or other CI/CD systems.
+
+#### Running Integration Tests
+
+```bash
+# Run the full integration test suite
+make integration-test
+
+# Run just the Python integration test
+make test-monitor-self
+```
+
+#### Creating Test Releases
+
+To test release monitoring with actual releases:
+
+```bash
+# Create a GitHub release (requires GitHub CLI)
+make create-release TAG=v1.0.0 NAME='Test Release 1.0.0' NOTES='Optional release notes'
+```
+
+#### What Integration Tests Do
+
+1. **Monitor this repository** - Tests monitoring `malston/release-monitor` for releases
+2. **Monitor other repositories** - Tests monitoring popular repos like `kubernetes/kubernetes`
+3. **Test state tracking** - Verifies the monitor correctly tracks previously seen releases
+4. **Test output formats** - Validates JSON and YAML output formats
+
+#### Integration Test Requirements
+
+- GitHub personal access token (set in `.env` file or `GITHUB_TOKEN` environment variable)
+- Python virtual environment with dependencies installed
+- GitHub CLI (`gh`) for creating test releases (optional)
+
 ### Test Requirements
 
 - All new features must include tests
@@ -237,7 +273,13 @@ python3 test.py
 
 4. **Test Your Changes:**
    ```bash
+   # Run unit tests
    python3 test.py
+   
+   # Run integration tests
+   make integration-test
+   
+   # Validate pipeline syntax
    ./ci/validate.sh
    ```
 
@@ -336,11 +378,11 @@ When making changes, consider updating:
 
 1. **Fork:** Fork the repository on GitHub (one-time setup)
 2. **Clone:** Clone your fork locally
-3. **Setup:** Use `./scripts/setup-local.sh`
+3. **Setup:** Use `./scripts/setup-local.sh` or `make setup`
 4. **Sync:** Sync with upstream `main` branch
 5. **Branch:** Create feature branch from `main`
 6. **Develop:** Write code, tests, and documentation
-7. **Test:** Run `python3 test.py` and `./ci/validate.sh`
+7. **Test:** Run `make test`, `make integration-test`, and `./ci/validate.sh`
 8. **Commit:** Use descriptive commit messages
 9. **Push:** Push to your fork
 10. **PR:** Create pull request to upstream repository
