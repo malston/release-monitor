@@ -4,7 +4,7 @@ resources:
     type: git
     source:
       uri: https://github.com/malston/release-monitor.git
-      branch: feature/s3-version-tracking
+      branch: main
 
 jobs:
   - name: test-github-monitor
@@ -20,70 +20,70 @@ jobs:
             source:
               repository: python
               tag: "3.9-slim"
-          
+
           inputs:
             - name: release-monitor-repo
-          
+
           outputs:
             - name: test-results
-          
+
           params:
             GITHUB_TOKEN: ((github_token))
-          
+
           run:
             path: bash
             args:
               - -c
               - |
                 set -euo pipefail
-                
-                echo "=== GitHub Release Monitor Test ===" 
+
+                echo "=== GitHub Release Monitor Test ==="
                 echo "Testing basic functionality with GitHub API..."
-                
+
                 cd release-monitor-repo
-                
+
                 # Install dependencies
                 echo "Installing Python dependencies..."
                 pip install --quiet -r requirements.txt
-                
+
                 # Verify GITHUB_TOKEN is available
                 if [ -z "${GITHUB_TOKEN:-}" ]; then
                   echo "ERROR: GITHUB_TOKEN not provided"
                   exit 1
                 fi
-                
+
                 echo "✓ GitHub token available (${#GITHUB_TOKEN} characters)"
-                
+
                 # Create test configuration
                 cat > test-config.yaml << 'EOF'
                 repositories:
                   - owner: concourse
                     repo: concourse
                     description: "Concourse CI - Test repository"
-                
+
                 settings:
                   rate_limit_delay: 1.0
                   max_releases_per_repo: 2
                   include_prereleases: false
-                
+
                 # Disable downloads for this test
                 download:
                   enabled: false
                 EOF
-                
+
                 echo "Test configuration:"
                 cat test-config.yaml
                 echo ""
-                
+
                 # Test GitHub API connectivity
                 echo "Testing GitHub API connectivity..."
                 python3 -c "
                 import os
                 import requests
-                
+
                 token = os.environ['GITHUB_TOKEN']
                 headers = {'Authorization': f'token {token}'}
-                
+
                 # Test API access
                 response = requests.get('https://api.github.com/user', headers=headers)
                 if response.status_code == 200:
@@ -93,7 +93,7 @@ jobs:
                 else:
                     print(f'✗ GitHub API authentication failed: {response.status_code}')
                     exit(1)
-                
+
                 # Test rate limit info
                 response = requests.get('https://api.github.com/rate_limit', headers=headers)
                 if response.status_code == 200:
@@ -103,25 +103,25 @@ jobs:
                 else:
                     print('⚠ Could not check rate limit')
                 "
-                
+
                 echo ""
                 echo "Running release monitor..."
-                
+
                 # Run the monitor
                 python3 github_monitor.py \
                   --config test-config.yaml \
                   --output ../test-results/releases.json \
                   --format json
-                
+
                 echo ""
                 echo "Monitor results:"
                 if [ -f ../test-results/releases.json ]; then
                   cat ../test-results/releases.json | python3 -m json.tool
-                  
+
                   # Extract summary
                   TOTAL=$(cat ../test-results/releases.json | python3 -c "import json,sys; print(json.load(sys.stdin)['total_repositories_checked'])")
                   NEW=$(cat ../test-results/releases.json | python3 -c "import json,sys; print(json.load(sys.stdin)['new_releases_found'])")
-                  
+
                   echo ""
                   echo "=== Test Summary ==="
                   echo "✓ Repositories checked: $TOTAL"
@@ -139,17 +139,17 @@ jobs:
             type: registry-image
             source:
               repository: busybox
-          
+
           inputs:
             - name: test-results
-          
+
           run:
             path: sh
             args:
               - -c
               - |
                 echo "=== Verifying Monitor Output ==="
-                
+
                 if [ -f test-results/releases.json ]; then
                   echo "✓ Output file exists"
                   echo "File size: $(wc -c < test-results/releases.json) bytes"
