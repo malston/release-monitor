@@ -4,6 +4,8 @@ A Python script designed for Concourse CI/CD pipelines that monitors GitHub repo
 
 **Quick Start**: New to Python? See our [Quick Start Guide](QUICK_START.md) for non-Python developers.
 
+**Contributing**: Want to contribute? Please read our [Contributing Guide](CONTRIBUTING.md) for development setup, coding standards, and submission guidelines.
+
 ## Features
 
 - **GitHub API Integration**: Authenticates with GitHub API using personal access tokens
@@ -327,6 +329,23 @@ make pipeline-set-prod  # Deploy to production
 # Help
 make help           # Show all available commands
 ```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for:
+
+- Development setup instructions
+- Coding standards and best practices
+- How to submit pull requests
+- Testing guidelines
+- Security considerations
+
+### Quick Links for Contributors
+
+- [Fork the repository](https://github.com/malston/release-monitor/fork)
+- [Submit an issue](https://github.com/malston/release-monitor/issues)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Code of Conduct](CONTRIBUTING.md#code-of-conduct)
 
 ## License
 
