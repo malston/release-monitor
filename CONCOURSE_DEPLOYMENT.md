@@ -53,6 +53,7 @@ s3_releases_bucket: "my-org-release-artifacts"
 Edit the parameter files in `params/` directory:
 
 **Global Configuration (`params/global.yml`)**:
+
 ```yaml
 # Update repository URI
 git_repo_uri: git@github.com:your-org/release-monitor.git
@@ -70,6 +71,7 @@ download_repository_overrides: |
 ```
 
 **Environment-Specific Configuration**:
+
 - `params/lab.yml`: Development/testing settings
 - `params/prod.yml`: Production settings
 
@@ -149,7 +151,8 @@ graph TD
 ### S3 Organization
 
 **Monitor Bucket** (`s3://monitor-bucket/`):
-```
+
+```sh
 release-monitor/
 ├── latest-releases.json          # Current monitor output
 ├── version_db.json              # Version tracking database (managed by download task)
@@ -161,7 +164,8 @@ release-monitor/
 **Note**: With S3-based version storage enabled, the version database is managed directly by the download task using the S3 API, eliminating the need for separate Concourse resources.
 
 **Releases Bucket** (`s3://releases-bucket/`):
-```
+
+```sh
 release-downloads/
 ├── kubernetes_kubernetes/
 │   ├── v1.29.0/
@@ -178,12 +182,14 @@ release-downloads/
 ### Job Monitoring
 
 **Check Pipeline Status**:
+
 ```bash
 fly -t prod pipelines
 fly -t prod jobs -p github-release-monitor
 ```
 
 **View Job Logs**:
+
 ```bash
 # Monitor releases job
 fly -t prod watch -j github-release-monitor/monitor-releases
@@ -200,7 +206,8 @@ fly -t prod builds -j github-release-monitor/download-new-releases
 #### 1. Authentication Failures
 
 **Problem**: `403 Forbidden` errors from GitHub API
-**Solution**: 
+**Solution**:
+
 - Verify `GITHUB_TOKEN` is valid
 - Check token permissions (needs repository read access)
 - Rotate token if expired
@@ -209,6 +216,7 @@ fly -t prod builds -j github-release-monitor/download-new-releases
 
 **Problem**: S3 upload/download failures
 **Solution**:
+
 - Verify S3 credentials are correct
 - Check bucket policies allow read/write access
 - Ensure buckets exist in specified regions
@@ -217,6 +225,7 @@ fly -t prod builds -j github-release-monitor/download-new-releases
 
 **Problem**: Asset downloads timing out or failing
 **Solution**:
+
 - Increase `DOWNLOAD_TIMEOUT` parameter
 - Check network connectivity from Concourse workers
 - Review asset patterns for correctness
@@ -225,6 +234,7 @@ fly -t prod builds -j github-release-monitor/download-new-releases
 
 **Problem**: Version comparison errors
 **Solution**:
+
 ```bash
 # Reset version database
 fly -t prod execute --config ci/tasks/reset-version-db.yml
@@ -233,6 +243,7 @@ fly -t prod execute --config ci/tasks/reset-version-db.yml
 ### Performance Monitoring
 
 **Check Download Metrics**:
+
 ```bash
 # Download the status file
 aws s3 cp s3://releases-bucket/download_status.json status.json
@@ -240,6 +251,7 @@ jq . status.json
 ```
 
 **Monitor Storage Usage**:
+
 ```bash
 # Check bucket sizes
 aws s3 ls s3://releases-bucket/release-downloads/ --recursive --summarize
@@ -342,6 +354,7 @@ git pull origin main
 ### Downstream Pipelines
 
 **Trigger on New Kubernetes Release**:
+
 ```yaml
 # In dependent pipeline
 resources:
@@ -363,6 +376,7 @@ jobs:
 **Notification Integration**:
 
 *Slack Notification:*
+
 ```yaml
 # Add notification on download completion
 - put: slack-notification
@@ -373,6 +387,7 @@ jobs:
 ```
 
 *Microsoft Teams Notification:*
+
 ```yaml
 # Add Teams notification on download completion
 - put: teams-notification
