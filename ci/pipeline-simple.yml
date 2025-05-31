@@ -1,0 +1,109 @@
+# Concourse Pipeline for GitHub Release Monitor (Simple Version)
+# This pipeline runs the release monitoring script on a schedule without S3 dependencies
+# Perfect for getting started or testing the basic functionality
+
+resources:
+  - name: release-monitor-repo
+    type: git
+    source:
+      uri: ((git_repo_uri))
+      branch: ((git_branch))
+      private_key: ((git_private_key))
+
+  - name: schedule-trigger
+    type: time
+    source:
+      interval: 1h  # Check every hour
+
+jobs:
+  - name: monitor-releases
+    plan:
+      - in_parallel:
+          - get: release-monitor-repo
+          - get: schedule-trigger
+            trigger: true
+
+      - task: check-releases
+        file: release-monitor-repo/ci/tasks/check-releases-simple/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
+
+      # Log release information to console instead of storing in S3
+      - task: display-releases
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: "3.11-slim"
+          inputs:
+            - name: release-output
+              path: /release-output
+          run:
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                echo "=== GitHub Release Monitor Results ==="
+                if [ -f /release-output/releases.json ]; then
+                  echo "Release data found:"
+                  cat /release-output/releases.json | python3 -m json.tool
+                else
+                  echo "No release data generated"
+                fi
+                echo "=== End Release Monitor Results ==="
+
+  - name: check-repositories
+    plan:
+      - get: release-monitor-repo
+        trigger: false
+
+      - task: validate-config
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: "3.11-slim"
+          inputs:
+            - name: release-monitor-repo
+          run:
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                cd release-monitor-repo
+                echo "=== Validating Configuration ==="
+                
+                # Install Python dependencies first
+                echo "Installing dependencies..."
+                pip install -r requirements.txt --quiet
+                echo "✓ Dependencies installed successfully"
+                
+                # Check if config files exist
+                echo -e "\n=== Checking Configuration Files ==="
+                if [ -f config.yaml ]; then
+                  echo "✓ config.yaml found"
+                  echo "Repositories configured:"
+                  python3 -c "
+                import yaml
+                try:
+                    with open('config.yaml', 'r') as f:
+                        config = yaml.safe_load(f)
+                    repos = config.get('repositories', [])
+                    for i, repo in enumerate(repos, 1):
+                        owner = repo.get('owner', 'unknown')
+                        repo_name = repo.get('repo', 'unknown')
+                        print(f'  {i}. {owner}/{repo_name}')
+                    print(f'Total: {len(repos)} repositories')
+                except Exception as e:
+                    print(f'Error reading config: {e}')
+                "
+                else
+                  echo "❌ config.yaml not found"
+                  exit 1
+                fi
+                
+                echo -e "\n=== Configuration Validation Complete ==="
