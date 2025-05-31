@@ -2,7 +2,7 @@
 # Override common parameters for test/development environment
 
 # Test-specific Git configuration
-git_branch: feature/pipeline-without-s3
+git_branch: develop
 
 # Test S3 buckets
 s3_bucket: test-monitor-bucket
