@@ -18,16 +18,12 @@ pip install -r requirements.txt --quiet
 # Create output directory
 mkdir -p /release-output
 
-# Run the monitoring script without S3 storage
+# Run the monitoring script using the wrapper
 echo "Running release monitoring script..."
-export GITHUB_TOKEN="${GITHUB_TOKEN}"
-
-# Use local file-based storage instead of S3
-python3 github_monitor.py \
+./scripts/monitor.sh \
   --config "${CONFIG_FILE}" \
-  --output-format json \
-  --output-file /release-output/releases.json \
-  --force-check
+  --output /release-output/releases.json \
+  --format json
 
 # Validate output exists
 if [[ ! -f "/release-output/releases.json" ]]; then
