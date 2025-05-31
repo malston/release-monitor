@@ -23,10 +23,10 @@ ifndef NO_COLOR
     RED := \033[0;31m
     NC := \033[0m
 else
-    GREEN := 
-    YELLOW := 
-    RED := 
-    NC := 
+    GREEN :=
+    YELLOW :=
+    RED :=
+    NC :=
 endif
 
 # Default target - show help
