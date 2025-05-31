@@ -16,6 +16,7 @@ inputs:
 
 outputs:
   - name: release-output
+    path: /release-output
   - name: release-state
     path: /tmp/release-state
 

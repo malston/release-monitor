@@ -39,15 +39,16 @@ jobs:
               tag: "3.11-slim"
           inputs:
             - name: release-output
+              path: /release-output
           run:
             path: /bin/bash
             args:
               - -c
               - |
                 echo "=== GitHub Release Monitor Results ==="
-                if [ -f release-output/releases.json ]; then
+                if [ -f /release-output/releases.json ]; then
                   echo "Release data found:"
-                  cat release-output/releases.json | python3 -m json.tool
+                  cat /release-output/releases.json | python3 -m json.tool
                 else
                   echo "No release data generated"
                 fi
@@ -76,7 +77,13 @@ jobs:
                 cd release-monitor-repo
                 echo "=== Validating Configuration ==="
                 
+                # Install Python dependencies first
+                echo "Installing dependencies..."
+                pip install -r requirements.txt --quiet
+                echo "✓ Dependencies installed successfully"
+                
                 # Check if config files exist
+                echo -e "\n=== Checking Configuration Files ==="
                 if [ -f config.yaml ]; then
                   echo "✓ config.yaml found"
                   echo "Repositories configured:"
@@ -87,7 +94,9 @@ jobs:
                         config = yaml.safe_load(f)
                     repos = config.get('repositories', [])
                     for i, repo in enumerate(repos, 1):
-                        print(f'  {i}. {repo.get(\"name\", \"unknown\")}')
+                        owner = repo.get('owner', 'unknown')
+                        repo_name = repo.get('repo', 'unknown')
+                        print(f'  {i}. {owner}/{repo_name}')
                     print(f'Total: {len(repos)} repositories')
                 except Exception as e:
                     print(f'Error reading config: {e}')
@@ -96,10 +105,5 @@ jobs:
                   echo "❌ config.yaml not found"
                   exit 1
                 fi
-                
-                # Validate Python dependencies
-                echo -e "\n=== Checking Dependencies ==="
-                pip install -r requirements.txt --quiet
-                echo "✓ Dependencies installed successfully"
                 
                 echo -e "\n=== Configuration Validation Complete ==="
