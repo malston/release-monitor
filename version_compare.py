@@ -29,7 +29,7 @@ class VersionComparator:
     )
     
     CALVER_PATTERN = re.compile(
-        r'^v?(?P<year>20\d{2}|19\d{2})\.(?P<month>0?\d|1[0-2])(?:\.(?P<day>[0-3]?\d))?'
+        r'^v?(?P<year>\d{2,4})\.(?P<month>\d{1,2})(?:\.(?P<day>\d{1,2}))?'
         r'(?:\.(?P<micro>\d+))?(?:-(?P<modifier>[0-9A-Za-z\-\.]+))?$'
     )
     
@@ -123,7 +123,33 @@ class VersionComparator:
         # Clean the version string
         clean_version = version_string.strip()
         
-        # Try SemVer first
+        # Try CalVer first by checking if it looks like a date-based version
+        calver_match = self.CALVER_PATTERN.match(clean_version)
+        if calver_match:
+            year_str = calver_match.group('year')
+            year = int(year_str)
+            month = int(calver_match.group('month'))
+            
+            # Heuristic: if year >= 1900 and month between 1-12, it's likely CalVer
+            # Also handle 2-digit years (20-99 -> 2020-2099, 00-19 -> 2000-2019)
+            original_year = year
+            if year < 100:
+                year += 2000 if year < 50 else 1900
+            
+            # Additional heuristic: For 2-digit years, must be >= 20; for 4-digit, must be >= 1900
+            # to be considered CalVer (this excludes things like "1.0" or "10.1" which should be numeric)
+            if ((len(year_str) == 2 and original_year >= 20) or (len(year_str) == 4 and year >= 1900)) and year <= 2100 and month >= 1 and month <= 12:
+                return {
+                    'type': 'calver',
+                    'original': version_string,
+                    'year': year,
+                    'month': month,
+                    'day': int(calver_match.group('day')) if calver_match.group('day') else 1,
+                    'micro': int(calver_match.group('micro')) if calver_match.group('micro') else 0,
+                    'modifier': calver_match.group('modifier')
+                }
+        
+        # Try SemVer
         semver_match = self.SEMVER_PATTERN.match(clean_version)
         if semver_match:
             return {
@@ -136,23 +162,6 @@ class VersionComparator:
                 'build': semver_match.group('build')
             }
         
-        # Try CalVer
-        calver_match = self.CALVER_PATTERN.match(clean_version)
-        if calver_match:
-            year = int(calver_match.group('year'))
-            # Convert 2-digit years to 4-digit
-            if year < 100:
-                year += 2000 if year < 50 else 1900
-            
-            return {
-                'type': 'calver',
-                'original': version_string,
-                'year': year,
-                'month': int(calver_match.group('month')),
-                'day': int(calver_match.group('day')) if calver_match.group('day') else 1,
-                'micro': int(calver_match.group('micro')) if calver_match.group('micro') else 0,
-                'modifier': calver_match.group('modifier')
-            }
         
         # Try simple numeric versioning
         numeric_match = self.SIMPLE_NUMERIC_PATTERN.match(clean_version)

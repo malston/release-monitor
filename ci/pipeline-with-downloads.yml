@@ -1,0 +1,190 @@
+---
+# Concourse Pipeline: GitHub Release Monitor with Downloads
+# Monitors GitHub repositories for new releases and downloads assets
+
+resource_types:
+  - name: time
+    type: registry-image
+    source:
+      repository: concourse/time-resource
+      tag: latest
+
+resources:
+  # This repository
+  - name: release-monitor
+    type: git
+    source:
+      uri: ((release_monitor_git_uri))
+      branch: ((release_monitor_branch))
+      private_key: ((release_monitor_private_key))
+
+  # Configuration repository
+  - name: config-repo
+    type: git
+    source:
+      uri: ((config_repo_uri))
+      branch: ((config_repo_branch))
+      private_key: ((config_repo_private_key))
+
+  # Timer for periodic checks
+  - name: monitor-timer
+    type: time
+    source:
+      interval: ((monitor_interval))
+      start: "6:00 AM"
+      stop: "6:00 PM"
+      days: [Monday, Tuesday, Wednesday, Thursday, Friday]
+
+  # S3 bucket for downloads
+  - name: release-downloads
+    type: s3
+    source:
+      bucket: ((downloads_s3_bucket))
+      regexp: downloads/(.*).tar.gz
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region))
+
+  # S3 bucket for version database
+  - name: version-database
+    type: s3
+    source:
+      bucket: ((version_db_s3_bucket))
+      versioned_file: release-monitor/version_db.json
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region))
+
+jobs:
+  # Monitor and download releases
+  - name: monitor-and-download
+    plan:
+      - in_parallel:
+          - get: release-monitor
+          - get: config-repo
+          - get: monitor-timer
+            trigger: true
+          - get: version-database
+            params:
+              skip_download: "true"
+
+      # Check for new releases
+      - task: check-releases
+        file: release-monitor/ci/tasks/check-releases/task.yml
+        input_mapping:
+          config: config-repo
+        params:
+          GITHUB_TOKEN: ((github_token))
+          CONFIG_FILE: config/monitor-config.yaml
+
+      # Download new releases
+      - task: download-releases
+        file: release-monitor/ci/tasks/download-releases/task.yml
+        input_mapping:
+          monitor-output: releases
+        params:
+          GITHUB_TOKEN: ((github_token))
+          CONFIG_FILE: config/monitor-config.yaml
+          USE_S3_VERSION_DB: "true"
+          VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+          VERSION_DB_S3_PREFIX: release-monitor/
+          AWS_ACCESS_KEY_ID: ((aws_access_key_id))
+          AWS_SECRET_ACCESS_KEY: ((aws_secret_access_key))
+          ASSET_PATTERNS: '["*.tar.gz", "*.zip", "!*-sources.*"]'
+          VERIFY_DOWNLOADS: "true"
+
+      # Upload downloads to S3
+      - task: package-downloads
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: alpine
+              tag: latest
+          inputs:
+            - name: downloads
+          outputs:
+            - name: packaged-downloads
+          run:
+            path: sh
+            args:
+              - -exc
+              - |
+                # Create archive of all downloads
+                cd downloads
+                if [ -n "$(find . -type f -name '*.tar.gz' -o -name '*.zip' 2>/dev/null)" ]; then
+                  tar czf ../packaged-downloads/downloads-$(date +%Y%m%d-%H%M%S).tar.gz .
+                else
+                  echo "No downloads to package"
+                  touch ../packaged-downloads/no-downloads
+                fi
+
+      - put: release-downloads
+        params:
+          file: packaged-downloads/downloads-*.tar.gz
+
+      # Update version database
+      - put: version-database
+        params:
+          file: version-db/version_db.json
+
+  # Manual download trigger
+  - name: download-specific-release
+    plan:
+      - in_parallel:
+          - get: release-monitor
+          - get: config-repo
+
+      - task: download-release
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.9-slim
+          inputs:
+            - name: release-monitor
+            - name: config-repo
+          outputs:
+            - name: downloads
+          params:
+            GITHUB_TOKEN: ((github_token))
+            REPOSITORY_OWNER: ((manual_download_owner))
+            REPOSITORY_NAME: ((manual_download_repo))
+            RELEASE_TAG: ((manual_download_tag))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                cd release-monitor
+                pip install -r requirements.txt
+                
+                # Create custom config for single repository
+                cat > custom-config.yaml << EOF
+                repositories:
+                  - owner: ${REPOSITORY_OWNER}
+                    repo: ${REPOSITORY_NAME}
+                download:
+                  enabled: true
+                  directory: /tmp/downloads
+                  asset_patterns: ["*"]
+                EOF
+                
+                # Run monitor for specific release
+                python3 github_monitor.py --config custom-config.yaml --download
+                
+                # Copy downloads to output
+                cp -r /tmp/downloads/* ../downloads/ || true
+
+# Pipeline groups for organization
+groups:
+  - name: monitoring
+    jobs:
+      - monitor-and-download
+  
+  - name: manual
+    jobs:
+      - download-specific-release

@@ -21,7 +21,7 @@
 - **⚡ Lightweight**: Simple Python script with minimal dependencies
 
 Perfect for teams who need to:
-- Track when Kubernetes, Terraform, or other tools release updates
+- Track when Kubernetes, Gatekeeper, Istio, or other tools release updates
 - Automate dependency updates in their CI/CD pipelines  
 - Monitor security tools for latest versions
 - Build compliance reports showing update status
@@ -44,11 +44,11 @@ $ python3 github_monitor.py --config config.yaml
       "html_url": "https://github.com/kubernetes/kubernetes/releases/tag/v1.33.1"
     },
     {
-      "repository": "hashicorp/terraform", 
-      "tag_name": "v1.12.1",
-      "name": "v1.12.1",
+      "repository": "istio/istio", 
+      "tag_name": "1.22.4",
+      "name": "1.22.4",
       "published_at": "2025-05-21T13:02:01Z",
-      "html_url": "https://github.com/hashicorp/terraform/releases/tag/v1.12.1"
+      "html_url": "https://github.com/istio/istio/releases/tag/1.22.4"
     }
   ]
 }
@@ -256,28 +256,57 @@ The script outputs structured data about new releases:
 
 ## Concourse Integration
 
-The project includes a complete Concourse CI/CD pipeline structure:
+The project includes complete Concourse CI/CD pipeline support with multiple pipeline options:
 
 ```text
 ci/
-├── pipeline.yml                      # Main pipeline definition
+├── pipeline.yml                      # Main pipeline with S3 storage
+├── pipeline-simple.yml              # Simple pipeline without S3
+├── pipeline-with-downloads.yml      # Pipeline with download support
+├── pipeline-downloads-simple.yml    # Simple download pipeline
 ├── fly.sh                           # Deployment script
 └── tasks/
-    ├── check-releases/
-    │   ├── task.yml                 # Task configuration
-    │   └── task.sh                  # Task execution script
-    └── download-tarballs/
-        ├── task.yml                 # Task configuration
-        └── task.sh                  # Task execution script
+    ├── check-releases/              # Monitor releases task
+    │   ├── task.yml
+    │   └── task.sh
+    ├── download-releases/           # Download assets task
+    │   ├── task.yml
+    │   └── task.sh
+    └── download-tarballs/           # Legacy tarball download
+        ├── task.yml
+        └── task.sh
 
 scripts/
-└── monitor.sh                       # Universal monitoring script wrapper
+├── monitor.sh                       # Monitor wrapper script
+└── download.sh                      # Download wrapper script
 
 params/
 ├── global.yml                       # Global parameters
 ├── test.yml                        # Test environment parameters
 └── prod.yml                        # Production environment parameters
 ```
+
+### Pipeline Options
+
+1. **Standard Pipeline with S3** (`pipeline.yml`):
+   - Monitors releases and stores state in S3
+   - Downloads release tarballs to S3
+   - Suitable for production environments
+
+2. **Simple Pipeline** (`pipeline-simple.yml`):
+   - Local state management (no S3 required)
+   - Basic monitoring functionality
+   - Good for testing or simple deployments
+
+3. **Pipeline with Downloads** (`pipeline-with-downloads.yml`):
+   - Full download functionality with asset filtering
+   - S3-based version database
+   - Automatic packaging and archiving
+
+4. **Simple Download Pipeline** (`pipeline-downloads-simple.yml`):
+   - Monitor and download without S3
+   - Local file outputs
+   - Easy to understand and modify
 
 ### Pipeline Setup
 
@@ -288,11 +317,18 @@ params/
 2. Deploy the pipeline using the fly script:
 
    ```bash
-   # Deploy to test environment
+   # Deploy standard pipeline
    ./ci/fly.sh set -t test -f test
 
-   # Deploy to production
-   ./ci/fly.sh set -t prod -f prod
+   # Deploy simple pipeline
+   fly -t test set-pipeline -p release-monitor-simple \
+     -c ci/pipeline-simple.yml \
+     -l params/global.yml -l params/test.yml
+
+   # Deploy download pipeline
+   fly -t test set-pipeline -p release-monitor-downloads \
+     -c ci/pipeline-with-downloads.yml \
+     -l params/global.yml -l params/test.yml
    ```
 
 3. Unpause the pipeline:
@@ -303,10 +339,13 @@ params/
 
 ### Pipeline Features
 
-- **Scheduled Execution**: Runs monitoring every hour (configurable)
+- **Scheduled Execution**: Runs monitoring at configurable intervals
 - **Release Detection**: Identifies new releases since last run
-- **Tarball Download**: Downloads and stores release tarballs in S3
-- **Structured Output**: Provides JSON output for downstream processing
+- **Asset Downloads**: Download specific release assets based on patterns
+- **Version Management**: Track downloaded versions to avoid duplicates
+- **S3 Integration**: Optional S3 storage for state and downloads
+- **Structured Output**: JSON/YAML output for downstream processing
+- **Manual Triggers**: Download specific releases on demand
 
 ## State Management
 
@@ -365,9 +404,9 @@ repositories:
     repo: your-project
     description: "Internal project"
   
-  - owner: hashicorp
-    repo: terraform
-    description: "Infrastructure as code"
+  - owner: open-policy-agent
+    repo: gatekeeper
+    description: "Policy Controller for Kubernetes"
 
 settings:
   rate_limit_delay: 2.0  # Slower API calls
