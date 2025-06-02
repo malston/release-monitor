@@ -189,55 +189,98 @@ jobs:
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
 
-  # Test job to force re-download of a specific release
-  - name: test-download-with-upload
+  # Clear version database to force re-downloads
+  - name: clear-version-database
     plan:
       - get: release-monitor-repo
       
-      - task: create-test-monitor-output
+      - task: clear-version-db
         config:
           platform: linux
           image_resource:
             type: registry-image
             source:
-              repository: busybox
-          outputs:
-            - name: monitor-output
-              path: /tmp/monitor-output
+              repository: python
+              tag: 3.9-slim
+          params:
+            AWS_ACCESS_KEY_ID: ((s3_access_key))
+            AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+            S3_ENDPOINT: ((s3_endpoint))
+            S3_BUCKET: ((s3_bucket))
           run:
-            path: sh
+            path: bash
             args:
               - -exc
               - |
-                # Create a test monitor output with one small release to download
-                cat > /tmp/monitor-output/latest-releases.json << 'EOF'
-                {
-                  "timestamp": 1234567890,
-                  "total_repositories_checked": 1,
-                  "new_releases_found": 1,
-                  "releases": [
-                    {
-                      "repository": "malston/release-monitor",
-                      "owner": "malston",
-                      "repo": "release-monitor",
-                      "tag_name": "v1.0.0",
-                      "name": "Release v1.0.0",
-                      "published_at": "2024-01-01T00:00:00Z",
-                      "html_url": "https://github.com/malston/release-monitor/releases/tag/v1.0.0",
-                      "assets_url": "https://api.github.com/repos/malston/release-monitor/releases/12345/assets",
-                      "body": "Test release"
-                    }
-                  ]
+                # Install boto3
+                pip3 install --quiet boto3
+                
+                # Clear the version database
+                python3 -c "
+                import boto3
+                import os
+                
+                endpoint_url = os.environ.get('S3_ENDPOINT')
+                s3_kwargs = {
+                    'region_name': 'us-east-1'
                 }
-                EOF
+                if endpoint_url:
+                    s3_kwargs['endpoint_url'] = endpoint_url
                 
-                echo "Created test monitor output"
+                s3 = boto3.client('s3', **s3_kwargs)
+                bucket = os.environ['S3_BUCKET']
                 
+                # Delete the version database
+                try:
+                    s3.delete_object(Bucket=bucket, Key='version-db/version_db.json')
+                    print(f'Successfully cleared version database from s3://{bucket}/version-db/version_db.json')
+                    print('Next pipeline run will download all releases as new')
+                except Exception as e:
+                    print(f'Error clearing version database: {e}')
+                "
+                
+  # Test job to clear a specific repo and trigger download
+  - name: force-download-etcd
+    plan:
+      - get: release-monitor-repo
+      
+      - task: clear-etcd-from-db
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.9-slim
+          inputs:
+            - name: release-monitor-repo
+          params:
+            AWS_ACCESS_KEY_ID: ((s3_access_key))
+            AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+            S3_ENDPOINT: ((s3_endpoint))
+            S3_BUCKET: ((s3_bucket))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                cd release-monitor-repo
+                pip3 install --quiet boto3
+                export S3_BUCKET=$S3_BUCKET
+                python3 scripts/clear-version-entry.py etcd-io/etcd || echo "Failed to clear, but continuing..."
+                
+      - task: check-releases
+        file: release-monitor-repo/ci/tasks/check-releases/task.yml
+        output_mapping:
+          release-output: monitor-output
+        params:
+          GITHUB_TOKEN: ((github_token))
+          S3_ENDPOINT: ((s3_endpoint))
+          
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
         input_mapping:
           release-monitor: release-monitor-repo
-          monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
           ASSET_PATTERNS: ((download_asset_patterns))
@@ -250,7 +293,7 @@ jobs:
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
-          VERSION_DB_S3_PREFIX: test-version-db/  # Use separate prefix for testing
+          VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
           VERSION_DB_S3_REGION: ((s3_region))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
