@@ -16,6 +16,10 @@ CONFIG := config.yaml
 LOCAL_CONFIG := config-local.yaml
 TEST_CONFIG := test-config.yaml
 
+# Load FLY_TARGET from .env file, fallback to test
+# Add FLY_TARGET=your-target to .env to override the default
+FLY_TARGET := $(shell if [ -f .env ]; then source .env && echo $${FLY_TARGET:-test}; else echo test; fi)
+
 # Colors for output - set NO_COLOR=1 to disable colors
 ifndef NO_COLOR
     GREEN := \033[0;32m
@@ -37,6 +41,9 @@ endif
 .PHONY: help
 help: ## Display this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@printf "\n\033[1mConfiguration:\033[0m\n"
+	@printf "  Set FLY_TARGET in .env file to override Concourse target (default: $(FLY_TARGET))\n"
+	@printf "  Example: echo 'FLY_TARGET=prod' >> .env\n"
 
 ##@ Setup & Installation
 
@@ -156,7 +163,7 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only, re
 		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi
-	@fly -t test set-pipeline \
+	@fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor \
 		-c ci/pipeline.yml \
 		-l params/global.yml \
@@ -173,7 +180,7 @@ pipeline-set-test-simple: ## Deploy simplified pipeline to test environment (no 
 		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi
-	@fly -t test set-pipeline \
+	@fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor-simple \
 		-c ci/pipeline-simple.yml \
 		-l params/global.yml \
@@ -202,7 +209,7 @@ pipeline-set-test-simple-with-key: ## Deploy simplified pipeline with SSH key fo
 		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi; \
-	fly -t test set-pipeline \
+	fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor-simple \
 		-c ci/pipeline-simple.yml \
 		-l params/global.yml \
@@ -232,7 +239,7 @@ pipeline-set-test-minio: ## Deploy pipeline with Minio support (local developmen
 		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi; \
-	fly -t test set-pipeline \
+	fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor-minio \
 		-c ci/pipeline-s3-compatible.yml \
 		-l params/global-s3-compatible.yml \
@@ -246,10 +253,10 @@ pipeline-set-test-minio: ## Deploy pipeline with Minio support (local developmen
 force-download: ## Force download for specific repository (REPO=owner/repo, defaults to etcd-io/etcd)
 	@if [ -z "$(REPO)" ]; then \
 		printf "$(GREEN)Force downloading etcd-io/etcd (default)...$(NC)\n"; \
-		fly -t test trigger-job -j github-release-monitor-minio/force-download-repo; \
+		fly -t $(FLY_TARGET) trigger-job -j github-release-monitor-minio/force-download-repo; \
 	else \
 		printf "$(GREEN)Force downloading $(REPO)...$(NC)\n"; \
-		fly -t test trigger-job -j github-release-monitor-minio/force-download-repo -v force_download_repo="$(REPO)"; \
+		fly -t $(FLY_TARGET) trigger-job -j github-release-monitor-minio/force-download-repo -v force_download_repo="$(REPO)"; \
 	fi
 
 .PHONY: pipeline-set-test-with-key
@@ -273,7 +280,7 @@ pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key 
 		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi; \
-	fly -t test set-pipeline \
+	fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor \
 		-c ci/pipeline.yml \
 		-l params/global.yml \
@@ -289,7 +296,7 @@ pipeline-set-prod: ## Deploy pipeline to production
 	@read -p "Continue? [y/N] " -n 1 -r; \
 	printf "\n"; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		fly -t prod set-pipeline \
+		fly -t $(FLY_TARGET) set-pipeline \
 			-p github-release-monitor \
 			-c ci/pipeline.yml \
 			-l params/global.yml \
@@ -324,7 +331,7 @@ pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for pr
 			printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 			exit 1; \
 		fi; \
-		fly -t prod set-pipeline \
+		fly -t $(FLY_TARGET) set-pipeline \
 			-p github-release-monitor \
 			-c ci/pipeline.yml \
 			-l params/global.yml \
