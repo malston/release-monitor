@@ -28,7 +28,6 @@ s3_secret_key: ((s3_secret_access_key))
 # For Minio: adjust based on your setup
 s3_disable_ssl: false
 s3_skip_ssl_verification: false
-# s3_use_v4: true  # Always true for both AWS S3 and Minio
 
 # Version database configuration
 use_s3_version_db: true

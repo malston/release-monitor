@@ -29,7 +29,6 @@ resources:
       # S3-compatible options
       # disable_ssl: ((s3_disable_ssl))
       skip_ssl_verification: ((s3_skip_ssl_verification))
-      # use_v4: ((s3_use_v4))  # Required for Minio
       
       # File configuration
       versioned_file: release-monitor/latest-releases.json

@@ -108,7 +108,6 @@ s3_region: us-east-1
 # S3-compatible settings for Minio
 s3_disable_ssl: true
 s3_skip_ssl_verification: true
-# s3_use_v4: true
 
 # Bucket names
 s3_monitor_bucket: release-monitor-output
@@ -170,7 +169,6 @@ show_direct_method() {
   --var s3_region=\"us-east-1\" \\
   --var s3_disable_ssl=\"true\" \\
   --var s3_skip_ssl_verification=\"true\" \\
-#   --var s3_use_v4=\"true\" \\
   --var s3_monitor_bucket=\"release-monitor-output\" \\
   --var s3_releases_bucket=\"release-monitor-artifacts\" \\
   --var git_private_key=\"\$(cat ~/.ssh/id_ed25519)\" \\

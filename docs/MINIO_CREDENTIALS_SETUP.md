@@ -43,7 +43,6 @@ credhub set -n /concourse/main/s3_releases_bucket -t value -v "release-monitor-a
 # Set S3-compatible options
 credhub set -n /concourse/main/s3_disable_ssl -t value -v "true"
 credhub set -n /concourse/main/s3_skip_ssl_verification -t value -v "true"
-# credhub set -n /concourse/main/s3_use_v4 -t value -v "true"
 ```
 
 ### Deploy Pipeline with Credhub
@@ -75,7 +74,6 @@ vault kv put concourse/main \
   s3_monitor_bucket="release-monitor-output" \
   s3_releases_bucket="release-monitor-artifacts" \
   s3_disable_ssl="true" \
-  # s3_use_v4="true" \
   s3_skip_ssl_verification="true"
 ```
 
@@ -109,7 +107,6 @@ s3_access_key: release-monitor-user
 s3_secret_key: release-monitor-pass
 s3_disable_ssl: true
 s3_skip_ssl_verification: true
-# s3_use_v4: true
 s3_region: us-east-1
 
 # Bucket configuration
@@ -154,7 +151,6 @@ fly -t test set-pipeline \
   --var s3_region="us-east-1" \
   --var s3_disable_ssl="true" \
   --var s3_skip_ssl_verification="true" \
-  # --var s3_use_v4="true" \
   --var s3_monitor_bucket="release-monitor-output" \
   --var s3_releases_bucket="release-monitor-artifacts" \
   --var github_token="$GITHUB_TOKEN"
@@ -288,7 +284,6 @@ fly -t test watch -j github-release-monitor-minio/monitor-releases
 
 4. **Region Errors**
    - Minio doesn't use regions, but set to `us-east-1`
-   <!-- - Ensure `s3_use_v4: true` for signature compatibility -->
 
 ### Debug Commands
 
