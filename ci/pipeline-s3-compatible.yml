@@ -220,11 +220,29 @@ jobs:
                 
       - task: check-releases
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
-        output_mapping:
-          release-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
           S3_ENDPOINT: ((s3_endpoint))
+          
+      - task: prepare-monitor-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: busybox
+          inputs:
+            - name: release-output
+          outputs:
+            - name: monitor-output
+          run:
+            path: sh
+            args:
+              - -c
+              - |
+                # Copy releases.json to latest-releases.json for download task compatibility
+                cp release-output/releases.json monitor-output/latest-releases.json
+                echo "Prepared monitor output for download task"
           
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
