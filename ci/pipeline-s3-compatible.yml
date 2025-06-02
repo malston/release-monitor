@@ -113,11 +113,26 @@ jobs:
                 # Install boto3 first
                 pip3 install --quiet boto3
                 
+                # Debug: Show directory structure
+                echo "Current directory: $(pwd)"
+                echo "Contents of current directory:"
+                ls -la
+                
+                if [ -d "downloads" ]; then
+                    echo "Contents of downloads directory:"
+                    find downloads -type f -name "*.gz" -o -name "*.zip" | head -20
+                else
+                    echo "ERROR: downloads directory not found!"
+                fi
+                
                 # Run the upload script
                 python3 -c "
                 import os
                 import boto3
                 from pathlib import Path
+                
+                print('Current working directory:', os.getcwd())
+                print('Contents:', os.listdir('.'))
                 
                 # Configure S3 client
                 endpoint_url = os.environ.get('S3_ENDPOINT')
@@ -134,8 +149,13 @@ jobs:
                 
                 # Find and upload all release files
                 downloads_dir = Path('downloads')
+                if not downloads_dir.exists():
+                    print(f'ERROR: {downloads_dir} does not exist!')
+                    exit(1)
+                    
                 uploaded_count = 0
                 
+                print(f'Searching for files in {downloads_dir.absolute()}...')
                 for file_path in downloads_dir.rglob('*'):
                     if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
                         # Create S3 key maintaining directory structure
@@ -148,9 +168,17 @@ jobs:
                             with open(file_path, 'rb') as f:
                                 s3.put_object(Bucket=bucket, Key=s3_key, Body=f)
                             uploaded_count += 1
+                            print(f'  Success: Uploaded {file_path.stat().st_size} bytes')
                         except Exception as e:
                             print(f'Error uploading {file_path}: {e}')
                             raise
+                
+                if uploaded_count == 0:
+                    print('WARNING: No .gz or .zip files found in downloads directory!')
+                    print('Files found:')
+                    for p in downloads_dir.rglob('*'):
+                        if p.is_file():
+                            print(f'  {p} (suffix: {p.suffix})')
                 
                 print(f'\\nUpload complete! Uploaded {uploaded_count} files to S3.')
                 "
