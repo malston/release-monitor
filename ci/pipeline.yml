@@ -83,18 +83,6 @@ jobs:
           file: downloads/*
           acl: private
 
-  - name: cleanup-old-releases
-    plan:
-      - in_parallel:
-          - get: release-monitor-repo
-          - get: schedule-trigger
-            trigger: true
-
-      - task: cleanup-releases
-        file: release-monitor-repo/ci/tasks/download-tarballs/task.yml
-        params:
-          CLEANUP_MODE: "true"
-          DAYS_TO_KEEP: ((cleanup_days_to_keep))
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:

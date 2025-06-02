@@ -1,0 +1,62 @@
+# Global parameters for S3-compatible storage
+# These parameters support both AWS S3 and S3-compatible storage (Minio, etc.)
+
+# Git repository configuration
+git_repo_uri: git@github.com:malston/release-monitor.git
+git_branch: feature/6-minio-support
+git_private_key: ((git_private_key))
+
+# GitHub API configuration
+github_token: ((github_token))
+
+# S3-compatible configuration
+# For AWS S3: leave s3_endpoint empty
+# For Minio: set to your Minio endpoint (e.g., http://minio:9000)
+s3_endpoint: ""
+
+# S3/Minio bucket configuration
+s3_bucket: release-monitor-output
+s3_releases_bucket: release-monitor-artifacts
+s3_region: us-east-1
+
+# S3/Minio credentials
+s3_access_key: ((s3_access_key_id))
+s3_secret_key: ((s3_secret_access_key))
+
+# S3-compatible specific settings
+# For AWS S3: set these to false
+# For Minio: adjust based on your setup
+s3_disable_ssl: false
+s3_skip_ssl_verification: false
+
+# Version database configuration
+use_s3_version_db: true
+version_db_s3_bucket: release-monitor-output
+version_db_s3_prefix: version-db/
+version_db_s3_region: us-east-1
+
+# Download configuration
+download_asset_patterns: '["*.tar.gz", "*.zip", "!*-sources.zip", "!*.sig"]'
+download_include_prereleases: "false"
+download_verify_downloads: "true"
+download_cleanup_old_versions: "true"
+download_keep_versions: "5"
+
+# Repository-specific download overrides
+download_repository_overrides: |
+  {
+    "kubernetes/kubernetes": {
+      "asset_patterns": ["kubernetes-client-*.tar.gz", "kubernetes-server-*.tar.gz"],
+      "include_prereleases": false
+    },
+    "prometheus/prometheus": {
+      "asset_patterns": ["prometheus-*.tar.gz", "!prometheus-*-rc*.tar.gz"],
+      "include_prereleases": false
+    }
+  }
+
+# Cleanup configuration
+cleanup_days_to_keep: "30"
+
+# Force download testing
+force_download_repo: "etcd-io/etcd"  # Default repo for force download testing

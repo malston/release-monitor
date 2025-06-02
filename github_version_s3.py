@@ -50,6 +50,12 @@ class S3VersionStorage:
         client_kwargs = {}
         if region:
             client_kwargs['region_name'] = region
+        
+        # Support S3-compatible endpoints via environment variable
+        endpoint_url = os.environ.get('AWS_ENDPOINT_URL_S3') or os.environ.get('AWS_ENDPOINT_URL')
+        if endpoint_url:
+            client_kwargs['endpoint_url'] = endpoint_url
+            logger.info(f"Using S3-compatible endpoint: {endpoint_url}")
 
         self.s3_client = session.client('s3', **client_kwargs)
 

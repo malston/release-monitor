@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # Minio Object Storage Server
+  minio:
+    image: minio/minio:latest
+    container_name: release-monitor-minio
+    ports:
+      - "9000:9000"     # API port
+      - "9001:9001"     # Console port
+    environment:
+      # Default credentials for local testing
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      # Enable console
+      MINIO_CONSOLE_ADDRESS: ":9001"
+    command: server /data
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - release-monitor-net
+
+  # Minio Client (mc) for initial setup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: release-monitor-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      # Wait for Minio to be ready
+      sleep 5;
+      
+      # Configure mc client
+      mc alias set local http://minio:9000 minioadmin minioadmin;
+      
+      # Create buckets for release monitor
+      mc mb local/release-monitor-output --ignore-existing;
+      mc mb local/release-monitor-artifacts --ignore-existing;
+      
+      # Enable versioning on output bucket
+      mc version enable local/release-monitor-output;
+      
+      # Create a test user with specific permissions (optional)
+      mc admin user add local release-monitor-user release-monitor-pass;
+      
+      # Create policy for release-monitor user
+      cat > /tmp/release-monitor-policy.json <<EOF
+      {
+        \"Version\": \"2012-10-17\",
+        \"Statement\": [
+          {
+            \"Effect\": \"Allow\",
+            \"Action\": [
+              \"s3:GetObject\",
+              \"s3:PutObject\",
+              \"s3:DeleteObject\",
+              \"s3:ListBucket\",
+              \"s3:GetBucketLocation\",
+              \"s3:GetBucketVersioning\"
+            ],
+            \"Resource\": [
+              \"arn:aws:s3:::release-monitor-output/*\",
+              \"arn:aws:s3:::release-monitor-output\",
+              \"arn:aws:s3:::release-monitor-artifacts/*\",
+              \"arn:aws:s3:::release-monitor-artifacts\"
+            ]
+          }
+        ]
+      }
+      EOF
+      
+      # Apply policy to user
+      mc admin policy create local release-monitor-policy /tmp/release-monitor-policy.json;
+      mc admin policy attach local release-monitor-policy --user release-monitor-user;
+      
+      echo 'Minio setup completed!';
+      echo '';
+      echo 'Buckets created:';
+      mc ls local/;
+      echo '';
+      echo 'Access Minio:';
+      echo '  - API: http://localhost:9000';
+      echo '  - Console: http://localhost:9001';
+      echo '  - Credentials: minioadmin / minioadmin';
+      echo '';
+      echo 'Release Monitor User:';
+      echo '  - Username: release-monitor-user';
+      echo '  - Password: release-monitor-pass';
+      "
+    networks:
+      - release-monitor-net
+
+  # Optional: Concourse worker for testing (uncomment if needed)
+  # concourse-db:
+  #   image: postgres:13
+  #   environment:
+  #     POSTGRES_DB: concourse
+  #     POSTGRES_USER: concourse_user
+  #     POSTGRES_PASSWORD: concourse_pass
+  #   networks:
+  #     - release-monitor-net
+
+  # concourse-web:
+  #   image: concourse/concourse:7.9
+  #   command: web
+  #   depends_on:
+  #     - concourse-db
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     CONCOURSE_POSTGRES_HOST: concourse-db
+  #     CONCOURSE_POSTGRES_USER: concourse_user
+  #     CONCOURSE_POSTGRES_PASSWORD: concourse_pass
+  #     CONCOURSE_POSTGRES_DATABASE: concourse
+  #     CONCOURSE_EXTERNAL_URL: http://localhost:8080
+  #     CONCOURSE_ADD_LOCAL_USER: test:test
+  #     CONCOURSE_MAIN_TEAM_LOCAL_USER: test
+  #   networks:
+  #     - release-monitor-net
+
+  # concourse-worker:
+  #   image: concourse/concourse:7.9
+  #   command: worker
+  #   privileged: true
+  #   depends_on:
+  #     - concourse-web
+  #   environment:
+  #     CONCOURSE_TSA_HOST: concourse-web:2222
+  #   networks:
+  #     - release-monitor-net
+
+volumes:
+  minio-data:
+    driver: local
+
+networks:
+  release-monitor-net:
+    driver: bridge
+
+# Usage Instructions:
+# 
+# 1. Start Minio:
+#    docker-compose up -d
+#
+# 2. Access Minio Console:
+#    http://localhost:9001
+#    Login: minioadmin / minioadmin
+#
+# 3. Configure release-monitor to use Minio:
+#    - Endpoint: http://localhost:9000
+#    - Access Key: release-monitor-user
+#    - Secret Key: release-monitor-pass
+#    - Buckets: release-monitor-output, release-monitor-artifacts
+#
+# 4. Test S3 connectivity:
+#    aws s3 ls --endpoint-url http://localhost:9000 \
+#      --aws-access-key-id release-monitor-user \
+#      --aws-secret-access-key release-monitor-pass
+#
+# 5. Stop services:
+#    docker-compose down
+#
+# 6. Remove data:
+#    docker-compose down -v

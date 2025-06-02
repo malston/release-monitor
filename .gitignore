@@ -100,6 +100,11 @@ pipeline-vars.yml
 vars/
 local-vars.yml
 
+# Minio credentials (sensitive)
+params/minio-credentials.yml
+*credentials*.yml
+*credentials*.yaml
+
 # Test artifacts
 .pytest_cache/
 .coverage

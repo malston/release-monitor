@@ -143,17 +143,17 @@ validate: ## Validate Concourse pipeline and configurations
 
 .PHONY: validate-simple
 validate-simple: ## Validate simplified Concourse pipeline (no S3 required)
-	@echo "$(GREEN)Validating simplified pipeline configuration...$(NC)"
+	@printf "$(GREEN)Validating simplified pipeline configuration...$(NC)\n"
 	@./ci/validate-simple.sh
 
 .PHONY: pipeline-set-test
 pipeline-set-test: ## Deploy pipeline to test environment (public repos only, requires S3)
-	@echo "$(GREEN)Deploying pipeline to test (public repositories)...$(NC)"
-	@echo "$(YELLOW)Note: For private repos, use 'make pipeline-set-test-with-key'$(NC)"
-	@echo "$(YELLOW)Note: For simplified setup without S3, use 'make pipeline-set-test-simple'$(NC)"
+	@printf "$(GREEN)Deploying pipeline to test (public repositories)...$(NC)\n"
+	@printf "$(YELLOW)Note: For private repos, use 'make pipeline-set-test-with-key'$(NC)\n"
+	@printf "$(YELLOW)Note: For simplified setup without S3, use 'make pipeline-set-test-simple'$(NC)\n"
 	@if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
-		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi
 	@fly -t test set-pipeline \
@@ -166,11 +166,11 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only, re
 
 .PHONY: pipeline-set-test-simple
 pipeline-set-test-simple: ## Deploy simplified pipeline to test environment (no S3 required)
-	@echo "$(GREEN)Deploying simplified pipeline to test (no S3 required)...$(NC)"
-	@echo "$(YELLOW)This pipeline doesn't require S3 configuration - perfect for getting started!$(NC)"
+	@printf "$(GREEN)Deploying simplified pipeline to test (no S3 required)...$(NC)\n"
+	@printf "$(YELLOW)This pipeline doesn't require S3 configuration - perfect for getting started!$(NC)\n"
 	@if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
-		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi
 	@fly -t test set-pipeline \
@@ -183,23 +183,23 @@ pipeline-set-test-simple: ## Deploy simplified pipeline to test environment (no 
 
 .PHONY: pipeline-set-test-simple-with-key
 pipeline-set-test-simple-with-key: ## Deploy simplified pipeline with SSH key for private repos (no S3 required)
-	@echo "$(GREEN)Deploying simplified pipeline with SSH key (no S3 required)...$(NC)"
+	@printf "$(GREEN)Deploying simplified pipeline with SSH key (no S3 required)...$(NC)\n"
 	@SSH_KEY=""; \
 	if [ -f ~/.ssh/id_ed25519 ]; then \
 		SSH_KEY=~/.ssh/id_ed25519; \
-		echo "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)"; \
+		printf "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)\n"; \
 	elif [ -f ~/.ssh/id_rsa ]; then \
 		SSH_KEY=~/.ssh/id_rsa; \
-		echo "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)"; \
+		printf "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)\n"; \
 	else \
-		echo "$(RED)Error: No SSH key found$(NC)"; \
-		echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
-		echo "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test-simple' for public repos$(NC)"; \
+		printf "$(RED)Error: No SSH key found$(NC)\n"; \
+		printf "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)\n"; \
+		printf "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test-simple' for public repos$(NC)\n"; \
 		exit 1; \
 	fi; \
 	if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
-		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi; \
 	fly -t test set-pipeline \
@@ -211,25 +211,66 @@ pipeline-set-test-simple-with-key: ## Deploy simplified pipeline with SSH key fo
 		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
 
-.PHONY: pipeline-set-test-with-key
-pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos (requires S3)
-	@echo "$(GREEN)Deploying pipeline to test with SSH key...$(NC)"
+.PHONY: pipeline-set-test-minio
+pipeline-set-test-minio: ## Deploy pipeline with Minio support (local development)
+	@printf "$(GREEN)Deploying pipeline with Minio support...$(NC)\n"
 	@SSH_KEY=""; \
 	if [ -f ~/.ssh/id_ed25519 ]; then \
 		SSH_KEY=~/.ssh/id_ed25519; \
-		echo "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)"; \
+		printf "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)\n"; \
 	elif [ -f ~/.ssh/id_rsa ]; then \
 		SSH_KEY=~/.ssh/id_rsa; \
-		echo "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)"; \
+		printf "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)\n"; \
 	else \
-		echo "$(RED)Error: No SSH key found$(NC)"; \
-		echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
-		echo "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)"; \
+		printf "$(RED)Error: No SSH key found$(NC)\n"; \
+		printf "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)\n"; \
+		printf "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)\n"; \
 		exit 1; \
 	fi; \
 	if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
-		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+		printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
+		exit 1; \
+	fi; \
+	fly -t test set-pipeline \
+		-p github-release-monitor-minio \
+		-c ci/pipeline-s3-compatible.yml \
+		-l params/global-s3-compatible.yml \
+		-l params/minio-local.yml \
+		-l params/minio-credentials.yml \
+		--var github_token="$$GITHUB_TOKEN" \
+		--var git_private_key="$$(cat $$SSH_KEY)" \
+		--non-interactive
+
+.PHONY: force-download
+force-download: ## Force download for specific repository (REPO=owner/repo, defaults to etcd-io/etcd)
+	@if [ -z "$(REPO)" ]; then \
+		printf "$(GREEN)Force downloading etcd-io/etcd (default)...$(NC)\n"; \
+		fly -t test trigger-job -j github-release-monitor-minio/force-download-repo; \
+	else \
+		printf "$(GREEN)Force downloading $(REPO)...$(NC)\n"; \
+		fly -t test trigger-job -j github-release-monitor-minio/force-download-repo -v force_download_repo="$(REPO)"; \
+	fi
+
+.PHONY: pipeline-set-test-with-key
+pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos (requires S3)
+	@printf "$(GREEN)Deploying pipeline to test with SSH key...$(NC)\n"
+	@SSH_KEY=""; \
+	if [ -f ~/.ssh/id_ed25519 ]; then \
+		SSH_KEY=~/.ssh/id_ed25519; \
+		printf "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)\n"; \
+	elif [ -f ~/.ssh/id_rsa ]; then \
+		SSH_KEY=~/.ssh/id_rsa; \
+		printf "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)\n"; \
+	else \
+		printf "$(RED)Error: No SSH key found$(NC)\n"; \
+		printf "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)\n"; \
+		printf "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)\n"; \
+		exit 1; \
+	fi; \
+	if [ -z "$$GITHUB_TOKEN" ]; then \
+		printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 		exit 1; \
 	fi; \
 	fly -t test set-pipeline \
@@ -243,23 +284,10 @@ pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key 
 
 .PHONY: pipeline-set-prod
 pipeline-set-prod: ## Deploy pipeline to production
-	@echo "$(GREEN)Deploying pipeline to production...$(NC)"
-	@echo "$(YELLOW)Warning: This will deploy to production!$(NC)"
-	@if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
-		echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
-		exit 1; \
-	fi
-pipeline-set-test: ## Deploy pipeline to test environment
-	@printf "$(GREEN)Deploying pipeline to test...$(NC)\n"
-	./ci/fly.sh set -t test -f test
-
-.PHONY: pipeline-set-prod
-pipeline-set-prod: ## Deploy pipeline to production
 	@printf "$(GREEN)Deploying pipeline to production...$(NC)\n"
 	@printf "$(YELLOW)Warning: This will deploy to production!$(NC)\n"
 	@read -p "Continue? [y/N] " -n 1 -r; \
-	echo; \
+	printf "\n"; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		fly -t prod set-pipeline \
 			-p github-release-monitor \
@@ -269,31 +297,31 @@ pipeline-set-prod: ## Deploy pipeline to production
 			--var github_token="$$GITHUB_TOKEN" \
 			--non-interactive; \
 	else \
-		echo "$(RED)Deployment cancelled$(NC)"; \
+		printf "$(RED)Deployment cancelled$(NC)\n"; \
 	fi
 
 .PHONY: pipeline-set-prod-with-key
 pipeline-set-prod-with-key: ## Deploy pipeline to production with SSH key for private repos
-	@echo "$(GREEN)Deploying pipeline to production with SSH key...$(NC)"
-	@echo "$(RED)Warning: This will deploy to production with SSH key access!$(NC)"
+	@printf "$(GREEN)Deploying pipeline to production with SSH key...$(NC)\n"
+	@printf "$(RED)Warning: This will deploy to production with SSH key access!$(NC)\n"
 	@read -p "Continue? [y/N] " -n 1 -r; \
-	echo; \
+	printf "\n"; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		SSH_KEY=""; \
 		if [ -f ~/.ssh/id_ed25519 ]; then \
 			SSH_KEY=~/.ssh/id_ed25519; \
-			echo "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)"; \
+			printf "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)\n"; \
 		elif [ -f ~/.ssh/id_rsa ]; then \
 			SSH_KEY=~/.ssh/id_rsa; \
-			echo "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)"; \
+			printf "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)\n"; \
 		else \
-			echo "$(RED)Error: No SSH key found$(NC)"; \
-			echo "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)"; \
+			printf "$(RED)Error: No SSH key found$(NC)\n"; \
+			printf "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)\n"; \
 			exit 1; \
 		fi; \
 		if [ -z "$$GITHUB_TOKEN" ]; then \
-			echo "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)"; \
-			echo "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)"; \
+			printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+			printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
 			exit 1; \
 		fi; \
 		fly -t prod set-pipeline \
@@ -313,6 +341,50 @@ pipeline-destroy: ## Destroy pipeline (prompts for target)
 	@read -p "Target (test/prod): " target; \
 	printf "$(RED)Destroying pipeline from $$target...$(NC)\n"; \
 	./ci/fly.sh destroy -t $$target
+
+##@ MinIO Version Database
+
+.PHONY: view-version-db
+view-version-db: venv ## View current MinIO version database contents
+	@printf "$(GREEN)Viewing MinIO version database...$(NC)\n"
+	@source $(VENV)/bin/activate && \
+	export S3_ENDPOINT=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=release-monitor-user && \
+	export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
+	export S3_BUCKET=release-monitor-output && \
+	python3 scripts/view-version-db.py
+
+.PHONY: clear-version-db
+clear-version-db: venv ## Clear entire MinIO version database (forces re-download of all releases)
+	@printf "$(YELLOW)Warning: This will clear the entire version database!$(NC)\n"
+	@printf "$(YELLOW)All tracked releases will be re-downloaded on next pipeline run.$(NC)\n"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	printf "\n"; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		printf "$(GREEN)Clearing MinIO version database...$(NC)\n"; \
+		source $(VENV)/bin/activate && \
+		export S3_ENDPOINT=http://localhost:9000 && \
+		export AWS_ACCESS_KEY_ID=release-monitor-user && \
+		export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
+		export S3_BUCKET=release-monitor-output && \
+		python3 scripts/clear-version-db.py; \
+	else \
+		printf "$(RED)Operation cancelled$(NC)\n"; \
+	fi
+
+.PHONY: clear-version-entry
+clear-version-entry: venv ## Clear specific repository from version database (REPO=owner/repo)
+	@if [ -z "$(REPO)" ]; then \
+		printf "$(RED)Error: REPO is required. Usage: make clear-version-entry REPO=etcd-io/etcd$(NC)\n"; \
+		exit 1; \
+	fi
+	@printf "$(GREEN)Clearing $(REPO) from MinIO version database...$(NC)\n"
+	@source $(VENV)/bin/activate && \
+	export S3_ENDPOINT=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=release-monitor-user && \
+	export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
+	export S3_BUCKET=release-monitor-output && \
+	python3 scripts/clear-version-entry.py "$(REPO)"
 
 ##@ Utilities
 
