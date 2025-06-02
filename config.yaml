@@ -22,9 +22,13 @@ repositories:
     repo: grafana
     description: "Analytics and monitoring platform"
   
-  - owner: hashicorp
-    repo: terraform
-    description: "Infrastructure as code tool"
+  - owner: istio
+    repo: istio
+    description: "Service mesh platform"
+  
+  - owner: open-policy-agent
+    repo: gatekeeper
+    description: "Policy Controller for Kubernetes"
   
   - owner: docker
     repo: cli

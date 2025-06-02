@@ -55,16 +55,16 @@ jobs:
                 # Create configuration
                 cat > config.yaml << 'EOF'
                 repositories:
-                  - owner: kubernetes
-                    repo: kubectl
+                  - owner: istio
+                    repo: istio
                     include_prereleases: false
                   
-                  - owner: helm
-                    repo: helm
+                  - owner: open-policy-agent
+                    repo: gatekeeper
                     include_prereleases: false
                   
                   - owner: kubernetes-sigs
-                    repo: kind
+                    repo: gateway-api
                     include_prereleases: false
                 
                 download:

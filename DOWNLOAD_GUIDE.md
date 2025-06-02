@@ -53,8 +53,8 @@ repositories:
     repo: kubernetes
     include_prereleases: false
   
-  - owner: hashicorp
-    repo: terraform
+  - owner: istio
+    repo: istio
     include_prereleases: false
 
 download:
@@ -145,11 +145,11 @@ downloads/
 │       └── v1.29.1/
 │           ├── kubernetes.tar.gz
 │           └── kubernetes-client-linux-amd64.tar.gz
-└── hashicorp/
-    └── terraform/
-        └── v1.7.0/
-            ├── terraform_1.7.0_linux_amd64.zip
-            └── terraform_1.7.0_SHA256SUMS
+└── istio/
+    └── istio/
+        └── 1.22.1/
+            ├── istio-1.22.1-linux-amd64.tar.gz
+            └── istio-1.22.1-linux-amd64.tar.gz.sha256
 ```
 
 ## Version Management
@@ -193,10 +193,10 @@ Create separate configs for different repository groups:
 ```yaml
 # infrastructure-tools.yaml
 repositories:
-  - owner: hashicorp
-    repo: terraform
-  - owner: hashicorp
-    repo: vault
+  - owner: istio
+    repo: istio
+  - owner: open-policy-agent
+    repo: gatekeeper
   - owner: kubernetes
     repo: kubectl
 
@@ -223,7 +223,7 @@ if [ $(jq '.downloads.successful_count' results.json) -gt 0 ]; then
   find ./downloads -name "*.tar.gz" -exec tar -xzf {} \;
   
   # Copy binaries to local bin
-  find ./downloads -name "kubectl" -o -name "terraform" | \
+  find ./downloads -name "kubectl" -o -name "istioctl" | \
     xargs -I {} cp {} /usr/local/bin/
 fi
 ```
@@ -340,12 +340,12 @@ download:
 
 ```yaml
 repositories:
+  - owner: istio
+    repo: istio
+  - owner: open-policy-agent
+    repo: gatekeeper
   - owner: kubernetes-sigs
-    repo: kind
-  - owner: kubernetes
-    repo: minikube
-  - owner: helm
-    repo: helm
+    repo: gateway-api
 
 download:
   directory: ./k8s-tools-mirror

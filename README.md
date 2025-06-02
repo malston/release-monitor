@@ -21,7 +21,7 @@
 - **⚡ Lightweight**: Simple Python script with minimal dependencies
 
 Perfect for teams who need to:
-- Track when Kubernetes, Terraform, or other tools release updates
+- Track when Kubernetes, Gatekeeper, Istio, or other tools release updates
 - Automate dependency updates in their CI/CD pipelines  
 - Monitor security tools for latest versions
 - Build compliance reports showing update status
@@ -44,11 +44,11 @@ $ python3 github_monitor.py --config config.yaml
       "html_url": "https://github.com/kubernetes/kubernetes/releases/tag/v1.33.1"
     },
     {
-      "repository": "hashicorp/terraform", 
-      "tag_name": "v1.12.1",
-      "name": "v1.12.1",
+      "repository": "istio/istio", 
+      "tag_name": "1.22.1",
+      "name": "1.22.1",
       "published_at": "2025-05-21T13:02:01Z",
-      "html_url": "https://github.com/hashicorp/terraform/releases/tag/v1.12.1"
+      "html_url": "https://github.com/istio/istio/releases/tag/1.22.1"
     }
   ]
 }
@@ -404,9 +404,9 @@ repositories:
     repo: your-project
     description: "Internal project"
   
-  - owner: hashicorp
-    repo: terraform
-    description: "Infrastructure as code"
+  - owner: open-policy-agent
+    repo: gatekeeper
+    description: "Policy Controller for Kubernetes"
 
 settings:
   rate_limit_delay: 2.0  # Slower API calls

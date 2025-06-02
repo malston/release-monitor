@@ -187,12 +187,12 @@ repositories:
     repo: kubernetes
     include_prereleases: false
     
-  - owner: prometheus
-    repo: prometheus
+  - owner: istio
+    repo: istio
     include_prereleases: false
     
-  - owner: grafana
-    repo: grafana
+  - owner: open-policy-agent
+    repo: gatekeeper
     include_prereleases: true
 
 settings:
@@ -277,9 +277,9 @@ download:
       asset_patterns:
         - "kubernetes-client-*.tar.gz"
         - "kubernetes-server-*.tar.gz"
-    prometheus/prometheus:
+    istio/istio:
       asset_patterns:
-        - "prometheus-*.linux-amd64.tar.gz"
+        - "istio-*.linux-amd64.tar.gz"
 ```
 
 ### S3 Download Storage
@@ -438,10 +438,10 @@ release-downloads/
 │       │   ├── kubernetes-client-linux-amd64.tar.gz
 │       │   └── kubernetes-server-linux-amd64.tar.gz
 │       └── v1.29.1/
-└── prometheus/
-    └── prometheus/
-        └── v2.48.0/
-            └── prometheus-2.48.0.linux-amd64.tar.gz
+└── istio/
+    └── istio/
+        └── 1.22.1/
+            └── istio-1.22.1-linux-amd64.tar.gz
 ```
 
 ## Integration Examples
