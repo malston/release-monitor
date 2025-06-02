@@ -206,15 +206,28 @@ class GitHubDownloader:
                             logger.warning(f"Content-Length ({content_length}) doesn't match "
                                          f"expected size ({expected_size})")
                     
-                    # Download in chunks
+                    # Download in chunks with progress reporting
                     downloaded_size = 0
                     hash_sha256 = hashlib.sha256()
+                    last_progress_time = time.time()
                     
                     for chunk in response.iter_content(chunk_size=self.chunk_size):
                         if chunk:  # Filter out keep-alive chunks
                             temp_file.write(chunk)
                             hash_sha256.update(chunk)
                             downloaded_size += len(chunk)
+                            
+                            # Report progress every 5 seconds
+                            current_time = time.time()
+                            if current_time - last_progress_time >= 5:
+                                mb_downloaded = downloaded_size / (1024 * 1024)
+                                if content_length:
+                                    percent = (downloaded_size / content_length) * 100
+                                    mb_total = content_length / (1024 * 1024)
+                                    logger.info(f"Download progress: {mb_downloaded:.1f}/{mb_total:.1f} MB ({percent:.1f}%)")
+                                else:
+                                    logger.info(f"Download progress: {mb_downloaded:.1f} MB downloaded")
+                                last_progress_time = current_time
                     
                     temp_file.flush()
                     os.fsync(temp_file.fileno())

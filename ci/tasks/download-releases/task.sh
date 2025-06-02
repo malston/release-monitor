@@ -281,13 +281,14 @@ START_TIME=$(date +%s)
 log_info "Running download script with visible output..."
 
 # Run with timeout but show output in real-time
-timeout 60s python3 download_releases.py "${DOWNLOAD_ARGS[@]}" 2>&1 | tee /tmp/download_output.log
+# Use 600s (10 minutes) timeout to allow for large file downloads
+timeout 600s python3 download_releases.py "${DOWNLOAD_ARGS[@]}" 2>&1 | tee /tmp/download_output.log
 DOWNLOAD_EXIT_CODE=${PIPESTATUS[0]}
 
 # Check if it was killed by timeout
 if [[ $DOWNLOAD_EXIT_CODE -eq 124 ]]; then
-    log_error "Download process timed out after 60 seconds"
-    log_error "This usually indicates a connection issue or the script is hanging"
+    log_error "Download process timed out after 600 seconds (10 minutes)"
+    log_error "This usually indicates a connection issue or very large files"
 fi
 
 # Copy output for processing
