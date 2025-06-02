@@ -1,16 +1,14 @@
 # Concourse CI Structure
 
-This directory contains multiple Concourse CI/CD pipelines for the GitHub release monitor, each designed for different use cases and environments.
+This directory contains **3 streamlined Concourse pipelines** for the GitHub release monitor, each optimized for specific use cases.
 
 ## Pipeline Files
 
 ```text
 ci/
-├── pipeline.yml                      # Full AWS S3 pipeline with downloads
-├── pipeline-s3-compatible.yml       # S3-compatible pipeline (MinIO/AWS S3) ⭐ RECOMMENDED
-├── pipeline-simple.yml              # Basic monitoring only (no downloads, no S3)
-├── pipeline-with-downloads.yml      # Complex multi-job download pipeline  
-├── pipeline-downloads-simple.yml    # Simple local downloads (no S3)
+├── pipeline-s3-compatible.yml       # S3-compatible pipeline (MinIO/AWS S3) ⭐ PRIMARY
+├── pipeline-simple.yml              # Basic monitoring only (getting started) ⭐ STARTER  
+├── pipeline.yml                     # Traditional AWS S3 pipeline ⭐ AWS-ONLY
 ├── fly.sh                           # Pipeline deployment script
 ├── validate.sh                      # Pipeline validation script  
 ├── validate-simple.sh              # Validation for simple pipelines
@@ -29,43 +27,54 @@ ci/
 
 ## Pipeline Comparison
 
-| Pipeline | Use Case | Storage | Downloads | Complexity | Jobs |
-|----------|----------|---------|-----------|------------|------|
-| **pipeline-s3-compatible.yml** ⭐ | Production MinIO/AWS | S3-compatible | ✅ Advanced | Medium | 4 |
-| **pipeline.yml** | Production AWS only | AWS S3 | ✅ Basic | Medium | 2 |
-| **pipeline-simple.yml** | Basic monitoring | None | ❌ | Low | 2 |
-| **pipeline-with-downloads.yml** | Complex workflows | S3 | ✅ Advanced | High | 4 |
-| **pipeline-downloads-simple.yml** | Local development | Local files | ✅ Basic | Low | 2 |
+| Pipeline | Use Case | Storage | Downloads | Complexity | Jobs | Status |
+|----------|----------|---------|-----------|------------|------|--------|
+| **pipeline-s3-compatible.yml** ⭐ | Production MinIO/AWS | S3-compatible | ✅ Advanced | Medium | 4 | **PRIMARY** |
+| **pipeline-simple.yml** 🏁 | Getting started | None | ❌ | Low | 2 | **STARTER** |
+| **pipeline.yml** 🏢 | AWS-only environments | AWS S3 | ✅ Basic | Medium | 2 | **AWS-ONLY** |
 
-### pipeline-s3-compatible.yml ⭐ **RECOMMENDED**
-- **Purpose**: Production-ready pipeline with MinIO and AWS S3 support
+## Pipeline Details
+
+### pipeline-s3-compatible.yml ⭐ **PRIMARY PIPELINE**
+- **Purpose**: Full-featured production pipeline supporting both MinIO and AWS S3
 - **Jobs**: `monitor-releases`, `download-new-releases`, `clear-version-database`, `force-download-repo`
-- **Features**: S3-compatible storage, version tracking, forced downloads, database management
-- **Best for**: Production environments with MinIO or AWS S3
+- **Features**: 
+  - S3-compatible storage (MinIO, AWS S3, etc.)
+  - Advanced version tracking and duplicate prevention
+  - Automatic cleanup of old versions
+  - Force download capability for testing
+  - Database management utilities
+- **Best for**: Most production environments, local development with MinIO
+- **Deploy**: `make pipeline-set-test-minio`
 
-### pipeline.yml 
-- **Purpose**: Traditional AWS S3 pipeline  
-- **Jobs**: `monitor-releases`, `download-new-releases`
-- **Features**: AWS S3 storage, basic downloads, cleanup
-- **Best for**: AWS-only environments
-
-### pipeline-simple.yml
-- **Purpose**: Basic monitoring without downloads or storage
+### pipeline-simple.yml 🏁 **STARTER PIPELINE**
+- **Purpose**: Basic monitoring without downloads or storage dependencies
 - **Jobs**: `monitor-releases`, `check-repositories` 
-- **Features**: GitHub monitoring only, no downloads, no S3
-- **Best for**: Testing, basic monitoring, getting started
+- **Features**: 
+  - GitHub API monitoring only
+  - No storage dependencies
+  - Easy setup and testing
+  - JSON output for integration
+- **Best for**: Getting started, testing, basic monitoring, CI/CD integration
+- **Deploy**: `make pipeline-set-test-simple`
 
-### pipeline-with-downloads.yml
-- **Purpose**: Complex multi-job workflow with advanced features
-- **Jobs**: `monitor-and-download`, `download-specific-release`, `monitoring`, `manual`
-- **Features**: Complex workflows, manual triggers, advanced download options
-- **Best for**: Advanced users needing complex workflows
+### pipeline.yml 🏢 **AWS-ONLY PIPELINE**
+- **Purpose**: Traditional AWS S3 pipeline for pure AWS environments
+- **Jobs**: `monitor-releases`, `download-new-releases`
+- **Features**: 
+  - Native AWS S3 integration
+  - Standard download and storage
+  - AWS-optimized configuration
+- **Best for**: Enterprise AWS-only environments, existing AWS infrastructure
+- **Deploy**: `make pipeline-set-test`
 
-### pipeline-downloads-simple.yml
-- **Purpose**: Simple local downloads without S3
-- **Jobs**: `monitor-downloads`, `download-repository`
-- **Features**: Local file storage, basic downloads
-- **Best for**: Local development, simple setups
+## User Journey
+
+```
+🏁 Start Here          ⭐ Upgrade To           🏢 Alternative
+pipeline-simple.yml → pipeline-s3-compatible.yml  OR  pipeline.yml
+(Learn basics)         (Full production)           (AWS-only)
+```
 
 ## Tasks
 

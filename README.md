@@ -260,19 +260,18 @@ The project includes complete Concourse CI/CD pipeline support with multiple pip
 
 ```text
 ci/
-├── pipeline.yml                      # Main pipeline with S3 storage
-├── pipeline-simple.yml              # Simple pipeline without S3
-├── pipeline-with-downloads.yml      # Pipeline with download support
-├── pipeline-downloads-simple.yml    # Simple download pipeline
+├── pipeline-s3-compatible.yml       # S3-compatible pipeline (MinIO/AWS S3) ⭐ PRIMARY
+├── pipeline-simple.yml              # Basic monitoring only (getting started) 🏁 STARTER  
+├── pipeline.yml                     # Traditional AWS S3 pipeline 🏢 AWS-ONLY
 ├── fly.sh                           # Deployment script
 └── tasks/
-    ├── check-releases/              # Monitor releases task
+    ├── check-releases/              # Full monitoring task
     │   ├── task.yml
     │   └── task.sh
-    ├── download-releases/           # Download assets task
+    ├── check-releases-simple/       # Simplified monitoring task
     │   ├── task.yml
     │   └── task.sh
-    └── download-tarballs/           # Legacy tarball download
+    └── download-releases/           # Advanced download task with S3 support
         ├── task.yml
         └── task.sh
 
@@ -288,25 +287,21 @@ params/
 
 ### Pipeline Options
 
-1. **Standard Pipeline with S3** (`pipeline.yml`):
-   - Monitors releases and stores state in S3
-   - Downloads release tarballs to S3
-   - Suitable for production environments
+1. **S3-Compatible Pipeline** (`pipeline-s3-compatible.yml`) ⭐ **PRIMARY**:
+   - Full MinIO and AWS S3 support
+   - Advanced version tracking and downloads
+   - Force download and database management utilities
+   - Production-ready with automatic cleanup
 
-2. **Simple Pipeline** (`pipeline-simple.yml`):
-   - Local state management (no S3 required)
-   - Basic monitoring functionality
-   - Good for testing or simple deployments
+2. **Simple Pipeline** (`pipeline-simple.yml`) 🏁 **STARTER**:
+   - Basic monitoring without storage dependencies
+   - Easy setup for getting started
+   - No downloads, perfect for learning the basics
 
-3. **Pipeline with Downloads** (`pipeline-with-downloads.yml`):
-   - Full download functionality with asset filtering
-   - S3-based version database
-   - Automatic packaging and archiving
-
-4. **Simple Download Pipeline** (`pipeline-downloads-simple.yml`):
-   - Monitor and download without S3
-   - Local file outputs
-   - Easy to understand and modify
+3. **AWS S3 Pipeline** (`pipeline.yml`) 🏢 **AWS-ONLY**:
+   - Traditional AWS S3 integration
+   - Standard download functionality
+   - For pure AWS environments
 
 ### Pipeline Setup
 
@@ -325,10 +320,10 @@ params/
      -c ci/pipeline-simple.yml \
      -l params/global.yml -l params/test.yml
 
-   # Deploy download pipeline
-   fly -t test set-pipeline -p release-monitor-downloads \
-     -c ci/pipeline-with-downloads.yml \
-     -l params/global.yml -l params/test.yml
+   # Deploy S3-compatible pipeline (recommended)
+   fly -t test set-pipeline -p release-monitor-minio \
+     -c ci/pipeline-s3-compatible.yml \
+     -l params/global-s3-compatible.yml -l params/minio-local.yml
    ```
 
 3. Unpause the pipeline:
