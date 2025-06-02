@@ -113,26 +113,11 @@ jobs:
                 # Install boto3 first
                 pip3 install --quiet boto3
                 
-                # Debug: Show directory structure
-                echo "Current directory: $(pwd)"
-                echo "Contents of current directory:"
-                ls -la
-                
-                if [ -d "downloads" ]; then
-                    echo "Contents of downloads directory:"
-                    find downloads -type f -name "*.gz" -o -name "*.zip" | head -20
-                else
-                    echo "ERROR: downloads directory not found!"
-                fi
-                
                 # Run the upload script
                 python3 -c "
                 import os
                 import boto3
                 from pathlib import Path
-                
-                print('Current working directory:', os.getcwd())
-                print('Contents:', os.listdir('.'))
                 
                 # Configure S3 client
                 endpoint_url = os.environ.get('S3_ENDPOINT')
@@ -155,7 +140,6 @@ jobs:
                     
                 uploaded_count = 0
                 
-                print(f'Searching for files in {downloads_dir.absolute()}...')
                 for file_path in downloads_dir.rglob('*'):
                     if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
                         # Create S3 key maintaining directory structure
@@ -179,6 +163,18 @@ jobs:
                     for p in downloads_dir.rglob('*'):
                         if p.is_file():
                             print(f'  {p} (suffix: {p.suffix})')
+                    
+                    # Check if download_results.json indicates no new downloads
+                    results_file = downloads_dir / 'download_results.json'
+                    if results_file.exists():
+                        import json
+                        with open(results_file) as f:
+                            results = json.load(f)
+                        new_downloads = results.get('new_downloads', 0)
+                        if new_downloads == 0:
+                            print('\\nINFO: No new downloads in this run - files were likely already up to date.')
+                        else:
+                            print(f'\\nERROR: Expected {new_downloads} new downloads but found no files!')
                 
                 print(f'\\nUpload complete! Uploaded {uploaded_count} files to S3.')
                 "
