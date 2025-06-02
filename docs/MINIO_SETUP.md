@@ -76,7 +76,7 @@ resources:
       secret_access_key: ((s3_secret_key))
       disable_ssl: ((minio_disable_ssl))
       skip_ssl_verification: ((minio_skip_ssl_verification))
-      use_v4: true  # Required for Minio
+      # use_v4: true  # Required for Minio
       versioned_file: release-monitor/latest-releases.json
 ```
 
@@ -190,7 +190,7 @@ s3_client.list_buckets()
    - Check bucket policies and user permissions
 
 3. **Signature Version Error**
-   - Ensure `use_v4: true` is set in S3 resource
+   <!-- - Ensure `use_v4: true` is set in S3 resource -->
    - Use `signature_version='s3v4'` in boto3
 
 4. **SSL/TLS Issues**

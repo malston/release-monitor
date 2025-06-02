@@ -112,10 +112,25 @@ fi
 # Verify input files exist
 log_info "Checking input files..."
 
-if [[ ! -f "/tmp/monitor-output/releases.json" ]]; then
-    log_error "Monitor output file not found: /tmp/monitor-output/releases.json"
+# Try multiple possible locations for the monitor output file
+MONITOR_OUTPUT=""
+if [[ -f "/tmp/monitor-output/releases.json" ]]; then
+    MONITOR_OUTPUT="/tmp/monitor-output/releases.json"
+elif [[ -f "/tmp/monitor-output/release-monitor/latest-releases.json" ]]; then
+    MONITOR_OUTPUT="/tmp/monitor-output/release-monitor/latest-releases.json"
+elif [[ -f "/tmp/monitor-output/latest-releases.json" ]]; then
+    MONITOR_OUTPUT="/tmp/monitor-output/latest-releases.json"
+else
+    log_error "Monitor output file not found. Looked in:"
+    log_error "  - /tmp/monitor-output/releases.json"
+    log_error "  - /tmp/monitor-output/release-monitor/latest-releases.json"
+    log_error "  - /tmp/monitor-output/latest-releases.json"
+    log_error "Actual contents of /tmp/monitor-output:"
+    find /tmp/monitor-output -type f 2>/dev/null || echo "  Directory not found"
     exit 1
 fi
+
+log_info "Found monitor output at: $MONITOR_OUTPUT"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
     log_error "Configuration file not found: $CONFIG_FILE"
@@ -129,7 +144,7 @@ mkdir -p "$(dirname "$VERSION_DB_PATH")"
 
 # Check monitor output content
 log_info "Analyzing monitor output..."
-MONITOR_OUTPUT="/tmp/monitor-output/releases.json"
+# MONITOR_OUTPUT is already set above when we found the file
 
 # Check if monitor output is valid JSON
 if ! python3 -c "import json; json.load(open('$MONITOR_OUTPUT'))" 2>/dev/null; then

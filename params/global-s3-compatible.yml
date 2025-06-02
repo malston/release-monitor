@@ -15,9 +15,9 @@ github_token: ((github_token))
 s3_endpoint: ""
 
 # S3/Minio bucket configuration
-s3_bucket: ((s3_monitor_bucket))
-s3_releases_bucket: ((s3_releases_bucket))
-s3_region: ((s3_region))
+s3_bucket: release-monitor-output
+s3_releases_bucket: release-monitor-artifacts
+s3_region: us-east-1
 
 # S3/Minio credentials
 s3_access_key: ((s3_access_key_id))
@@ -28,13 +28,13 @@ s3_secret_key: ((s3_secret_access_key))
 # For Minio: adjust based on your setup
 s3_disable_ssl: false
 s3_skip_ssl_verification: false
-s3_use_v4: true  # Always true for both AWS S3 and Minio
+# s3_use_v4: true  # Always true for both AWS S3 and Minio
 
 # Version database configuration
 use_s3_version_db: true
-version_db_s3_bucket: ((s3_monitor_bucket))
+version_db_s3_bucket: release-monitor-output
 version_db_s3_prefix: version-db/
-version_db_s3_region: ((s3_region))
+version_db_s3_region: us-east-1
 
 # Download configuration
 download_asset_patterns: '["*.tar.gz", "*.zip", "!*-sources.zip", "!*.sig"]'
