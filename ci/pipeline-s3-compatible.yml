@@ -121,22 +121,41 @@ jobs:
                 cd release-monitor-repo
                 python3 scripts/upload-to-s3.py
 
+  # Note: Cleanup is handled automatically by the download-releases task
+  # when CLEANUP_OLD_VERSIONS is true. This separate job is not needed
+  # but kept for manual cleanup if required.
   - name: cleanup-old-releases
     plan:
       - in_parallel:
           - get: release-monitor-repo
+          - get: monitor-output
           - get: schedule-trigger
             trigger: true
 
       - task: cleanup-releases
-        file: release-monitor-repo/ci/tasks/download-tarballs/task.yml
+        file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        input_mapping:
+          release-monitor: release-monitor-repo
+          monitor-output: monitor-output
         params:
-          CLEANUP_MODE: "true"
-          DAYS_TO_KEEP: ((cleanup_days_to_keep))
-          # Pass S3-compatible configuration
-          S3_ENDPOINT: ((s3_endpoint))
+          GITHUB_TOKEN: ((github_token))
+          ASSET_PATTERNS: ((download_asset_patterns))
+          INCLUDE_PRERELEASES: ((download_include_prereleases))
+          VERIFY_DOWNLOADS: "false"  # Skip verification for cleanup
+          CLEANUP_OLD_VERSIONS: "true"
+          KEEP_VERSIONS: "2"  # More aggressive cleanup than normal downloads
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          
+          # S3 version database configuration
+          USE_S3_VERSION_DB: ((use_s3_version_db))
+          VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+          VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
+          VERSION_DB_S3_REGION: ((s3_region))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+          
+          # S3-compatible endpoint for version DB
+          S3_ENDPOINT: ((s3_endpoint))
 
   # Clear version database to force re-downloads
   - name: clear-version-database
