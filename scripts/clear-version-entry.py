@@ -14,6 +14,7 @@ import os
 import boto3
 import json
 from pathlib import Path
+from datetime import datetime
 
 def clear_version_entry(repo_key):
     """Clear a specific repository from the version database."""
@@ -49,20 +50,27 @@ def clear_version_entry(repo_key):
         print(f"Error downloading version database: {e}")
         return
     
-    # Check if repository exists
-    if repo_key not in version_data.get('repositories', {}):
+    # Check if repository exists (check both formats)
+    repos = version_data.get('repositories', {})
+    if repo_key not in repos and repo_key.replace('_', '/') not in repos:
         print(f"Repository {repo_key} not found in version database")
         print("Available repositories:")
-        for repo in version_data.get('repositories', {}).keys():
+        for repo in repos.keys():
             print(f"  - {repo}")
         return
     
+    # Use the format that actually exists in the database
+    if repo_key in repos:
+        actual_key = repo_key
+    else:
+        actual_key = repo_key.replace('_', '/')
+    
     # Remove the repository entry
-    old_version = version_data['repositories'][repo_key].get('current_version', 'unknown')
-    del version_data['repositories'][repo_key]
+    old_version = version_data['repositories'][actual_key].get('current_version', 'unknown')
+    del version_data['repositories'][actual_key]
     
     # Update metadata
-    version_data['metadata']['last_updated'] = boto3.datetime.datetime.now().isoformat()
+    version_data['metadata']['last_updated'] = datetime.now().isoformat()
     version_data['metadata']['total_repositories'] = len(version_data['repositories'])
     
     # Upload updated version database
