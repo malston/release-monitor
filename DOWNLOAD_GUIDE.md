@@ -1,15 +1,25 @@
-# Download Guide
+# GitHub Release Download Guide
 
-This guide covers how to use the GitHub release download functionality.
+This guide explains how to use the release download functionality of the GitHub Repository Release Monitor.
 
 ## Overview
 
-The release monitor can automatically download GitHub release assets based on configurable patterns and version comparison. This feature is designed for:
+The download feature allows you to automatically download release assets from GitHub repositories when new versions are detected. This is useful for:
 
-- Automated artifact collection for CI/CD pipelines
-- Version-aware downloads (only download newer releases)
-- Asset filtering and verification
-- Integration with existing monitoring workflows
+- Maintaining local copies of release artifacts
+- Building offline deployment packages
+- Creating mirror repositories
+- Automating dependency updates in air-gapped environments
+
+## Features
+
+- **Automatic Downloads**: Download assets when new releases are detected
+- **Version Tracking**: Smart version management prevents re-downloading
+- **Asset Filtering**: Download only the files you need using patterns
+- **Organized Storage**: Files are organized by repository and version
+- **Verification**: Optional checksum verification for downloaded files
+- **Retry Logic**: Automatic retry on download failures
+- **Concurrent Downloads**: Efficient parallel downloading
 
 ## Quick Start
 
@@ -35,74 +45,56 @@ The release monitor can automatically download GitHub release assets based on co
 
 ## Configuration
 
-### Basic Settings
+Add a `download` section to your `config.yaml`:
 
 ```yaml
+repositories:
+  - owner: kubernetes
+    repo: kubernetes
+    include_prereleases: false
+  
+  - owner: istio
+    repo: istio
+    include_prereleases: false
+
 download:
-  # Enable download functionality
+  # Enable/disable downloads globally
   enabled: true
   
-  # Directory to store downloaded files
+  # Base directory for downloads
   directory: ./downloads
   
-  # Version database file for tracking downloads
+  # Version database location
   version_db: ./version_db.json
-```
-
-### Asset Filtering
-
-Control which assets to download using patterns:
-
-```yaml
-download:
+  
+  # Asset patterns (glob patterns supported)
   asset_patterns:
-    - "*.tar.gz"       # Include .tar.gz files
-    - "*.zip"          # Include .zip files
-    - "!*-sources.zip" # Exclude source archives
-    - "!*.sig"         # Exclude signature files
+    - "*.tar.gz"
+    - "*.zip"
+    - "!*-sources.zip"    # Exclude source archives
+    - "!*.sig"            # Exclude signatures
+  
+  # Optional settings
+  verify_checksums: true   # Verify SHA256 checksums if provided
+  retry_attempts: 3        # Number of retry attempts
+  retry_delay: 2          # Seconds between retries
+  max_concurrent: 4       # Max concurrent downloads
 ```
 
-Pattern syntax:
+### Asset Pattern Syntax
 
-- `*` matches any characters within a filename
-- `!` excludes files matching the pattern
-- Patterns are case-insensitive
+- `*` matches any characters except `/`
+- `**` matches any characters including `/`
+- `?` matches any single character
+- `[seq]` matches any character in seq
+- `[!seq]` matches any character not in seq
+- Patterns starting with `!` exclude matching files
 
-### Repository Overrides
-
-Configure different settings per repository:
-
-```yaml
-download:
-  repository_overrides:
-    kubernetes/kubernetes:
-      asset_patterns:
-        - "kubernetes-client-*.tar.gz"
-        - "kubernetes-server-*.tar.gz"
-      include_prereleases: false
-    
-    # Disable downloads for specific repos
-    some/docs-repo:
-      enabled: false
-```
-
-### Advanced Settings
-
-```yaml
-download:
-  # Include pre-releases in downloads
-  include_prereleases: false
-  
-  # Verify downloads with checksums
-  verify_downloads: true
-  
-  # Cleanup old versions automatically
-  cleanup_old_versions: true
-  keep_versions: 5  # Keep last 5 versions per repository
-  
-  # Download timeout in seconds
-  timeout: 300
-```
+Examples:
+- `"*.tar.gz"` - All gzipped tar files
+- `"kubernetes-*.tar.gz"` - Kubernetes tar files only
+- `"!*-arm64.tar.gz"` - Exclude ARM64 builds
+- `"binaries/*.exe"` - Windows executables in binaries folder
 
 ## Usage
 
@@ -139,223 +131,304 @@ python3 github_monitor.py --config config.yaml --output releases.json
 python3 download_releases.py --config config.yaml --input releases.json
 ```
 
-## Directory Structure
+### Download Directory Structure
 
-Downloads are organized by repository and version:
+Downloads are organized as follows:
 
-```sh
+```
 downloads/
-├── kubernetes_kubernetes/
-│   ├── v1.29.0/
-│   │   ├── kubernetes-client-linux-amd64.tar.gz
-│   │   ├── kubernetes-client-linux-amd64.tar.gz.sha256
-│   │   └── kubernetes-server-linux-amd64.tar.gz
-│   └── v1.29.1/
-│       └── ...
-└── prometheus_prometheus/
-    ├── v2.48.0/
-    └── v2.48.1/
+├── kubernetes/
+│   └── kubernetes/
+│       ├── v1.29.0/
+│       │   ├── kubernetes.tar.gz
+│       │   └── kubernetes-client-linux-amd64.tar.gz
+│       └── v1.29.1/
+│           ├── kubernetes.tar.gz
+│           └── kubernetes-client-linux-amd64.tar.gz
+├── istio/
+│   └── istio/
+│       └── 1.22.4/
+│           ├── istio-1.22.4-linux-amd64.tar.gz
+│           └── istio-1.22.4-linux-amd64.tar.gz.sha256
+└── open-policy-agent/
+    └── gatekeeper/
+        └── v3.18.2/
+            ├── gatekeeper-v3.18.2-linux-amd64.tar.gz
+            └── gatekeeper-v3.18.2-linux-amd64.tar.gz.sha256
 ```
 
 ## Version Management
 
-The download system uses intelligent version comparison:
+The version database (`version_db.json`) tracks:
 
-- **SemVer**: v1.2.3, v2.0.0-alpha.1
-- **CalVer**: 2023.12.1, 23.12
-- **Numeric**: 1.0, 1.1.2
-- **Custom**: release-20231201
+- Current version for each repository
+- Download history and timestamps
+- File metadata (size, checksums)
 
-Only newer versions are downloaded based on the stored version database.
-
-### S3-Based Version Storage
-
-For cloud deployments, use S3 to store version information:
-
-```yaml
-download:
-  s3_storage:
-    enabled: true
-    bucket: my-release-monitor-bucket
-    prefix: release-monitor/
-    region: us-west-2  # Optional
-```
-
-Benefits of S3 storage:
-
-- **Shared State**: Multiple instances can share version information
-- **Durability**: No local file management needed
-- **Scalability**: Works seamlessly in containerized environments
-- **Audit Trail**: Version history preserved in S3
-
-Required AWS permissions:
+Example version database entry:
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:HeadObject",
-        "s3:HeadBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::my-release-monitor-bucket/*",
-        "arn:aws:s3:::my-release-monitor-bucket"
-      ]
+  "kubernetes/kubernetes": {
+    "current_version": "v1.29.1",
+    "last_checked": "2024-01-15T10:30:00Z",
+    "downloads": {
+      "v1.29.1": {
+        "downloaded_at": "2024-01-15T10:31:00Z",
+        "assets": [
+          {
+            "name": "kubernetes.tar.gz",
+            "size": 524288000,
+            "path": "downloads/kubernetes/kubernetes/v1.29.1/kubernetes.tar.gz",
+            "checksum": "sha256:abc123..."
+          }
+        ]
+      }
     }
-  ]
+  },
+  "istio/istio": {
+    "current_version": "1.22.4",
+    "last_checked": "2024-01-15T10:30:00Z",
+    "downloads": {
+      "1.22.4": {
+        "downloaded_at": "2024-01-15T10:32:00Z",
+        "assets": [
+          {
+            "name": "istio-1.22.4-linux-amd64.tar.gz",
+            "size": 67108864,
+            "path": "downloads/istio/istio/1.22.4/istio-1.22.4-linux-amd64.tar.gz",
+            "checksum": "sha256:def456..."
+          }
+        ]
+      }
+    }
+  },
+  "open-policy-agent/gatekeeper": {
+    "current_version": "v3.18.2",
+    "last_checked": "2024-01-15T10:30:00Z",
+    "downloads": {
+      "v3.18.2": {
+        "downloaded_at": "2024-01-15T10:33:00Z",
+        "assets": [
+          {
+            "name": "gatekeeper-v3.18.2-linux-amd64.tar.gz",
+            "size": 33554432,
+            "path": "downloads/open-policy-agent/gatekeeper/v3.18.2/gatekeeper-v3.18.2-linux-amd64.tar.gz",
+            "checksum": "sha256:ghi789..."
+          }
+        ]
+      }
+    }
+  }
 }
 ```
 
-## Verification
+## Advanced Usage
 
-Downloaded files are verified using:
+### Filtering by Repository
 
-1. **Size verification**: Compare downloaded size with asset metadata
-2. **Checksum generation**: SHA256 checksums are created for all files
-3. **Integrity checks**: Verify file integrity during download
+Create separate configs for different repository groups:
 
-Checksum files (`.sha256`) are created alongside each downloaded asset.
+```yaml
+# infrastructure-tools.yaml
+repositories:
+  - owner: istio
+    repo: istio
+  - owner: open-policy-agent
+    repo: gatekeeper
+  - owner: kubernetes
+    repo: kubectl
 
-## Status and Monitoring
-
-Check download status:
-
-```sh
-# Get download statistics
-python3 download_releases.py --status
-
-# Include in monitor output
-python3 github_monitor.py --config config.yaml --download --output results.json
+download:
+  directory: ./infrastructure-downloads
+  asset_patterns:
+    - "*linux_amd64*"
 ```
 
-Status information includes:
+### Custom Download Scripts
 
-- Total downloads and sizes
-- Version database statistics
-- Recent download activity
-- Error summaries
+Process downloads after completion:
+
+```bash
+#!/bin/bash
+# post-download.sh
+
+# Monitor and download
+./scripts/monitor.sh --download --output results.json
+
+# Process downloads
+if [ $(jq '.downloads.successful_count' results.json) -gt 0 ]; then
+  # Extract all tar.gz files
+  find ./downloads -name "*.tar.gz" -exec tar -xzf {} \;
+  
+  # Copy binaries to local bin
+  find ./downloads -name "kubectl" -o -name "istioctl" | \
+    xargs -I {} cp {} /usr/local/bin/
+fi
+```
+
+### Integration with CI/CD
+
+Example GitHub Actions workflow:
+
+```yaml
+name: Download Latest Releases
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Download new releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 github_monitor.py --config config.yaml --download
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-downloads
+          path: downloads/
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Downloads disabled error:**
-
-   Download requested but not enabled in configuration
-
-   - Solution: Set `download.enabled: true` in config.yaml
-
-2. **Permission errors:**
-
-   ```text
-   Permission denied: ./downloads
+1. **Rate Limiting**
+   ```yaml
+   download:
+     retry_delay: 5  # Increase delay between retries
    ```
 
-   - Solution: Ensure download directory is writable
+2. **Large Files**
+   - Downloads are streamed to disk to handle large files
+   - Ensure sufficient disk space
+   - Consider using `max_concurrent: 1` for very large files
 
-3. **Token permissions:**
+3. **Partial Downloads**
+   - Failed downloads are automatically cleaned up
+   - Use `--force-download` to re-download existing versions
 
-   ```text
-   403 Forbidden: Insufficient permissions
+4. **Permission Errors**
+   ```bash
+   # Ensure download directory is writable
+   chmod -R u+w ./downloads
    ```
-
-   - Solution: Ensure GITHUB_TOKEN has repository read access
-
-4. **Version comparison issues:**
-   - Check version_db.json for stored versions
-   - Use `--force-check` to ignore version history
 
 ### Debug Mode
 
-Enable verbose logging:
+Enable detailed logging:
 
-```sh
-python3 github_monitor.py --config config.yaml --download --verbose
+```bash
+# Set log level
+export LOG_LEVEL=DEBUG
+python3 github_monitor.py --config config.yaml --download
+
+# Or use the script
+./scripts/download.sh --debug
 ```
 
-### Clean Start
+## Security Considerations
 
-Reset version database:
+1. **Token Permissions**: Use read-only tokens
+2. **Checksum Verification**: Enable `verify_checksums` for security
+3. **HTTPS Only**: All downloads use HTTPS
+4. **Path Validation**: Downloads are restricted to configured directory
 
-```sh
-rm version_db.json
-```
+## Performance Tips
 
-Reset downloads:
-
-```sh
-rm -rf downloads/
-```
+1. **Concurrent Downloads**: Adjust `max_concurrent` based on bandwidth
+2. **Asset Patterns**: Be specific to avoid unnecessary downloads
+3. **Version Database**: Regularly backup `version_db.json`
+4. **Disk Space**: Monitor available space, especially for large repositories
 
 ## Examples
 
-### Example 1: Basic Setup
+### Download Only Stable Releases
 
 ```yaml
-# config.yaml
-repositories:
-  - owner: prometheus
-    repo: prometheus
-
-download:
-  enabled: true
-  directory: ./artifacts
-  asset_patterns:
-    - "*.tar.gz"
-  verify_downloads: true
-```
-
-```sh
-export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-python3 github_monitor.py --config config.yaml --download
-```
-
-### Example 2: Kubernetes Releases
-
-```yaml
-# config.yaml
 repositories:
   - owner: kubernetes
     repo: kubernetes
+    include_prereleases: false  # Skip alpha/beta/rc releases
+  
+  - owner: istio
+    repo: istio
+    include_prereleases: false  # Latest stable: 1.22.4
+  
+  - owner: open-policy-agent
+    repo: gatekeeper
+    include_prereleases: false  # Latest stable: v3.18.2
 
 download:
   enabled: true
-  directory: ./k8s-releases
-  repository_overrides:
-    kubernetes/kubernetes:
-      asset_patterns:
-        - "kubernetes-client-linux-amd64.tar.gz"
-        - "kubernetes-server-linux-amd64.tar.gz"
-      include_prereleases: false
-  cleanup_old_versions: true
-  keep_versions: 3
+  asset_patterns:
+    - "*client*linux*amd64*.tar.gz"  # Client tools only
+    - "*linux-amd64*.tar.gz"         # Istio and Gatekeeper binaries
 ```
 
-### Example 3: CI/CD Integration
+### Mirror Multiple Tools
 
-```sh
+```yaml
+repositories:
+  - owner: istio
+    repo: istio
+  - owner: open-policy-agent
+    repo: gatekeeper
+  - owner: kubernetes-sigs
+    repo: gateway-api
+
+download:
+  directory: ./k8s-tools-mirror
+  asset_patterns:
+    - "*linux-amd64*"
+    - "!*.sha256"  # Skip checksum files
+```
+
+### Continuous Mirroring Script
+
+```bash
 #!/bin/bash
-# ci-download.sh
+# continuous-mirror.sh
 
-set -euo pipefail
-
-echo "Checking for new releases..."
-NEW_RELEASES=$(python3 github_monitor.py --config ci-config.yaml --download --format json)
-
-if [[ $(echo "$NEW_RELEASES" | jq '.new_releases_found') -gt 0 ]]; then
-    echo "New releases found! Processing downloads..."
-    echo "$NEW_RELEASES" | jq '.download_results'
+while true; do
+  echo "Checking for new releases..."
+  
+  # Run monitor with download
+  if python3 github_monitor.py --config mirror.yaml --download; then
+    # Report on specific versions found
+    echo "Latest versions downloaded:"
+    if [ -d "./downloads/istio/istio" ]; then
+      echo "  Istio: $(ls -1 ./downloads/istio/istio/ | tail -1)"
+    fi
+    if [ -d "./downloads/open-policy-agent/gatekeeper" ]; then
+      echo "  Gatekeeper: $(ls -1 ./downloads/open-policy-agent/gatekeeper/ | tail -1)"
+    fi
     
-    # Trigger downstream pipeline
-    ./trigger-deployment.sh
-else
-    echo "No new releases."
-fi
+    # Sync to S3 or other storage
+    aws s3 sync ./downloads s3://my-mirror-bucket/ --delete
+  fi
+  
+  # Wait 1 hour
+  sleep 3600
+done
 ```
 
 ## Integration with Concourse
