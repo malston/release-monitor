@@ -106,16 +106,18 @@ jobs:
             S3_ENDPOINT: ((s3_endpoint))
             S3_BUCKET: ((s3_releases_bucket))
           run:
-            path: python3
+            path: bash
             args:
-              - -c
+              - -exc
               - |
+                # Install boto3 first
+                pip3 install --quiet boto3
+                
+                # Run the upload script
+                python3 -c "
                 import os
                 import boto3
                 from pathlib import Path
-                
-                # Install boto3
-                os.system("pip install --quiet boto3")
                 
                 # Configure S3 client
                 endpoint_url = os.environ.get('S3_ENDPOINT')
@@ -125,7 +127,7 @@ jobs:
                 
                 if endpoint_url:
                     s3_kwargs['endpoint_url'] = endpoint_url
-                    print(f"Using S3-compatible endpoint: {endpoint_url}")
+                    print(f'Using S3-compatible endpoint: {endpoint_url}')
                 
                 s3 = boto3.client('s3', **s3_kwargs)
                 bucket = os.environ['S3_BUCKET']
@@ -138,19 +140,20 @@ jobs:
                     if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
                         # Create S3 key maintaining directory structure
                         relative_path = file_path.relative_to(downloads_dir)
-                        s3_key = f"release-downloads/{relative_path}"
+                        s3_key = f'release-downloads/{relative_path}'
                         
-                        print(f"Uploading {relative_path} to s3://{bucket}/{s3_key}")
+                        print(f'Uploading {relative_path} to s3://{bucket}/{s3_key}')
                         
                         try:
                             with open(file_path, 'rb') as f:
                                 s3.put_object(Bucket=bucket, Key=s3_key, Body=f)
                             uploaded_count += 1
                         except Exception as e:
-                            print(f"Error uploading {file_path}: {e}")
+                            print(f'Error uploading {file_path}: {e}')
                             raise
                 
-                print(f"\nUpload complete! Uploaded {uploaded_count} files to S3.")
+                print(f'\\nUpload complete! Uploaded {uploaded_count} files to S3.')
+                "
 
   - name: cleanup-old-releases
     plan:
