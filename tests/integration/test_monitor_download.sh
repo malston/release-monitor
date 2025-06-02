@@ -3,12 +3,31 @@
 
 set -euo pipefail
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo "Starting integration tests for monitor with download..."
+
+# Change to project root
+cd "$PROJECT_ROOT"
+
+# Determine Python command (use virtual environment if available)
+if [ -f "venv/bin/python3" ]; then
+    PYTHON_CMD="venv/bin/python3"
+    echo "Using virtual environment: $PYTHON_CMD"
+elif [ -f "test-env/bin/python3" ]; then
+    PYTHON_CMD="test-env/bin/python3"
+    echo "Using test virtual environment: $PYTHON_CMD"
+else
+    PYTHON_CMD="python3"
+    echo "Using system Python: $PYTHON_CMD"
+fi
 
 # Create temporary test directory
 TEST_DIR=$(mktemp -d)
@@ -39,7 +58,7 @@ EOF
 
 # Test 1: Monitor without download flag
 echo -e "\n${GREEN}Test 1: Monitor without download flag${NC}"
-python3 github_monitor.py --config "$TEST_DIR/test-config.yaml" > "$TEST_DIR/monitor-output.json"
+$PYTHON_CMD github_monitor.py --config "$TEST_DIR/test-config.yaml" > "$TEST_DIR/monitor-output.json"
 
 if [ -d "$TEST_DIR/downloads" ]; then
     echo -e "${RED}FAIL: Download directory should not exist without --download flag${NC}"
@@ -80,7 +99,7 @@ EOF
 
 # Test download coordinator directly
 echo "Testing download coordinator..."
-python3 -c "
+$PYTHON_CMD -c "
 import json
 import sys
 sys.path.insert(0, '.')
@@ -107,7 +126,7 @@ fi
 
 # Test 3: Version database functionality
 echo -e "\n${GREEN}Test 3: Version database functionality${NC}"
-python3 -c "
+$PYTHON_CMD -c "
 import sys
 sys.path.insert(0, '.')
 from github_version_db import VersionDatabase
@@ -128,7 +147,7 @@ fi
 
 # Test 4: Version comparison
 echo -e "\n${GREEN}Test 4: Version comparison${NC}"
-python3 -c "
+$PYTHON_CMD -c "
 import sys
 sys.path.insert(0, '.')
 from version_compare import VersionComparator
@@ -170,7 +189,7 @@ download:
 EOF
     
     # Run monitor on self (won't actually download without real releases)
-    python3 github_monitor.py --config "$TEST_DIR/self-test-config.yaml" --download
+    $PYTHON_CMD github_monitor.py --config "$TEST_DIR/self-test-config.yaml" --download
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}PASS: Full integration test completed${NC}"

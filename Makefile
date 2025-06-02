@@ -269,14 +269,24 @@ create-release: ## Create a GitHub release (requires TAG, NAME, and optionally N
 ##@ Integration Testing
 
 .PHONY: integration-test
-integration-test: venv ## Run integration tests for monitoring releases
-	@echo "$(GREEN)Running integration tests...$(NC)"
+integration-test: venv ## Run all integration tests
+	@echo "$(GREEN)Running all integration tests...$(NC)"
 	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_self.sh
+	@echo "$(GREEN)Running download integration tests...$(NC)"
+	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_download.sh
 
 .PHONY: test-monitor-self
 test-monitor-self: venv ## Test monitoring this repository's releases
 	@echo "$(GREEN)Testing monitor on release-monitor repository...$(NC)"
 	@source .env 2>/dev/null || true && $(PYTHON) tests/integration/test_monitor_self.py
+
+.PHONY: test-download-integration
+test-download-integration: venv ## Run download integration tests
+	@echo "$(GREEN)Running download integration tests...$(NC)"
+	@if [ ! -f ".env" ]; then \
+		echo "$(YELLOW)Warning: .env file not found. Some tests may fail without GITHUB_TOKEN$(NC)"; \
+	fi
+	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_download.sh
 
 ##@ Examples
 
