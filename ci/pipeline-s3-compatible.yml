@@ -107,10 +107,46 @@ jobs:
           # S3-compatible endpoint for version DB
           S3_ENDPOINT: ((s3_endpoint))
 
-      - put: release-storage
-        params:
-          file: downloads/*
-          acl: private
+      # Upload downloaded files to S3 storage
+      - task: upload-to-s3
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: amazon/aws-cli
+              tag: latest
+          inputs:
+            - name: downloads
+          params:
+            AWS_ACCESS_KEY_ID: ((s3_access_key))
+            AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+            AWS_DEFAULT_REGION: ((s3_region))
+            S3_ENDPOINT: ((s3_endpoint))
+            S3_BUCKET: ((s3_releases_bucket))
+          run:
+            path: sh
+            args:
+              - -exc
+              - |
+                # Configure AWS CLI for S3-compatible storage
+                if [ -n "$S3_ENDPOINT" ]; then
+                  ENDPOINT_URL="--endpoint-url $S3_ENDPOINT"
+                else
+                  ENDPOINT_URL=""
+                fi
+                
+                # Find and upload all release files
+                cd downloads
+                find . -type f \( -name "*.tar.gz" -o -name "*.zip" \) | while read file; do
+                  # Remove leading ./ from file path
+                  file_path="${file#./}"
+                  
+                  echo "Uploading $file_path to s3://$S3_BUCKET/release-downloads/$file_path"
+                  aws s3 cp "$file" "s3://$S3_BUCKET/release-downloads/$file_path" $ENDPOINT_URL
+                done
+                
+                echo "Upload complete!"
 
   - name: cleanup-old-releases
     plan:
