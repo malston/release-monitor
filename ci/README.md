@@ -1,84 +1,161 @@
 # Concourse CI Structure
 
-This directory contains the Concourse CI/CD pipeline for the GitHub release monitor.
+This directory contains **3 streamlined Concourse pipelines** for the GitHub release monitor, each optimized for specific use cases.
 
-## Structure
+## Pipeline Files
 
 ```text
 ci/
-├── pipeline.yml                      # Main pipeline definition
+├── pipeline-s3-compatible.yml       # S3-compatible pipeline (MinIO/AWS S3) ⭐ PRIMARY
+├── pipeline-simple.yml              # Basic monitoring only (getting started) ⭐ STARTER  
+├── pipeline.yml                     # Traditional AWS S3 pipeline ⭐ AWS-ONLY
 ├── fly.sh                           # Pipeline deployment script
-├── validate.sh                      # Pipeline validation script
+├── validate.sh                      # Pipeline validation script  
+├── validate-simple.sh              # Validation for simple pipelines
 ├── README.md                        # This file
 └── tasks/
     ├── check-releases/
-    │   ├── task.yml                 # Task configuration
+    │   ├── task.yml                 # Full monitoring task
     │   └── task.sh                  # Task execution script
-    └── download-tarballs/
-        ├── task.yml                 # Task configuration
+    ├── check-releases-simple/
+    │   ├── task.yml                 # Simplified monitoring task
+    │   └── task.sh                  # Task execution script
+    └── download-releases/
+        ├── task.yml                 # Download task with S3 support
         └── task.sh                  # Task execution script
+```
+
+## Pipeline Comparison
+
+| Pipeline | Use Case | Storage | Downloads | Complexity | Jobs | Status |
+|----------|----------|---------|-----------|------------|------|--------|
+| **pipeline-s3-compatible.yml** ⭐ | Production MinIO/AWS | S3-compatible | ✅ Advanced | Medium | 4 | **PRIMARY** |
+| **pipeline-simple.yml** 🏁 | Getting started | None | ❌ | Low | 2 | **STARTER** |
+| **pipeline.yml** 🏢 | AWS-only environments | AWS S3 | ✅ Basic | Medium | 2 | **AWS-ONLY** |
+
+## Pipeline Details
+
+### pipeline-s3-compatible.yml ⭐ **PRIMARY PIPELINE**
+- **Purpose**: Full-featured production pipeline supporting both MinIO and AWS S3
+- **Jobs**: `monitor-releases`, `download-new-releases`, `clear-version-database`, `force-download-repo`
+- **Features**: 
+  - S3-compatible storage (MinIO, AWS S3, etc.)
+  - Advanced version tracking and duplicate prevention
+  - Automatic cleanup of old versions
+  - Force download capability for testing
+  - Database management utilities
+- **Best for**: Most production environments, local development with MinIO
+- **Deploy**: `make pipeline-set-test-minio`
+
+### pipeline-simple.yml 🏁 **STARTER PIPELINE**
+- **Purpose**: Basic monitoring without downloads or storage dependencies
+- **Jobs**: `monitor-releases`, `check-repositories` 
+- **Features**: 
+  - GitHub API monitoring only
+  - No storage dependencies
+  - Easy setup and testing
+  - JSON output for integration
+- **Best for**: Getting started, testing, basic monitoring, CI/CD integration
+- **Deploy**: `make pipeline-set-test-simple`
+
+### pipeline.yml 🏢 **AWS-ONLY PIPELINE**
+- **Purpose**: Traditional AWS S3 pipeline for pure AWS environments
+- **Jobs**: `monitor-releases`, `download-new-releases`
+- **Features**: 
+  - Native AWS S3 integration
+  - Standard download and storage
+  - AWS-optimized configuration
+- **Best for**: Enterprise AWS-only environments, existing AWS infrastructure
+- **Deploy**: `make pipeline-set-test`
+
+## User Journey
+
+```
+🏁 Start Here          ⭐ Upgrade To           🏢 Alternative
+pipeline-simple.yml → pipeline-s3-compatible.yml  OR  pipeline.yml
+(Learn basics)         (Full production)           (AWS-only)
 ```
 
 ## Tasks
 
 ### check-releases
-
-- **Purpose**: Monitor GitHub repositories for new releases
+- **Purpose**: Full GitHub monitoring with S3 integration
 - **Image**: `python:3.11-slim`
-- **Input**: `release-monitoring-repo` (source code)
-- **Output**: `release-output` (JSON file with new releases)
-- **Script**: `task.sh` installs dependencies and runs `scripts/monitor.sh`
+- **Used by**: pipeline.yml, pipeline-s3-compatible.yml
 
-### download-tarballs
+### check-releases-simple  
+- **Purpose**: Basic GitHub monitoring without S3
+- **Image**: `python:3.11-slim`
+- **Used by**: pipeline-simple.yml
 
-- **Purpose**: Download release tarballs and upload to S3
-- **Image**: `alpine/curl:latest`
-- **Input**: `release-monitoring-repo` (source code), `s3-output` (release data)
-- **Output**: `tarballs` (downloaded files)
-- **Script**: `task.sh` processes release data and handles S3 uploads
+### download-releases
+- **Purpose**: Advanced downloads with S3 version tracking
+- **Image**: `python:3.9-slim` 
+- **Used by**: pipeline.yml, pipeline-s3-compatible.yml
 
-## Usage
+## Quick Start
 
-Deploy the pipeline using the fly script from the repository root:
+### For MinIO/S3-Compatible Storage (Recommended)
+```bash
+# Deploy S3-compatible pipeline
+make pipeline-set-test-minio
+
+# Force download for testing
+make force-download REPO=etcd-io/etcd
+```
+
+### For Basic Monitoring Only  
+```bash
+# Deploy simple monitoring pipeline
+make pipeline-set-test-simple
+```
+
+### For AWS S3 Only
+```bash
+# Deploy traditional S3 pipeline  
+make pipeline-set-test
+```
+
+## Advanced Usage
 
 ```bash
-# Validate pipeline before deployment
+# Validate pipelines
 ./ci/validate.sh
+./ci/validate-simple.sh
 
-# Deploy to test environment
-./ci/fly.sh set -t test -f test
+# Manual deployment with fly
+fly -t test set-pipeline -p name -c ci/pipeline-s3-compatible.yml -l params/global-s3-compatible.yml
 
-# Deploy to production
-./ci/fly.sh set -t prod -f prod
-
-# Destroy pipeline
-./ci/fly.sh destroy -t prod
+# Force download any repository
+fly -t test trigger-job -j pipeline-name/force-download-repo -v force_download_repo="istio/istio"
 ```
 
 ## Configuration
 
-Pipeline parameters are managed in the `../params/` directory:
+Pipeline parameters are in `../params/`:
 
-- `global.yml`: Shared parameters across environments
-- `test.yml`: Test environment specific parameters
-- `prod.yml`: Production environment specific parameters
+- `global-s3-compatible.yml`: S3-compatible pipeline parameters ⭐
+- `global.yml`: Traditional S3 pipeline parameters  
+- `test.yml`: Test environment overrides
+- `prod.yml`: Production environment overrides
+- `minio-local.yml`: Local MinIO configuration
+- `minio-credentials.yml`: MinIO credentials (create from example)
 
-### Variable Naming Convention
+## Pipeline Flows
 
-All Concourse variables use underscore notation (snake_case) following best practices:
+### S3-Compatible Pipeline (Recommended)
+```
+Schedule → Monitor Releases → Download New Releases → Upload to S3
+    ↓           ↓                      ↓                    ↓
+Clear DB ← Force Download ←  Version Tracking ←  Automatic Cleanup
+```
 
-- `github_token` (not `github-token`)
-- `s3_bucket` (not `s3-bucket`)
-- `git_repo_uri` (not `git-repo-uri`)
+### Simple Pipeline  
+```
+Schedule → Monitor Releases → Output JSON (no downloads)
+```
 
-This ensures consistency and compatibility across all Concourse components.
-
-## Pipeline Flow
-
-1. **Trigger**: Time-based (hourly) or manual
-2. **check-releases**: Monitor repositories and detect new releases
-3. **Store Results**: Save release data to S3
-4. **download-tarballs**: Download and store tarballs for new releases
-5. **Complete**: Pipeline finishes successfully
-
-Each task is self-contained with its own configuration and execution script, following Concourse best practices for modularity and maintainability.
+### Traditional S3 Pipeline
+```
+Schedule → Monitor Releases → Download → Upload to AWS S3
+```

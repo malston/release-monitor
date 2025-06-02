@@ -58,6 +58,13 @@ class ReleaseDownloadCoordinator:
         use_s3 = s3_config.get('enabled', False)
 
         if use_s3:
+            # Check if we should use S3-compatible storage (for MinIO, etc.)
+            endpoint_url = s3_config.get('endpoint_url') or os.environ.get('AWS_ENDPOINT_URL')
+            
+            # Set endpoint URL for boto3 before importing S3 modules
+            if endpoint_url:
+                os.environ['AWS_ENDPOINT_URL_S3'] = endpoint_url
+            
             # Use S3-based version storage
             from github_version_s3 import VersionDatabase as S3VersionDatabase
             self.version_db = S3VersionDatabase(
@@ -67,7 +74,9 @@ class ReleaseDownloadCoordinator:
                 aws_region=s3_config.get('region'),
                 aws_profile=s3_config.get('profile')
             )
-            logger.info(f"Using S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json")
+            
+            endpoint_info = f" via {endpoint_url}" if endpoint_url else ""
+            logger.info(f"Using S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json{endpoint_info}")
         else:
             # Use local file storage
             self.version_db = VersionDatabase(

@@ -69,6 +69,14 @@ USE_S3_VERSION_DB="${USE_S3_VERSION_DB:-false}"
 VERSION_DB_S3_BUCKET="${VERSION_DB_S3_BUCKET:-}"
 VERSION_DB_S3_PREFIX="${VERSION_DB_S3_PREFIX:-release-monitor/}"
 VERSION_DB_S3_REGION="${VERSION_DB_S3_REGION:-}"
+S3_ENDPOINT="${S3_ENDPOINT:-}"
+
+# Export S3 endpoint for boto3 to use
+if [[ -n "$S3_ENDPOINT" ]]; then
+    export AWS_ENDPOINT_URL="$S3_ENDPOINT"
+    export AWS_ENDPOINT_URL_S3="$S3_ENDPOINT"
+    log_info "  S3 Endpoint: $S3_ENDPOINT"
+fi
 
 # Log configuration
 log_info "Configuration:"
@@ -112,10 +120,14 @@ fi
 # Verify input files exist
 log_info "Checking input files..."
 
-if [[ ! -f "/tmp/monitor-output/releases.json" ]]; then
-    log_error "Monitor output file not found: /tmp/monitor-output/releases.json"
+if [[ ! -f "/tmp/monitor-output/latest-releases.json" ]]; then
+    log_error "Monitor output file not found: /tmp/monitor-output/latest-releases.json"
     exit 1
 fi
+
+MONITOR_OUTPUT="/tmp/monitor-output/latest-releases.json"
+
+log_info "Found monitor output at: $MONITOR_OUTPUT"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
     log_error "Configuration file not found: $CONFIG_FILE"
@@ -129,7 +141,6 @@ mkdir -p "$(dirname "$VERSION_DB_PATH")"
 
 # Check monitor output content
 log_info "Analyzing monitor output..."
-MONITOR_OUTPUT="/tmp/monitor-output/releases.json"
 
 # Check if monitor output is valid JSON
 if ! python3 -c "import json; json.load(open('$MONITOR_OUTPUT'))" 2>/dev/null; then
@@ -178,6 +189,8 @@ if '${USE_S3_VERSION_DB}' == 'true':
     s3_config['prefix'] = '${VERSION_DB_S3_PREFIX}'
     if '${VERSION_DB_S3_REGION}':
         s3_config['region'] = '${VERSION_DB_S3_REGION}'
+    if '${S3_ENDPOINT}':
+        s3_config['endpoint_url'] = '${S3_ENDPOINT}'
 
 # Parse JSON parameters from environment
 try:
@@ -186,19 +199,23 @@ try:
 except json.JSONDecodeError:
     download_config['asset_patterns'] = ['*.tar.gz', '*.zip']
 
+# Handle repository overrides which might be multi-line JSON
+repo_overrides_str = '''${REPOSITORY_OVERRIDES:-{}}'''
 try:
-    repo_overrides = json.loads('${REPOSITORY_OVERRIDES:-{}}')
+    repo_overrides = json.loads(repo_overrides_str)
     if repo_overrides:
         download_config['repository_overrides'] = repo_overrides
 except json.JSONDecodeError:
-    pass
+    # Try to parse as empty dict if parsing fails
+    download_config['repository_overrides'] = {}
 
 # Set other download parameters
-download_config['include_prereleases'] = ${INCLUDE_PRERELEASES:-false}
-download_config['verify_downloads'] = ${VERIFY_DOWNLOADS:-true}
-download_config['cleanup_old_versions'] = ${CLEANUP_OLD_VERSIONS:-true}
-download_config['keep_versions'] = ${KEEP_VERSIONS:-5}
-download_config['timeout'] = ${DOWNLOAD_TIMEOUT:-300}
+# Convert bash true/false strings to Python booleans
+download_config['include_prereleases'] = '${INCLUDE_PRERELEASES:-false}'.lower() == 'true'
+download_config['verify_downloads'] = '${VERIFY_DOWNLOADS:-true}'.lower() == 'true'
+download_config['cleanup_old_versions'] = '${CLEANUP_OLD_VERSIONS:-true}'.lower() == 'true'
+download_config['keep_versions'] = int('${KEEP_VERSIONS:-5}')
+download_config['timeout'] = int('${DOWNLOAD_TIMEOUT:-300}')
 
 # Write updated configuration
 with open('$TEMP_CONFIG', 'w') as f:
@@ -228,17 +245,55 @@ fi
 log_info "Starting download process..."
 log_info "Command: python3 download_releases.py ${DOWNLOAD_ARGS[*]}"
 
+# Debug environment variables
+log_info "Environment variables for S3:"
+log_info "  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-not set}"
+log_info "  AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-not set}"
+log_info "  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:+set}"
+log_info "  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:+set}"
+log_info "  S3_ENDPOINT: ${S3_ENDPOINT:-not set}"
+
+# Test S3 connection before running full download
+log_info "Testing S3 connection..."
+python3 - << 'EOF' || log_error "S3 connection test failed"
+import boto3
+import os
+import sys
+
+endpoint = os.environ.get('AWS_ENDPOINT_URL_S3')
+print(f"Testing connection to S3 endpoint: {endpoint}")
+
+try:
+    s3 = boto3.client('s3', endpoint_url=endpoint)
+    # Try to list buckets
+    response = s3.list_buckets()
+    print(f"Connection successful! Found {len(response.get('Buckets', []))} buckets")
+    for bucket in response.get('Buckets', []):
+        print(f"  - {bucket['Name']}")
+except Exception as e:
+    print(f"ERROR: Failed to connect to S3: {e}")
+    sys.exit(1)
+EOF
+
 START_TIME=$(date +%s)
 
-# Run download with output capture
-DOWNLOAD_OUTPUT=$(mktemp)
-DOWNLOAD_ERROR=$(mktemp)
+# Run download with visible output for debugging
+log_info "Running download script with visible output..."
 
-if python3 download_releases.py "${DOWNLOAD_ARGS[@]}" > "$DOWNLOAD_OUTPUT" 2> "$DOWNLOAD_ERROR"; then
-    DOWNLOAD_EXIT_CODE=0
-else
-    DOWNLOAD_EXIT_CODE=$?
+# Run with timeout but show output in real-time
+# Use 600s (10 minutes) timeout to allow for large file downloads
+timeout 600s python3 download_releases.py "${DOWNLOAD_ARGS[@]}" 2>&1 | tee /tmp/download_output.log
+DOWNLOAD_EXIT_CODE=${PIPESTATUS[0]}
+
+# Check if it was killed by timeout
+if [[ $DOWNLOAD_EXIT_CODE -eq 124 ]]; then
+    log_error "Download process timed out after 600 seconds (10 minutes)"
+    log_error "This usually indicates a connection issue or very large files"
 fi
+
+# Copy output for processing
+DOWNLOAD_OUTPUT=/tmp/download_output.log
+DOWNLOAD_ERROR=/tmp/download_output.log
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
@@ -297,6 +352,7 @@ except Exception as e:
     }
     print(json.dumps(fallback, indent=2))
 EOF
+    fi
     
 else
     log_error "Download failed with exit code: $DOWNLOAD_EXIT_CODE"
@@ -322,7 +378,9 @@ else
     log_warn "Download directory does not exist: $DOWNLOAD_DIR"
 fi
 
-if [[ -f "$VERSION_DB_PATH" ]]; then
+if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+    log_info "Version database is managed in S3 (s3://$VERSION_DB_S3_BUCKET/$VERSION_DB_S3_PREFIX)"
+elif [[ -f "$VERSION_DB_PATH" ]]; then
     log_info "Version database updated: $VERSION_DB_PATH"
     
     if [[ "${VERBOSE:-false}" == "true" ]]; then

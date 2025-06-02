@@ -61,25 +61,15 @@ Good for testing or environments without S3.
 - Simple configuration
 - No external dependencies
 
-### 3. Download Pipeline (pipeline-with-downloads.yml)
+### 3. S3-Compatible Pipeline (pipeline-s3-compatible.yml) ⭐ **RECOMMENDED**
 
-Full-featured pipeline with asset downloads.
-
-**Features:**
-- Asset pattern filtering
-- Version database in S3
-- Automatic packaging
-- Download verification
-
-### 4. Simple Download Pipeline (pipeline-downloads-simple.yml)
-
-Downloads without S3 dependencies.
+Production-ready pipeline with MinIO and AWS S3 support.
 
 **Features:**
-- Local downloads
-- Simple configuration
-- Easy to understand
-- Good for development
+- S3-compatible storage (MinIO, AWS S3, etc.)
+- Advanced version tracking and downloads
+- Force download utilities for testing
+- Automatic cleanup and database management
 
 ## Basic Deployment
 
@@ -282,16 +272,15 @@ download:
   retry_attempts: 3
 ```
 
-### Deploy Download Pipeline
+### Deploy S3-Compatible Pipeline (Recommended)
 
 ```bash
 fly -t dev set-pipeline \
-  -p release-monitor-downloads \
-  -c ci/pipeline-with-downloads.yml \
-  -l params/global.yml \
-  -l params/test.yml \
-  -v "downloads_s3_bucket=my-downloads-bucket" \
-  -v "version_db_s3_bucket=my-state-bucket"
+  -p release-monitor-minio \
+  -c ci/pipeline-s3-compatible.yml \
+  -l params/global-s3-compatible.yml \
+  -l params/minio-local.yml \
+  -v "github_token=${GITHUB_TOKEN}"
 ```
 
 ### Repository-Specific Downloads
