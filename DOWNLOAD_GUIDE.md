@@ -145,11 +145,16 @@ downloads/
 │       └── v1.29.1/
 │           ├── kubernetes.tar.gz
 │           └── kubernetes-client-linux-amd64.tar.gz
-└── istio/
-    └── istio/
-        └── 1.22.1/
-            ├── istio-1.22.1-linux-amd64.tar.gz
-            └── istio-1.22.1-linux-amd64.tar.gz.sha256
+├── istio/
+│   └── istio/
+│       └── 1.22.4/
+│           ├── istio-1.22.4-linux-amd64.tar.gz
+│           └── istio-1.22.4-linux-amd64.tar.gz.sha256
+└── open-policy-agent/
+    └── gatekeeper/
+        └── v3.18.2/
+            ├── gatekeeper-v3.18.2-linux-amd64.tar.gz
+            └── gatekeeper-v3.18.2-linux-amd64.tar.gz.sha256
 ```
 
 ## Version Management
@@ -176,6 +181,40 @@ Example version database entry:
             "size": 524288000,
             "path": "downloads/kubernetes/kubernetes/v1.29.1/kubernetes.tar.gz",
             "checksum": "sha256:abc123..."
+          }
+        ]
+      }
+    }
+  },
+  "istio/istio": {
+    "current_version": "1.22.4",
+    "last_checked": "2024-01-15T10:30:00Z",
+    "downloads": {
+      "1.22.4": {
+        "downloaded_at": "2024-01-15T10:32:00Z",
+        "assets": [
+          {
+            "name": "istio-1.22.4-linux-amd64.tar.gz",
+            "size": 67108864,
+            "path": "downloads/istio/istio/1.22.4/istio-1.22.4-linux-amd64.tar.gz",
+            "checksum": "sha256:def456..."
+          }
+        ]
+      }
+    }
+  },
+  "open-policy-agent/gatekeeper": {
+    "current_version": "v3.18.2",
+    "last_checked": "2024-01-15T10:30:00Z",
+    "downloads": {
+      "v3.18.2": {
+        "downloaded_at": "2024-01-15T10:33:00Z",
+        "assets": [
+          {
+            "name": "gatekeeper-v3.18.2-linux-amd64.tar.gz",
+            "size": 33554432,
+            "path": "downloads/open-policy-agent/gatekeeper/v3.18.2/gatekeeper-v3.18.2-linux-amd64.tar.gz",
+            "checksum": "sha256:ghi789..."
           }
         ]
       }
@@ -329,11 +368,20 @@ repositories:
   - owner: kubernetes
     repo: kubernetes
     include_prereleases: false  # Skip alpha/beta/rc releases
+  
+  - owner: istio
+    repo: istio
+    include_prereleases: false  # Latest stable: 1.22.4
+  
+  - owner: open-policy-agent
+    repo: gatekeeper
+    include_prereleases: false  # Latest stable: v3.18.2
 
 download:
   enabled: true
   asset_patterns:
     - "*client*linux*amd64*.tar.gz"  # Client tools only
+    - "*linux-amd64*.tar.gz"         # Istio and Gatekeeper binaries
 ```
 
 ### Mirror Multiple Tools
@@ -365,6 +413,15 @@ while true; do
   
   # Run monitor with download
   if python3 github_monitor.py --config mirror.yaml --download; then
+    # Report on specific versions found
+    echo "Latest versions downloaded:"
+    if [ -d "./downloads/istio/istio" ]; then
+      echo "  Istio: $(ls -1 ./downloads/istio/istio/ | tail -1)"
+    fi
+    if [ -d "./downloads/open-policy-agent/gatekeeper" ]; then
+      echo "  Gatekeeper: $(ls -1 ./downloads/open-policy-agent/gatekeeper/ | tail -1)"
+    fi
+    
     # Sync to S3 or other storage
     aws s3 sync ./downloads s3://my-mirror-bucket/ --delete
   fi

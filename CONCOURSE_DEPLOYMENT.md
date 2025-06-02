@@ -280,6 +280,9 @@ download:
     istio/istio:
       asset_patterns:
         - "istio-*.linux-amd64.tar.gz"
+    open-policy-agent/gatekeeper:
+      asset_patterns:
+        - "gatekeeper-*.linux-amd64.tar.gz"
 ```
 
 ### S3 Download Storage
@@ -438,10 +441,14 @@ release-downloads/
 │       │   ├── kubernetes-client-linux-amd64.tar.gz
 │       │   └── kubernetes-server-linux-amd64.tar.gz
 │       └── v1.29.1/
-└── istio/
-    └── istio/
-        └── 1.22.1/
-            └── istio-1.22.1-linux-amd64.tar.gz
+├── istio/
+│   └── istio/
+│       └── 1.22.4/
+│           └── istio-1.22.4-linux-amd64.tar.gz
+└── open-policy-agent/
+    └── gatekeeper/
+        └── v3.18.2/
+            └── gatekeeper-v3.18.2-linux-amd64.tar.gz
 ```
 
 ## Integration Examples
@@ -456,6 +463,18 @@ resources:
       bucket: releases-bucket
       regexp: release-downloads/kubernetes/kubernetes/(.*)/.*
 
+  - name: istio-releases
+    type: s3
+    source:
+      bucket: releases-bucket
+      regexp: release-downloads/istio/istio/(.*)/.*
+
+  - name: gatekeeper-releases
+    type: s3
+    source:
+      bucket: releases-bucket
+      regexp: release-downloads/open-policy-agent/gatekeeper/(.*)/.*
+
 jobs:
   - name: update-kubernetes
     plan:
@@ -463,6 +482,20 @@ jobs:
         trigger: true
       - task: deploy-kubernetes
         # ... deployment logic
+
+  - name: update-service-mesh
+    plan:
+      - get: istio-releases
+        trigger: true
+      - task: deploy-istio
+        # ... Istio deployment logic
+
+  - name: update-policy-engine
+    plan:
+      - get: gatekeeper-releases
+        trigger: true
+      - task: deploy-gatekeeper
+        # ... Gatekeeper deployment logic
 ```
 
 ### Slack Notifications

@@ -45,10 +45,10 @@ $ python3 github_monitor.py --config config.yaml
     },
     {
       "repository": "istio/istio", 
-      "tag_name": "1.22.1",
-      "name": "1.22.1",
+      "tag_name": "1.22.4",
+      "name": "1.22.4",
       "published_at": "2025-05-21T13:02:01Z",
-      "html_url": "https://github.com/istio/istio/releases/tag/1.22.1"
+      "html_url": "https://github.com/istio/istio/releases/tag/1.22.4"
     }
   ]
 }
