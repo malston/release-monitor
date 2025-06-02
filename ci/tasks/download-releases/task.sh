@@ -74,6 +74,7 @@ S3_ENDPOINT="${S3_ENDPOINT:-}"
 # Export S3 endpoint for boto3 to use
 if [[ -n "$S3_ENDPOINT" ]]; then
     export AWS_ENDPOINT_URL="$S3_ENDPOINT"
+    export AWS_ENDPOINT_URL_S3="$S3_ENDPOINT"
     log_info "  S3 Endpoint: $S3_ENDPOINT"
 fi
 
@@ -244,16 +245,28 @@ fi
 log_info "Starting download process..."
 log_info "Command: python3 download_releases.py ${DOWNLOAD_ARGS[*]}"
 
+# Debug environment variables
+log_info "Environment variables for S3:"
+log_info "  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-not set}"
+log_info "  AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-not set}"
+log_info "  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:+set}"
+log_info "  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:+set}"
+log_info "  S3_ENDPOINT: ${S3_ENDPOINT:-not set}"
+
 START_TIME=$(date +%s)
 
-# Run download with output capture
+# Run download with output capture and timeout
 DOWNLOAD_OUTPUT=$(mktemp)
 DOWNLOAD_ERROR=$(mktemp)
 
-if python3 download_releases.py "${DOWNLOAD_ARGS[@]}" > "$DOWNLOAD_OUTPUT" 2> "$DOWNLOAD_ERROR"; then
-    DOWNLOAD_EXIT_CODE=0
-else
-    DOWNLOAD_EXIT_CODE=$?
+# Add timeout to prevent hanging
+timeout 60s python3 download_releases.py "${DOWNLOAD_ARGS[@]}" > "$DOWNLOAD_OUTPUT" 2> "$DOWNLOAD_ERROR"
+DOWNLOAD_EXIT_CODE=$?
+
+# Check if it was killed by timeout
+if [[ $DOWNLOAD_EXIT_CODE -eq 124 ]]; then
+    log_error "Download process timed out after 60 seconds"
+    echo "Process was killed due to timeout. This usually indicates a connection issue." >> "$DOWNLOAD_ERROR"
 fi
 
 END_TIME=$(date +%s)

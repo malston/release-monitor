@@ -58,16 +58,27 @@ class ReleaseDownloadCoordinator:
         use_s3 = s3_config.get('enabled', False)
 
         if use_s3:
+            # Debug S3 configuration
+            logger.info("S3 configuration enabled")
+            logger.info(f"S3 Config: {s3_config}")
+            logger.info(f"Environment AWS_ENDPOINT_URL: {os.environ.get('AWS_ENDPOINT_URL', 'not set')}")
+            logger.info(f"Environment AWS_ENDPOINT_URL_S3: {os.environ.get('AWS_ENDPOINT_URL_S3', 'not set')}")
+            logger.info(f"Environment AWS_ACCESS_KEY_ID: {'set' if os.environ.get('AWS_ACCESS_KEY_ID') else 'not set'}")
+            logger.info(f"Environment AWS_SECRET_ACCESS_KEY: {'set' if os.environ.get('AWS_SECRET_ACCESS_KEY') else 'not set'}")
+            
             # Check if we should use S3-compatible storage (for MinIO, etc.)
             endpoint_url = s3_config.get('endpoint_url') or os.environ.get('AWS_ENDPOINT_URL')
             
             # Set endpoint URL for boto3 before importing S3 modules
             if endpoint_url:
                 os.environ['AWS_ENDPOINT_URL_S3'] = endpoint_url
-                logger.info(f"Using S3-compatible endpoint: {endpoint_url}")
+                logger.info(f"Setting AWS_ENDPOINT_URL_S3 to: {endpoint_url}")
             
             # Use S3-based version storage
+            logger.info("Importing github_version_s3...")
             from github_version_s3 import VersionDatabase as S3VersionDatabase
+            
+            logger.info("Creating S3VersionDatabase instance...")
             self.version_db = S3VersionDatabase(
                 use_s3=True,
                 s3_bucket=s3_config.get('bucket'),
@@ -77,7 +88,7 @@ class ReleaseDownloadCoordinator:
             )
             
             endpoint_info = f" via {endpoint_url}" if endpoint_url else ""
-            logger.info(f"Using S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json{endpoint_info}")
+            logger.info(f"S3 version storage initialized: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json{endpoint_info}")
         else:
             # Use local file storage
             self.version_db = VersionDatabase(
