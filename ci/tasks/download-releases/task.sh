@@ -112,6 +112,16 @@ fi
 # Verify input files exist
 log_info "Checking input files..."
 
+# First, let's see what's actually in the monitor-output directory
+log_info "Examining monitor-output directory structure:"
+if [[ -d "/tmp/monitor-output" ]]; then
+    find /tmp/monitor-output -type f | head -20
+else
+    log_error "Directory /tmp/monitor-output does not exist!"
+    log_error "Looking for any monitor-output directory:"
+    find / -name "monitor-output" -type d 2>/dev/null | head -10
+fi
+
 # Try multiple possible locations for the monitor output file
 MONITOR_OUTPUT=""
 if [[ -f "/tmp/monitor-output/releases.json" ]]; then
