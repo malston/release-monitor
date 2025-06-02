@@ -87,6 +87,9 @@ jobs:
           
           # S3-compatible endpoint for version DB
           S3_ENDPOINT: ((s3_endpoint))
+          
+          # Force re-download for testing (comment out in production)
+          # FORCE_DOWNLOAD: "true"
 
       # Upload downloaded files to S3 storage
       - task: upload-to-s3
@@ -173,10 +176,11 @@ jobs:
                         new_downloads = results.get('new_downloads', 0)
                         if new_downloads == 0:
                             print('\\nINFO: No new downloads in this run - files were likely already up to date.')
+                            print('This is normal behavior when all monitored releases are already at the latest version.')
                         else:
                             print(f'\\nERROR: Expected {new_downloads} new downloads but found no files!')
-                
-                print(f'\\nUpload complete! Uploaded {uploaded_count} files to S3.')
+                else:
+                    print(f'\\nSUCCESS: Uploaded {uploaded_count} files to S3.')
                 "
 
   - name: cleanup-old-releases
@@ -195,6 +199,166 @@ jobs:
           S3_ENDPOINT: ((s3_endpoint))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+
+  # Test job to force re-download of a specific release
+  - name: test-download-with-upload
+    plan:
+      - get: release-monitor-repo
+      
+      - task: create-test-monitor-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: busybox
+          outputs:
+            - name: monitor-output
+              path: /tmp/monitor-output
+          run:
+            path: sh
+            args:
+              - -exc
+              - |
+                # Create a test monitor output with one small release to download
+                cat > /tmp/monitor-output/latest-releases.json << 'EOF'
+                {
+                  "timestamp": 1234567890,
+                  "total_repositories_checked": 1,
+                  "new_releases_found": 1,
+                  "releases": [
+                    {
+                      "repository": "malston/release-monitor",
+                      "owner": "malston",
+                      "repo": "release-monitor",
+                      "tag_name": "v1.0.0",
+                      "name": "Release v1.0.0",
+                      "published_at": "2024-01-01T00:00:00Z",
+                      "html_url": "https://github.com/malston/release-monitor/releases/tag/v1.0.0",
+                      "assets_url": "https://api.github.com/repos/malston/release-monitor/releases/12345/assets",
+                      "body": "Test release"
+                    }
+                  ]
+                }
+                EOF
+                
+                echo "Created test monitor output"
+                
+      - task: download-releases
+        file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        input_mapping:
+          release-monitor: release-monitor-repo
+          monitor-output: monitor-output
+        params:
+          GITHUB_TOKEN: ((github_token))
+          ASSET_PATTERNS: ((download_asset_patterns))
+          INCLUDE_PRERELEASES: ((download_include_prereleases))
+          VERIFY_DOWNLOADS: ((download_verify_downloads))
+          CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
+          KEEP_VERSIONS: ((download_keep_versions))
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          
+          # S3 version database configuration
+          USE_S3_VERSION_DB: ((use_s3_version_db))
+          VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+          VERSION_DB_S3_PREFIX: test-version-db/  # Use separate prefix for testing
+          VERSION_DB_S3_REGION: ((s3_region))
+          AWS_ACCESS_KEY_ID: ((s3_access_key))
+          AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+          
+          # S3-compatible endpoint for version DB
+          S3_ENDPOINT: ((s3_endpoint))
+      
+      - task: upload-to-s3
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.9-slim
+          inputs:
+            - name: downloads
+          params:
+            AWS_ACCESS_KEY_ID: ((s3_access_key))
+            AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+            AWS_DEFAULT_REGION: ((s3_region))
+            S3_ENDPOINT: ((s3_endpoint))
+            S3_BUCKET: ((s3_releases_bucket))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install boto3 first
+                pip3 install --quiet boto3
+                
+                # Run the upload script
+                python3 -c "
+                import os
+                import boto3
+                from pathlib import Path
+                
+                # Configure S3 client
+                endpoint_url = os.environ.get('S3_ENDPOINT')
+                s3_kwargs = {
+                    'region_name': os.environ.get('AWS_DEFAULT_REGION', 'us-east-1')
+                }
+                
+                if endpoint_url:
+                    s3_kwargs['endpoint_url'] = endpoint_url
+                    print(f'Using S3-compatible endpoint: {endpoint_url}')
+                
+                s3 = boto3.client('s3', **s3_kwargs)
+                bucket = os.environ['S3_BUCKET']
+                
+                # Find and upload all release files
+                downloads_dir = Path('downloads')
+                if not downloads_dir.exists():
+                    print(f'ERROR: {downloads_dir} does not exist!')
+                    exit(1)
+                    
+                uploaded_count = 0
+                
+                for file_path in downloads_dir.rglob('*'):
+                    if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
+                        # Create S3 key maintaining directory structure
+                        relative_path = file_path.relative_to(downloads_dir)
+                        s3_key = f'release-downloads/{relative_path}'
+                        
+                        print(f'Uploading {relative_path} to s3://{bucket}/{s3_key}')
+                        
+                        try:
+                            with open(file_path, 'rb') as f:
+                                s3.put_object(Bucket=bucket, Key=s3_key, Body=f)
+                            uploaded_count += 1
+                            print(f'  Success: Uploaded {file_path.stat().st_size} bytes')
+                        except Exception as e:
+                            print(f'Error uploading {file_path}: {e}')
+                            raise
+                
+                if uploaded_count == 0:
+                    print('WARNING: No .gz or .zip files found in downloads directory!')
+                    print('Files found:')
+                    for p in downloads_dir.rglob('*'):
+                        if p.is_file():
+                            print(f'  {p} (suffix: {p.suffix})')
+                    
+                    # Check if download_results.json indicates no new downloads
+                    results_file = downloads_dir / 'download_results.json'
+                    if results_file.exists():
+                        import json
+                        with open(results_file) as f:
+                            results = json.load(f)
+                        new_downloads = results.get('new_downloads', 0)
+                        if new_downloads == 0:
+                            print('\\nINFO: No new downloads in this run - files were likely already up to date.')
+                            print('This is normal behavior when all monitored releases are already at the latest version.')
+                        else:
+                            print(f'\\nERROR: Expected {new_downloads} new downloads but found no files!')
+                else:
+                    print(f'\\nSUCCESS: Uploaded {uploaded_count} files to S3.')
+                "
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:
