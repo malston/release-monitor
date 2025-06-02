@@ -83,8 +83,6 @@ jobs:
           file: downloads/*
           acl: private
 
-  # Note: Cleanup is handled automatically by the download-releases task
-  # when CLEANUP_OLD_VERSIONS is true in the download-new-releases job.
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:
