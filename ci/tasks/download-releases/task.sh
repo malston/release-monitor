@@ -200,11 +200,12 @@ except json.JSONDecodeError:
     download_config['repository_overrides'] = {}
 
 # Set other download parameters
-download_config['include_prereleases'] = ${INCLUDE_PRERELEASES:-false}
-download_config['verify_downloads'] = ${VERIFY_DOWNLOADS:-true}
-download_config['cleanup_old_versions'] = ${CLEANUP_OLD_VERSIONS:-true}
-download_config['keep_versions'] = ${KEEP_VERSIONS:-5}
-download_config['timeout'] = ${DOWNLOAD_TIMEOUT:-300}
+# Convert bash true/false strings to Python booleans
+download_config['include_prereleases'] = '${INCLUDE_PRERELEASES:-false}'.lower() == 'true'
+download_config['verify_downloads'] = '${VERIFY_DOWNLOADS:-true}'.lower() == 'true'
+download_config['cleanup_old_versions'] = '${CLEANUP_OLD_VERSIONS:-true}'.lower() == 'true'
+download_config['keep_versions'] = int('${KEEP_VERSIONS:-5}')
+download_config['timeout'] = int('${DOWNLOAD_TIMEOUT:-300}')
 
 # Write updated configuration
 with open('$TEMP_CONFIG', 'w') as f:
