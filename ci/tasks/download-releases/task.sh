@@ -253,21 +253,46 @@ log_info "  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:+set}"
 log_info "  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:+set}"
 log_info "  S3_ENDPOINT: ${S3_ENDPOINT:-not set}"
 
+# Test S3 connection before running full download
+log_info "Testing S3 connection..."
+python3 - << 'EOF' || log_error "S3 connection test failed"
+import boto3
+import os
+import sys
+
+endpoint = os.environ.get('AWS_ENDPOINT_URL_S3')
+print(f"Testing connection to S3 endpoint: {endpoint}")
+
+try:
+    s3 = boto3.client('s3', endpoint_url=endpoint)
+    # Try to list buckets
+    response = s3.list_buckets()
+    print(f"Connection successful! Found {len(response.get('Buckets', []))} buckets")
+    for bucket in response.get('Buckets', []):
+        print(f"  - {bucket['Name']}")
+except Exception as e:
+    print(f"ERROR: Failed to connect to S3: {e}")
+    sys.exit(1)
+EOF
+
 START_TIME=$(date +%s)
 
-# Run download with output capture and timeout
-DOWNLOAD_OUTPUT=$(mktemp)
-DOWNLOAD_ERROR=$(mktemp)
+# Run download with visible output for debugging
+log_info "Running download script with visible output..."
 
-# Add timeout to prevent hanging
-timeout 60s python3 download_releases.py "${DOWNLOAD_ARGS[@]}" > "$DOWNLOAD_OUTPUT" 2> "$DOWNLOAD_ERROR"
-DOWNLOAD_EXIT_CODE=$?
+# Run with timeout but show output in real-time
+timeout 60s python3 download_releases.py "${DOWNLOAD_ARGS[@]}" 2>&1 | tee /tmp/download_output.log
+DOWNLOAD_EXIT_CODE=${PIPESTATUS[0]}
 
 # Check if it was killed by timeout
 if [[ $DOWNLOAD_EXIT_CODE -eq 124 ]]; then
     log_error "Download process timed out after 60 seconds"
-    echo "Process was killed due to timeout. This usually indicates a connection issue." >> "$DOWNLOAD_ERROR"
+    log_error "This usually indicates a connection issue or the script is hanging"
 fi
+
+# Copy output for processing
+DOWNLOAD_OUTPUT=/tmp/download_output.log
+DOWNLOAD_ERROR=/tmp/download_output.log
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
