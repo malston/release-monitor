@@ -378,7 +378,9 @@ else
     log_warn "Download directory does not exist: $DOWNLOAD_DIR"
 fi
 
-if [[ -f "$VERSION_DB_PATH" ]]; then
+if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+    log_info "Version database is managed in S3 (s3://$VERSION_DB_S3_BUCKET/$VERSION_DB_S3_PREFIX)"
+elif [[ -f "$VERSION_DB_PATH" ]]; then
     log_info "Version database updated: $VERSION_DB_PATH"
     
     if [[ "${VERBOSE:-false}" == "true" ]]; then
