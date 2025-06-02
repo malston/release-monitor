@@ -242,6 +242,16 @@ pipeline-set-test-minio: ## Deploy pipeline with Minio support (local developmen
 		--var git_private_key="$$(cat $$SSH_KEY)" \
 		--non-interactive
 
+.PHONY: force-download
+force-download: ## Force download for specific repository (REPO=owner/repo, defaults to etcd-io/etcd)
+	@if [ -z "$(REPO)" ]; then \
+		printf "$(GREEN)Force downloading etcd-io/etcd (default)...$(NC)\n"; \
+		fly -t test trigger-job -j github-release-monitor-minio/force-download-repo; \
+	else \
+		printf "$(GREEN)Force downloading $(REPO)...$(NC)\n"; \
+		fly -t test trigger-job -j github-release-monitor-minio/force-download-repo -v force_download_repo="$(REPO)"; \
+	fi
+
 .PHONY: pipeline-set-test-with-key
 pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key for private repos (requires S3)
 	@printf "$(GREEN)Deploying pipeline to test with SSH key...$(NC)\n"

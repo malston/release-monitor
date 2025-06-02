@@ -154,12 +154,13 @@ jobs:
                 cd release-monitor-repo
                 python3 scripts/clear-version-db.py
                 
-  # Test job to clear a specific repo and trigger download
-  - name: force-download-etcd
+  # Parameterized job to force download any repository for testing
+  # Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo="owner/repo"
+  - name: force-download-repo
     plan:
       - get: release-monitor-repo
       
-      - task: clear-etcd-from-db
+      - task: clear-repo-from-db
         config:
           platform: linux
           image_resource:
@@ -174,6 +175,7 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
             S3_ENDPOINT: ((s3_endpoint))
             S3_BUCKET: ((s3_bucket))
+            REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
           run:
             path: bash
             args:
@@ -182,7 +184,16 @@ jobs:
                 cd release-monitor-repo
                 pip3 install --quiet boto3
                 export S3_BUCKET=$S3_BUCKET
-                python3 scripts/clear-version-entry.py etcd-io/etcd || echo "Failed to clear, but continuing..."
+                
+                # Validate repository parameter
+                if [ -z "$REPO_NAME" ]; then
+                  echo "Error: REPO_NAME parameter is required"
+                  echo "Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo=\"owner/repo\""
+                  exit 1
+                fi
+                
+                echo "Clearing $REPO_NAME from version database..."
+                python3 scripts/clear-version-entry.py "$REPO_NAME" || echo "Failed to clear, but continuing..."
                 
       - task: check-releases
         file: release-monitor-repo/ci/tasks/check-releases/task.yml

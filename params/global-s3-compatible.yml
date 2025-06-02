@@ -58,3 +58,6 @@ download_repository_overrides: |
 
 # Cleanup configuration
 cleanup_days_to_keep: "30"
+
+# Force download testing
+force_download_repo: "etcd-io/etcd"  # Default repo for force download testing
