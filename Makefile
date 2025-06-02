@@ -332,6 +332,50 @@ pipeline-destroy: ## Destroy pipeline (prompts for target)
 	printf "$(RED)Destroying pipeline from $$target...$(NC)\n"; \
 	./ci/fly.sh destroy -t $$target
 
+##@ MinIO Version Database
+
+.PHONY: view-version-db
+view-version-db: venv ## View current MinIO version database contents
+	@printf "$(GREEN)Viewing MinIO version database...$(NC)\n"
+	@source $(VENV)/bin/activate && \
+	export S3_ENDPOINT=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=release-monitor-user && \
+	export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
+	export S3_BUCKET=release-monitor-output && \
+	python3 scripts/view-version-db.py
+
+.PHONY: clear-version-db
+clear-version-db: venv ## Clear entire MinIO version database (forces re-download of all releases)
+	@printf "$(YELLOW)Warning: This will clear the entire version database!$(NC)\n"
+	@printf "$(YELLOW)All tracked releases will be re-downloaded on next pipeline run.$(NC)\n"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	printf "\n"; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		printf "$(GREEN)Clearing MinIO version database...$(NC)\n"; \
+		source $(VENV)/bin/activate && \
+		export S3_ENDPOINT=http://localhost:9000 && \
+		export AWS_ACCESS_KEY_ID=release-monitor-user && \
+		export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
+		export S3_BUCKET=release-monitor-output && \
+		python3 -c "import boto3, os; s3=boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT'], aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'], region_name='us-east-1'); s3.delete_object(Bucket=os.environ['S3_BUCKET'], Key='version-db/version_db.json'); print('✓ Version database cleared')"; \
+	else \
+		printf "$(RED)Operation cancelled$(NC)\n"; \
+	fi
+
+.PHONY: clear-version-entry
+clear-version-entry: venv ## Clear specific repository from version database (REPO=owner/repo)
+	@if [ -z "$(REPO)" ]; then \
+		printf "$(RED)Error: REPO is required. Usage: make clear-version-entry REPO=etcd-io/etcd$(NC)\n"; \
+		exit 1; \
+	fi
+	@printf "$(GREEN)Clearing $(REPO) from MinIO version database...$(NC)\n"
+	@source $(VENV)/bin/activate && \
+	export S3_ENDPOINT=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=release-monitor-user && \
+	export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
+	export S3_BUCKET=release-monitor-output && \
+	python3 scripts/clear-version-entry.py "$(REPO)"
+
 ##@ Utilities
 
 .PHONY: show-config
