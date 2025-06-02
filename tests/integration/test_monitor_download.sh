@@ -20,7 +20,7 @@ echo "Setting up test environment in $TEST_DIR..."
 # Create test config
 cat > "$TEST_DIR/test-config.yaml" << EOF
 repositories:
-  - owner: "anthropics"
+  - owner: "malston"
     repo: "release-monitor"
     include_prereleases: false
 
@@ -57,17 +57,17 @@ cat > "$TEST_DIR/mock-monitor-output.json" << EOF
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "repositories": [
     {
-      "owner": "anthropics",
+      "owner": "malston",
       "repo": "release-monitor",
       "latest_release": {
         "version": "v0.1.0-test",
-        "url": "https://github.com/anthropics/release-monitor/releases/tag/v0.1.0-test",
+        "url": "https://github.com/malston/release-monitor/releases/tag/v0.1.0-test",
         "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
         "is_prerelease": false,
         "assets": [
           {
             "name": "release-monitor.tar.gz",
-            "browser_download_url": "https://github.com/anthropics/release-monitor/releases/download/v0.1.0-test/release-monitor.tar.gz",
+            "browser_download_url": "https://github.com/malston/release-monitor/releases/download/v0.1.0-test/release-monitor.tar.gz",
             "size": 1024,
             "content_type": "application/gzip"
           }
