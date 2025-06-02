@@ -69,6 +69,13 @@ USE_S3_VERSION_DB="${USE_S3_VERSION_DB:-false}"
 VERSION_DB_S3_BUCKET="${VERSION_DB_S3_BUCKET:-}"
 VERSION_DB_S3_PREFIX="${VERSION_DB_S3_PREFIX:-release-monitor/}"
 VERSION_DB_S3_REGION="${VERSION_DB_S3_REGION:-}"
+S3_ENDPOINT="${S3_ENDPOINT:-}"
+
+# Export S3 endpoint for boto3 to use
+if [[ -n "$S3_ENDPOINT" ]]; then
+    export AWS_ENDPOINT_URL="$S3_ENDPOINT"
+    log_info "  S3 Endpoint: $S3_ENDPOINT"
+fi
 
 # Log configuration
 log_info "Configuration:"
@@ -181,6 +188,8 @@ if '${USE_S3_VERSION_DB}' == 'true':
     s3_config['prefix'] = '${VERSION_DB_S3_PREFIX}'
     if '${VERSION_DB_S3_REGION}':
         s3_config['region'] = '${VERSION_DB_S3_REGION}'
+    if '${S3_ENDPOINT}':
+        s3_config['endpoint_url'] = '${S3_ENDPOINT}'
 
 # Parse JSON parameters from environment
 try:
@@ -304,6 +313,7 @@ except Exception as e:
     }
     print(json.dumps(fallback, indent=2))
 EOF
+    fi
     
 else
     log_error "Download failed with exit code: $DOWNLOAD_EXIT_CODE"
