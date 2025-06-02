@@ -4,7 +4,7 @@
 
 resource_types:
   - name: time
-    type: docker-image
+    type: registry-image
     source:
       repository: concourse/time-resource
       tag: latest
@@ -98,7 +98,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: docker-image
+            type: registry-image
             source:
               repository: alpine
               tag: latest
@@ -140,7 +140,7 @@ jobs:
         config:
           platform: linux
           image_resource:
-            type: docker-image
+            type: registry-image
             source:
               repository: python
               tag: 3.9-slim
