@@ -112,33 +112,12 @@ fi
 # Verify input files exist
 log_info "Checking input files..."
 
-# First, let's see what's actually in the monitor-output directory
-log_info "Examining monitor-output directory structure:"
-if [[ -d "/tmp/monitor-output" ]]; then
-    find /tmp/monitor-output -type f | head -20
-else
-    log_error "Directory /tmp/monitor-output does not exist!"
-    log_error "Looking for any monitor-output directory:"
-    find / -name "monitor-output" -type d 2>/dev/null | head -10
-fi
-
-# Try multiple possible locations for the monitor output file
-MONITOR_OUTPUT=""
-if [[ -f "/tmp/monitor-output/releases.json" ]]; then
-    MONITOR_OUTPUT="/tmp/monitor-output/releases.json"
-elif [[ -f "/tmp/monitor-output/release-monitor/latest-releases.json" ]]; then
-    MONITOR_OUTPUT="/tmp/monitor-output/release-monitor/latest-releases.json"
-elif [[ -f "/tmp/monitor-output/latest-releases.json" ]]; then
-    MONITOR_OUTPUT="/tmp/monitor-output/latest-releases.json"
-else
-    log_error "Monitor output file not found. Looked in:"
-    log_error "  - /tmp/monitor-output/releases.json"
-    log_error "  - /tmp/monitor-output/release-monitor/latest-releases.json"
-    log_error "  - /tmp/monitor-output/latest-releases.json"
-    log_error "Actual contents of /tmp/monitor-output:"
-    find /tmp/monitor-output -type f 2>/dev/null || echo "  Directory not found"
+if [[ ! -f "/tmp/monitor-output/releases.json" ]]; then
+    log_error "Monitor output file not found: /tmp/monitor-output/releases.json"
     exit 1
 fi
+
+MONITOR_OUTPUT="/tmp/monitor-output/releases.json"
 
 log_info "Found monitor output at: $MONITOR_OUTPUT"
 
@@ -154,7 +133,6 @@ mkdir -p "$(dirname "$VERSION_DB_PATH")"
 
 # Check monitor output content
 log_info "Analyzing monitor output..."
-# MONITOR_OUTPUT is already set above when we found the file
 
 # Check if monitor output is valid JSON
 if ! python3 -c "import json; json.load(open('$MONITOR_OUTPUT'))" 2>/dev/null; then
