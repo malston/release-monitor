@@ -7,6 +7,8 @@ This directory contains the Concourse CI/CD pipeline for the GitHub release moni
 ```text
 ci/
 ├── pipeline.yml                      # Main pipeline definition
+├── pipeline-s3-compatible.yml       # S3-compatible pipeline (MinIO support)
+├── pipeline-simple.yml              # Simplified pipeline (no S3 required)
 ├── fly.sh                           # Pipeline deployment script
 ├── validate.sh                      # Pipeline validation script
 ├── README.md                        # This file
@@ -14,7 +16,10 @@ ci/
     ├── check-releases/
     │   ├── task.yml                 # Task configuration
     │   └── task.sh                  # Task execution script
-    └── download-tarballs/
+    ├── check-releases-simple/
+    │   ├── task.yml                 # Task configuration (simplified)
+    │   └── task.sh                  # Task execution script
+    └── download-releases/
         ├── task.yml                 # Task configuration
         └── task.sh                  # Task execution script
 ```
@@ -25,17 +30,25 @@ ci/
 
 - **Purpose**: Monitor GitHub repositories for new releases
 - **Image**: `python:3.11-slim`
-- **Input**: `release-monitoring-repo` (source code)
+- **Input**: `release-monitor-repo` (source code)
 - **Output**: `release-output` (JSON file with new releases)
-- **Script**: `task.sh` installs dependencies and runs `scripts/monitor.sh`
+- **Script**: `task.sh` installs dependencies and runs `github_monitor.py`
 
-### download-tarballs
+### check-releases-simple
 
-- **Purpose**: Download release tarballs and upload to S3
-- **Image**: `alpine/curl:latest`
-- **Input**: `release-monitoring-repo` (source code), `s3-output` (release data)
-- **Output**: `tarballs` (downloaded files)
-- **Script**: `task.sh` processes release data and handles S3 uploads
+- **Purpose**: Simplified monitoring for basic setups (no S3 required)
+- **Image**: `python:3.11-slim`
+- **Input**: `release-monitor-repo` (source code)
+- **Output**: `release-output` (JSON file with new releases)
+- **Script**: `task.sh` basic monitoring without S3 dependencies
+
+### download-releases
+
+- **Purpose**: Download GitHub release assets with sophisticated version tracking
+- **Image**: `python:3.9-slim`
+- **Input**: `release-monitor-repo` (source code), `monitor-output` (release data)
+- **Output**: `downloads` (downloaded release assets)
+- **Script**: `task.sh` uses `download_releases.py` with S3 version tracking and asset filtering
 
 ## Usage
 
