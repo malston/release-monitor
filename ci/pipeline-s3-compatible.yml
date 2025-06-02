@@ -230,6 +230,7 @@ jobs:
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
         input_mapping:
           release-monitor: release-monitor-repo
+          monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
           ASSET_PATTERNS: ((download_asset_patterns))
