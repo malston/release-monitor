@@ -32,7 +32,7 @@ resources:
       # use_v4: ((s3_use_v4))  # Required for Minio
       
       # File configuration
-      versioned_file: releases.json
+      versioned_file: release-monitor/latest-releases.json
 
   - name: release-storage
     type: s3

@@ -112,12 +112,12 @@ fi
 # Verify input files exist
 log_info "Checking input files..."
 
-if [[ ! -f "/tmp/monitor-output/releases.json" ]]; then
-    log_error "Monitor output file not found: /tmp/monitor-output/releases.json"
+if [[ ! -f "/tmp/monitor-output/latest-releases.json" ]]; then
+    log_error "Monitor output file not found: /tmp/monitor-output/latest-releases.json"
     exit 1
 fi
 
-MONITOR_OUTPUT="/tmp/monitor-output/releases.json"
+MONITOR_OUTPUT="/tmp/monitor-output/latest-releases.json"
 
 log_info "Found monitor output at: $MONITOR_OUTPUT"
 
