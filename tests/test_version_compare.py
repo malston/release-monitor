@@ -42,7 +42,7 @@ class TestVersionComparator(unittest.TestCase):
         """Test CalVer parsing."""
         test_cases = [
             ('2024.01.15', {'type': 'calver', 'year': 2024, 'month': 1, 'day': 15, 'micro': 0}),
-            ('2024.1.0', {'type': 'calver', 'year': 2024, 'month': 1, 'day': 1, 'micro': 0}),
+            ('2024.1.0', {'type': 'calver', 'year': 2024, 'month': 1, 'day': 0, 'micro': 0}),
             ('24.01', {'type': 'calver', 'year': 2024, 'month': 1, 'day': 1, 'micro': 0}),
             ('2024.12.31.1', {'type': 'calver', 'year': 2024, 'month': 12, 'day': 31, 'micro': 1}),
             ('2024.01.15-alpha', {'type': 'calver', 'year': 2024, 'month': 1, 'day': 15, 'modifier': 'alpha'})

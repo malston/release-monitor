@@ -40,8 +40,8 @@ jobs:
             repositories:
               - owner: kubernetes
                 repo: kubernetes
-              - owner: hashicorp
-                repo: terraform
+              - owner: istio
+                repo: istio
           github-token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Process New Releases
