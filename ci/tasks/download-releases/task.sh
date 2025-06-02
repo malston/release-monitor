@@ -189,12 +189,15 @@ try:
 except json.JSONDecodeError:
     download_config['asset_patterns'] = ['*.tar.gz', '*.zip']
 
+# Handle repository overrides which might be multi-line JSON
+repo_overrides_str = '''${REPOSITORY_OVERRIDES:-{}}'''
 try:
-    repo_overrides = json.loads('${REPOSITORY_OVERRIDES:-{}}')
+    repo_overrides = json.loads(repo_overrides_str)
     if repo_overrides:
         download_config['repository_overrides'] = repo_overrides
 except json.JSONDecodeError:
-    pass
+    # Try to parse as empty dict if parsing fails
+    download_config['repository_overrides'] = {}
 
 # Set other download parameters
 download_config['include_prereleases'] = ${INCLUDE_PRERELEASES:-false}

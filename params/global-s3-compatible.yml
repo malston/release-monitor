@@ -3,7 +3,7 @@
 
 # Git repository configuration
 git_repo_uri: git@github.com:malston/release-monitor.git
-git_branch: main
+git_branch: feature/6-minio-support
 git_private_key: ((git_private_key))
 
 # GitHub API configuration
