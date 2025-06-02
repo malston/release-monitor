@@ -357,7 +357,7 @@ clear-version-db: venv ## Clear entire MinIO version database (forces re-downloa
 		export AWS_ACCESS_KEY_ID=release-monitor-user && \
 		export AWS_SECRET_ACCESS_KEY=release-monitor-pass && \
 		export S3_BUCKET=release-monitor-output && \
-		python3 -c "import boto3, os; s3=boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT'], aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'], region_name='us-east-1'); s3.delete_object(Bucket=os.environ['S3_BUCKET'], Key='version-db/version_db.json'); print('✓ Version database cleared')"; \
+		python3 scripts/clear-version-db.py; \
 	else \
 		printf "$(RED)Operation cancelled$(NC)\n"; \
 	fi

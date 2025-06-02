@@ -151,6 +151,8 @@ jobs:
             source:
               repository: python
               tag: 3.9-slim
+          inputs:
+            - name: release-monitor-repo
           params:
             AWS_ACCESS_KEY_ID: ((s3_access_key))
             AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
@@ -164,29 +166,9 @@ jobs:
                 # Install boto3
                 pip3 install --quiet boto3
                 
-                # Clear the version database
-                python3 -c "
-                import boto3
-                import os
-                
-                endpoint_url = os.environ.get('S3_ENDPOINT')
-                s3_kwargs = {
-                    'region_name': 'us-east-1'
-                }
-                if endpoint_url:
-                    s3_kwargs['endpoint_url'] = endpoint_url
-                
-                s3 = boto3.client('s3', **s3_kwargs)
-                bucket = os.environ['S3_BUCKET']
-                
-                # Delete the version database
-                try:
-                    s3.delete_object(Bucket=bucket, Key='version-db/version_db.json')
-                    print(f'Successfully cleared version database from s3://{bucket}/version-db/version_db.json')
-                    print('Next pipeline run will download all releases as new')
-                except Exception as e:
-                    print(f'Error clearing version database: {e}')
-                "
+                # Run the clear database script
+                cd release-monitor-repo
+                python3 scripts/clear-version-db.py
                 
   # Test job to clear a specific repo and trigger download
   - name: force-download-etcd
