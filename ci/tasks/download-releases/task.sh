@@ -40,7 +40,7 @@ cleanup() {
     local exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
         log_error "Task failed with exit code $exit_code"
-        
+
         # Create failure marker for pipeline visibility
         echo "{\"status\": \"failed\", \"error\": \"Task execution failed\", \"exit_code\": $exit_code}" > /tmp/downloads/download_status.json
     fi
@@ -252,6 +252,7 @@ log_info "  AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-not set}"
 log_info "  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:+set}"
 log_info "  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:+set}"
 log_info "  S3_ENDPOINT: ${S3_ENDPOINT:-not set}"
+log_info "  S3_SKIP_SSL_VERIFICATION: ${S3_SKIP_SSL_VERIFICATION:-false}"
 
 # Test S3 connection before running full download
 log_info "Testing S3 connection..."
@@ -264,7 +265,15 @@ endpoint = os.environ.get('AWS_ENDPOINT_URL_S3')
 print(f"Testing connection to S3 endpoint: {endpoint}")
 
 try:
-    s3 = boto3.client('s3', endpoint_url=endpoint)
+    # Check if we should skip SSL verification
+    verify_ssl = os.environ.get('S3_SKIP_SSL_VERIFICATION', '').lower() != 'true'
+
+    if not verify_ssl:
+        print("WARNING: Skipping SSL verification for S3 endpoint")
+        s3 = boto3.client('s3', endpoint_url=endpoint, verify=False)
+    else:
+        s3 = boto3.client('s3', endpoint_url=endpoint)
+
     # Try to list buckets
     response = s3.list_buckets()
     print(f"Connection successful! Found {len(response.get('Buckets', []))} buckets")
@@ -315,12 +324,12 @@ fi
 # Parse download results
 if [[ $DOWNLOAD_EXIT_CODE -eq 0 ]]; then
     log_info "Download completed successfully"
-    
+
     # Try to parse download results from output
     if [[ -s "$DOWNLOAD_OUTPUT" ]]; then
         # Copy download results to output
         cp "$DOWNLOAD_OUTPUT" /tmp/downloads/download_results.json
-        
+
         # Create status summary
         python3 - << EOF > /tmp/downloads/download_status.json
 import json
@@ -328,7 +337,7 @@ import json
 try:
     with open('$DOWNLOAD_OUTPUT', 'r') as f:
         results = json.load(f)
-    
+
     status = {
         "status": "success",
         "message": "Downloads completed successfully",
@@ -340,9 +349,9 @@ try:
             "failed_downloads": results.get('failed_downloads', 0)
         }
     }
-    
+
     print(json.dumps(status, indent=2))
-    
+
 except Exception as e:
     fallback = {
         "status": "success",
@@ -353,13 +362,13 @@ except Exception as e:
     print(json.dumps(fallback, indent=2))
 EOF
     fi
-    
+
 else
     log_error "Download failed with exit code: $DOWNLOAD_EXIT_CODE"
-    
+
     # Create failure status
     echo "{\"status\": \"failed\", \"message\": \"Download process failed\", \"exit_code\": $DOWNLOAD_EXIT_CODE, \"duration_seconds\": $DURATION}" > /tmp/downloads/download_status.json
-    
+
     exit $DOWNLOAD_EXIT_CODE
 fi
 
@@ -369,7 +378,7 @@ log_info "Validating outputs..."
 if [[ -d "$DOWNLOAD_DIR" ]]; then
     DOWNLOAD_COUNT=$(find "$DOWNLOAD_DIR" -type f ! -name "*.sha256" ! -name "*.json" | wc -l)
     log_info "Downloaded files: $DOWNLOAD_COUNT"
-    
+
     if [[ "${VERBOSE:-false}" == "true" ]]; then
         log_debug "Download directory contents:"
         find "$DOWNLOAD_DIR" -type f | head -20
@@ -382,7 +391,7 @@ if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
     log_info "Version database is managed in S3 (s3://$VERSION_DB_S3_BUCKET/$VERSION_DB_S3_PREFIX)"
 elif [[ -f "$VERSION_DB_PATH" ]]; then
     log_info "Version database updated: $VERSION_DB_PATH"
-    
+
     if [[ "${VERBOSE:-false}" == "true" ]]; then
         log_debug "Version database contents:"
         cat "$VERSION_DB_PATH" | python3 -m json.tool | head -20

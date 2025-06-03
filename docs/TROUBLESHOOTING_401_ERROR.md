@@ -143,9 +143,30 @@ params:
   HTTP_PROXY: ((http_proxy))
   HTTPS_PROXY: ((https_proxy))
   NO_PROXY: localhost,127.0.0.1
+  S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
 
 # vars.yml
 github_token: ghp_xxxxxxxxxxxxxxxxxxxx
 http_proxy: http://corporate-proxy:8080
 https_proxy: http://corporate-proxy:8080
+s3_skip_ssl_verification: true  # Set to true for self-signed certificates
 ```
+
+## SSL Certificate Issues
+
+If you're using MinIO or other S3-compatible storage with self-signed certificates, you may encounter SSL verification errors. To resolve this:
+
+1. **In your pipeline parameters**:
+   ```yaml
+   s3_skip_ssl_verification: true
+   ```
+
+2. **In your environment variables**:
+   ```bash
+   export S3_SKIP_SSL_VERIFICATION=true
+   ```
+
+3. **For local testing**:
+   ```bash
+   S3_SKIP_SSL_VERIFICATION=true ./scripts/monitor.sh --config config.yaml
+   ```
