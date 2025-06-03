@@ -24,8 +24,8 @@ class S3CompatibleVersionStorage:
     Supports AWS S3, Minio, and other S3-compatible services.
     """
 
-    def __init__(self, 
-                 bucket: str, 
+    def __init__(self,
+                 bucket: str,
                  key_prefix: str = 'release-monitor/',
                  region: Optional[str] = None,
                  profile: Optional[str] = None,
@@ -51,30 +51,38 @@ class S3CompatibleVersionStorage:
         self.bucket = bucket
         self.key_prefix = key_prefix.rstrip('/') + '/'
         self.endpoint_url = endpoint_url
-        
+
         # Configure boto3 client
         client_config = Config(
             signature_version='s3v4',  # Required for Minio
             s3={'addressing_style': 'path'}  # Use path-style addressing for compatibility
         )
-        
+
+        # Configure SSL verification
+        if not verify_ssl:
+            logger.warning("SSL verification disabled for S3 connection")
+            client_config.merge(Config(
+                use_ssl=True,  # Still use HTTPS but don't verify certificates
+                verify=False
+            ))
+
         # Build client arguments
         client_args = {
             'service_name': 's3',
             'config': client_config
         }
-        
+
         # Add endpoint URL if provided
         if endpoint_url:
             client_args['endpoint_url'] = endpoint_url
             logger.info(f"Using S3-compatible endpoint: {endpoint_url}")
-        
+
         # Add region
         if region:
             client_args['region_name'] = region
         elif endpoint_url:  # Default region for S3-compatible services
             client_args['region_name'] = 'us-east-1'
-        
+
         # Add credentials if provided
         if access_key and secret_key:
             client_args['aws_access_key_id'] = access_key
@@ -86,18 +94,14 @@ class S3CompatibleVersionStorage:
         else:
             # Use default credentials chain
             self.s3_client = boto3.client(**client_args)
-        
+
         # If we haven't created client yet (not using profile)
         if not hasattr(self, 's3_client'):
             self.s3_client = boto3.client(**client_args)
-        
-        # Configure SSL verification
-        if not verify_ssl and endpoint_url:
-            self.s3_client.meta.client._client_config.verify = False
-        
+
         # Verify bucket access
         self._verify_bucket_access()
-    
+
     def _verify_bucket_access(self):
         """Verify we can access the bucket."""
         try:
@@ -117,19 +121,19 @@ class S3CompatibleVersionStorage:
         except NoCredentialsError:
             logger.error("No credentials found for S3 access")
             raise
-    
+
     def _get_version_key(self, repo_key: str) -> str:
         """Get the S3 key for a repository's version info."""
         return f"{self.key_prefix}versions/{repo_key}.json"
-    
+
     def _get_metadata_key(self) -> str:
         """Get the S3 key for storage metadata."""
         return f"{self.key_prefix}metadata.json"
-    
+
     def load_database(self) -> Dict[str, Any]:
         """
         Load the entire version database from S3.
-        
+
         Returns:
             Dictionary containing all version information
         """
@@ -141,7 +145,7 @@ class S3CompatibleVersionStorage:
                 'endpoint': self.endpoint_url or 'aws-s3'
             }
         }
-        
+
         # Load metadata
         try:
             response = self.s3_client.get_object(
@@ -153,22 +157,22 @@ class S3CompatibleVersionStorage:
         except ClientError as e:
             if e.response['Error']['Code'] != 'NoSuchKey':
                 logger.error(f"Error loading metadata: {e}")
-        
+
         # List all version files
         try:
             paginator = self.s3_client.get_paginator('list_objects_v2')
             prefix = f"{self.key_prefix}versions/"
-            
+
             for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
                 if 'Contents' not in page:
                     continue
-                
+
                 for obj in page['Contents']:
                     key = obj['Key']
                     if key.endswith('.json'):
                         # Extract repository key from S3 key
                         repo_key = key[len(prefix):-5]  # Remove prefix and .json
-                        
+
                         try:
                             response = self.s3_client.get_object(
                                 Bucket=self.bucket,
@@ -178,16 +182,16 @@ class S3CompatibleVersionStorage:
                             database['versions'][repo_key] = version_data
                         except Exception as e:
                             logger.error(f"Error loading version data for {repo_key}: {e}")
-        
+
         except ClientError as e:
             logger.error(f"Error listing version files: {e}")
-        
+
         return database
-    
+
     def save_database(self, database: Dict[str, Any]):
         """
         Save the entire version database to S3.
-        
+
         Args:
             database: Complete database dictionary
         """
@@ -196,7 +200,7 @@ class S3CompatibleVersionStorage:
         metadata['last_updated'] = datetime.now(timezone.utc).isoformat()
         metadata['storage_type'] = 's3-compatible'
         metadata['endpoint'] = self.endpoint_url or 'aws-s3'
-        
+
         # Save metadata
         try:
             self.s3_client.put_object(
@@ -208,7 +212,7 @@ class S3CompatibleVersionStorage:
         except ClientError as e:
             logger.error(f"Error saving metadata: {e}")
             raise
-        
+
         # Save each repository's version data
         versions = database.get('versions', {})
         for repo_key, version_data in versions.items():
@@ -222,20 +226,20 @@ class S3CompatibleVersionStorage:
             except ClientError as e:
                 logger.error(f"Error saving version data for {repo_key}: {e}")
                 raise
-    
+
     def get_stored_version(self, owner: str, repo: str) -> Optional[Dict[str, Any]]:
         """
         Get stored version information for a repository.
-        
+
         Args:
             owner: Repository owner
             repo: Repository name
-            
+
         Returns:
             Version information or None if not found
         """
         repo_key = f"{owner}_{repo}"
-        
+
         try:
             response = self.s3_client.get_object(
                 Bucket=self.bucket,
@@ -247,21 +251,21 @@ class S3CompatibleVersionStorage:
                 return None
             logger.error(f"Error getting version for {repo_key}: {e}")
             raise
-    
+
     def update_version(self, owner: str, repo: str, version_info: Dict[str, Any]):
         """
         Update version information for a repository.
-        
+
         Args:
             owner: Repository owner
             repo: Repository name
             version_info: Version information to store
         """
         repo_key = f"{owner}_{repo}"
-        
+
         # Add timestamp
         version_info['last_updated'] = datetime.now(timezone.utc).isoformat()
-        
+
         try:
             self.s3_client.put_object(
                 Bucket=self.bucket,
@@ -269,14 +273,14 @@ class S3CompatibleVersionStorage:
                 Body=json.dumps(version_info, indent=2),
                 ContentType='application/json'
             )
-            
+
             # Update metadata to reflect change
             self._update_metadata()
-            
+
         except ClientError as e:
             logger.error(f"Error updating version for {repo_key}: {e}")
             raise
-    
+
     def _update_metadata(self):
         """Update storage metadata."""
         metadata = {
@@ -286,7 +290,7 @@ class S3CompatibleVersionStorage:
             'bucket': self.bucket,
             'key_prefix': self.key_prefix
         }
-        
+
         try:
             self.s3_client.put_object(
                 Bucket=self.bucket,
@@ -296,11 +300,11 @@ class S3CompatibleVersionStorage:
             )
         except ClientError as e:
             logger.error(f"Error updating metadata: {e}")
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """
         Get statistics about the version storage.
-        
+
         Returns:
             Dictionary with storage statistics
         """
@@ -311,7 +315,7 @@ class S3CompatibleVersionStorage:
             'bucket': self.bucket,
             'last_updated': None
         }
-        
+
         # Get metadata
         try:
             response = self.s3_client.get_object(
@@ -322,21 +326,21 @@ class S3CompatibleVersionStorage:
             stats['last_updated'] = metadata.get('last_updated')
         except ClientError:
             pass
-        
+
         # Count repositories
         try:
             paginator = self.s3_client.get_paginator('list_objects_v2')
             prefix = f"{self.key_prefix}versions/"
-            
+
             for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
                 if 'Contents' in page:
                     stats['total_repositories'] = len([
-                        obj for obj in page['Contents'] 
+                        obj for obj in page['Contents']
                         if obj['Key'].endswith('.json')
                     ])
         except ClientError as e:
             logger.error(f"Error getting statistics: {e}")
-        
+
         return stats
 
 
@@ -349,7 +353,7 @@ class S3VersionStorage(S3CompatibleVersionStorage):
 def create_from_environment() -> S3CompatibleVersionStorage:
     """
     Create S3CompatibleVersionStorage from environment variables.
-    
+
     Environment variables:
         - S3_ENDPOINT: S3-compatible endpoint URL (optional)
         - VERSION_DB_S3_BUCKET or S3_BUCKET: Bucket name
@@ -363,7 +367,7 @@ def create_from_environment() -> S3CompatibleVersionStorage:
     bucket = os.environ.get('VERSION_DB_S3_BUCKET') or os.environ.get('S3_BUCKET')
     if not bucket:
         raise ValueError("VERSION_DB_S3_BUCKET or S3_BUCKET environment variable required")
-    
+
     return S3CompatibleVersionStorage(
         bucket=bucket,
         key_prefix=os.environ.get('VERSION_DB_S3_PREFIX', 'release-monitor/'),
@@ -372,5 +376,5 @@ def create_from_environment() -> S3CompatibleVersionStorage:
         access_key=os.environ.get('AWS_ACCESS_KEY_ID'),
         secret_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
         use_ssl=os.environ.get('S3_USE_SSL', 'true').lower() == 'true',
-        verify_ssl=os.environ.get('S3_VERIFY_SSL', 'true').lower() == 'true'
+        verify_ssl=os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
     )

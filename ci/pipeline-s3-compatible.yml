@@ -19,17 +19,17 @@ resources:
     source:
       # S3-compatible endpoint (leave empty for AWS S3)
       endpoint: ((s3_endpoint))
-      
+
       # Standard S3 configuration
       bucket: ((s3_bucket))
       region_name: ((s3_region))
       access_key_id: ((s3_access_key))
       secret_access_key: ((s3_secret_key))
-      
+
       # S3-compatible options
       # disable_ssl: ((s3_disable_ssl))
       skip_ssl_verification: ((s3_skip_ssl_verification))
-      
+
       # File configuration
       versioned_file: release-monitor/latest-releases.json
 
@@ -75,7 +75,7 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
-          
+
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
@@ -83,10 +83,11 @@ jobs:
           VERSION_DB_S3_REGION: ((s3_region))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
-          
+
           # S3-compatible endpoint for version DB
           S3_ENDPOINT: ((s3_endpoint))
-          
+          S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
+
           # Force re-download for testing (comment out in production)
           # FORCE_DOWNLOAD: "true"
 
@@ -115,7 +116,7 @@ jobs:
               - |
                 # Install boto3
                 pip3 install --quiet boto3
-                
+
                 # Run the upload script
                 cd release-monitor-repo
                 python3 scripts/upload-to-s3.py
@@ -125,7 +126,7 @@ jobs:
   - name: clear-version-database
     plan:
       - get: release-monitor-repo
-      
+
       - task: clear-version-db
         config:
           platform: linux
@@ -148,17 +149,17 @@ jobs:
               - |
                 # Install boto3
                 pip3 install --quiet boto3
-                
+
                 # Run the clear database script
                 cd release-monitor-repo
                 python3 scripts/clear-version-db.py
-                
+
   # Parameterized job to force download any repository for testing
   # Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo="owner/repo"
   - name: force-download-repo
     plan:
       - get: release-monitor-repo
-      
+
       - task: clear-repo-from-db
         config:
           platform: linux
@@ -183,23 +184,23 @@ jobs:
                 cd release-monitor-repo
                 pip3 install --quiet boto3
                 export S3_BUCKET=$S3_BUCKET
-                
+
                 # Validate repository parameter
                 if [ -z "$REPO_NAME" ]; then
                   echo "Error: REPO_NAME parameter is required"
                   echo "Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo=\"owner/repo\""
                   exit 1
                 fi
-                
+
                 echo "Clearing $REPO_NAME from version database..."
                 python3 scripts/clear-version-entry.py "$REPO_NAME" || echo "Failed to clear, but continuing..."
-                
+
       - task: check-releases
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
           S3_ENDPOINT: ((s3_endpoint))
-          
+
       - task: prepare-monitor-output
         config:
           platform: linux
@@ -219,7 +220,7 @@ jobs:
                 # Copy releases.json to latest-releases.json for download task compatibility
                 cp release-output/releases.json monitor-output/latest-releases.json
                 echo "Prepared monitor output for download task"
-          
+
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
         input_mapping:
@@ -233,7 +234,7 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
-          
+
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
@@ -241,10 +242,11 @@ jobs:
           VERSION_DB_S3_REGION: ((s3_region))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
-          
+
           # S3-compatible endpoint for version DB
           S3_ENDPOINT: ((s3_endpoint))
-      
+          S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
+
       - task: upload-to-s3
         config:
           platform: linux
@@ -269,7 +271,7 @@ jobs:
               - |
                 # Install boto3
                 pip3 install --quiet boto3
-                
+
                 # Run the upload script
                 cd release-monitor-repo
                 python3 scripts/upload-to-s3.py
