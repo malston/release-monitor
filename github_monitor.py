@@ -45,6 +45,17 @@ class GitHubMonitor:
             'Accept': 'application/vnd.github.v3+json',
             'User-Agent': 'GitHub-Release-Monitor/1.0'
         })
+        
+        # Configure proxy settings from environment if present
+        proxy_settings = {}
+        if os.getenv('HTTP_PROXY') or os.getenv('http_proxy'):
+            proxy_settings['http'] = os.getenv('HTTP_PROXY') or os.getenv('http_proxy')
+        if os.getenv('HTTPS_PROXY') or os.getenv('https_proxy'):
+            proxy_settings['https'] = os.getenv('HTTPS_PROXY') or os.getenv('https_proxy')
+        
+        if proxy_settings:
+            self.session.proxies = proxy_settings
+            logger.info(f"Configured proxy settings: {list(proxy_settings.keys())}")
 
     def get_latest_release(self, owner: str, repo: str) -> Optional[Dict[str, Any]]:
         """
