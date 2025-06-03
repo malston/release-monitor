@@ -51,7 +51,7 @@ else
         echo "  Network connection to api.github.com failed"
         echo "  This might be a proxy/firewall issue"
     fi
-    
+
     # Try to get more debug info
     echo "- Detailed curl output:"
     curl -v -H "Authorization: token $GITHUB_TOKEN" \
