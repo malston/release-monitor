@@ -47,7 +47,24 @@ class S3VersionStorage:
 
         session = boto3.Session(**session_kwargs)
 
-        client_kwargs = {}
+        # Configure SSL verification
+        skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
+        
+        # Configure boto3 client config
+        from botocore.config import Config
+        client_config = Config(
+            signature_version='s3v4',
+            s3={'addressing_style': 'path'}
+        )
+        
+        if skip_ssl_verification:
+            logger.warning("SSL verification disabled for S3 connection")
+            client_config.merge(Config(
+                use_ssl=True,
+                verify=False
+            ))
+
+        client_kwargs = {'config': client_config}
         if region:
             client_kwargs['region_name'] = region
         
