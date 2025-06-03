@@ -53,7 +53,7 @@ if [ "$HTTP_CODE" = "200" ]; then
 else
     echo "✗ Authentication failed (HTTP $HTTP_CODE)"
     echo "  Response: $BODY"
-    
+
     if [ "$HTTP_CODE" = "401" ]; then
         echo
         echo "Possible causes:"

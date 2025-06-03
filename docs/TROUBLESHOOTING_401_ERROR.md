@@ -96,11 +96,11 @@ run:
       echo "GitHub token length: ${#GITHUB_TOKEN}"
       echo "Proxy settings:"
       env | grep -i proxy || echo "No proxy configured"
-      
+
       # Test API before running main script
       curl -v -H "Authorization: token $GITHUB_TOKEN" \
            https://api.github.com/user
-      
+
       # Run main script
       ./scripts/monitor.sh --config config.yaml
 ```
