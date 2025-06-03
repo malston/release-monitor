@@ -9,16 +9,34 @@ to S3-compatible storage (AWS S3, MinIO, etc.).
 import os
 import sys
 import boto3
+from botocore.config import Config
 from pathlib import Path
 
 
 def main():
     """Upload release files to S3 storage."""
     
-    # Configure S3 client
+    # Configure S3 client with SSL verification settings
     endpoint_url = os.environ.get('S3_ENDPOINT')
+    skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
+    
+    # Configure boto3 client config
+    client_config = Config(
+        signature_version='s3v4',
+        s3={'addressing_style': 'path'}
+    )
+    
+    # Configure SSL verification
+    if skip_ssl_verification:
+        print("WARNING: Skipping SSL verification for S3 endpoint")
+        client_config.merge(Config(
+            use_ssl=True,
+            verify=False
+        ))
+    
     s3_kwargs = {
-        'region_name': os.environ.get('AWS_DEFAULT_REGION', 'us-east-1')
+        'region_name': os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'),
+        'config': client_config
     }
     
     if endpoint_url:

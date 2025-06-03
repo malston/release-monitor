@@ -109,6 +109,7 @@ jobs:
             AWS_DEFAULT_REGION: ((s3_region))
             S3_ENDPOINT: ((s3_endpoint))
             S3_BUCKET: ((s3_releases_bucket))
+            S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
           run:
             path: bash
             args:
@@ -142,6 +143,7 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
             S3_ENDPOINT: ((s3_endpoint))
             S3_BUCKET: ((s3_bucket))
+            S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
           run:
             path: bash
             args:
@@ -175,6 +177,7 @@ jobs:
             AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
             S3_ENDPOINT: ((s3_endpoint))
             S3_BUCKET: ((s3_bucket))
+            S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
             REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
           run:
             path: bash
@@ -264,6 +267,7 @@ jobs:
             AWS_DEFAULT_REGION: ((s3_region))
             S3_ENDPOINT: ((s3_endpoint))
             S3_BUCKET: ((s3_releases_bucket))
+            S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
           run:
             path: bash
             args:

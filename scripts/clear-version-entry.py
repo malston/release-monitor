@@ -13,6 +13,7 @@ import sys
 import os
 import boto3
 import json
+from botocore.config import Config
 from pathlib import Path
 from datetime import datetime
 
@@ -27,13 +28,30 @@ def clear_version_entry(repo_key):
 
     print(f"Connecting to S3 at {endpoint_url}...")
 
+    # Configure SSL verification
+    skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
+    
+    # Configure boto3 client config
+    client_config = Config(
+        signature_version='s3v4',
+        s3={'addressing_style': 'path'}
+    )
+    
+    if skip_ssl_verification:
+        print("WARNING: Skipping SSL verification for S3 endpoint")
+        client_config.merge(Config(
+            use_ssl=True,
+            verify=False
+        ))
+
     # Create S3 client
     s3 = boto3.client(
         's3',
         endpoint_url=endpoint_url,
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
-        region_name='us-east-1'
+        region_name='us-east-1',
+        config=client_config
     )
 
     # Download current version database
