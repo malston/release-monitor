@@ -53,6 +53,12 @@ class GitHubDownloader:
             'User-Agent': 'GitHub-Release-Monitor-Downloader/1.0'
         })
         
+        # Configure SSL verification
+        skip_ssl_verification = os.environ.get('GITHUB_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
+        if skip_ssl_verification:
+            logger.warning("SSL verification disabled for GitHub downloads")
+            self.session.verify = False
+        
         logger.info(f"GitHub downloader initialized, download dir: {self.download_dir}")
     
     def download_release_assets(self, release_data: Dict[str, Any], 
@@ -251,6 +257,11 @@ class GitHubDownloader:
             except Exception as e:
                 last_error = str(e)
                 logger.warning(f"Download attempt {attempt + 1} failed: {e}")
+                
+                # Check if this is an SSL error
+                if 'CERTIFICATE_VERIFY_FAILED' in str(e) or 'SSLError' in str(e):
+                    logger.error("SSL certificate verification failed. "
+                               "Set GITHUB_SKIP_SSL_VERIFICATION=true to disable verification.")
                 
                 # Clean up temporary file if it exists
                 try:
