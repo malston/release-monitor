@@ -96,11 +96,14 @@ def clear_version_entry(repo_key):
 
     # Upload updated version database
     try:
+        json_data = json.dumps(version_data, indent=2)
+        json_bytes = json_data.encode('utf-8')
         s3.put_object(
             Bucket=bucket,
             Key=version_db_key,
-            Body=json.dumps(version_data, indent=2),
-            ContentType='application/json'
+            Body=json_bytes,
+            ContentType='application/json',
+            ContentLength=len(json_bytes)
         )
         print(f"Successfully removed {repo_key} (was at version {old_version})")
         print(f"Updated version database uploaded to s3://{bucket}/{version_db_key}")

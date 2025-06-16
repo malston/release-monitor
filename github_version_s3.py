@@ -139,6 +139,7 @@ class S3VersionStorage:
                 Key=self.versions_key,
                 Body=json_bytes,
                 ContentType='application/json',
+                ContentLength=len(json_bytes),
                 Metadata={
                     'purpose': 'github-release-monitor-versions',
                     'format': 'json'
