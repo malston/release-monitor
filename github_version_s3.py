@@ -49,30 +49,28 @@ class S3VersionStorage:
 
         # Configure SSL verification
         skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
-        
+
         # Configure boto3 client config
         from botocore.config import Config
         client_config = Config(
             signature_version='s3v4',
             s3={'addressing_style': 'path'}
         )
-        
-        if skip_ssl_verification:
-            logger.warning("SSL verification disabled for S3 connection")
-            client_config.merge(Config(
-                use_ssl=True,
-                verify=False
-            ))
 
         client_kwargs = {'config': client_config}
         if region:
             client_kwargs['region_name'] = region
-        
+
         # Support S3-compatible endpoints via environment variable
         endpoint_url = os.environ.get('AWS_ENDPOINT_URL_S3') or os.environ.get('AWS_ENDPOINT_URL')
         if endpoint_url:
             client_kwargs['endpoint_url'] = endpoint_url
             logger.info(f"Using S3-compatible endpoint: {endpoint_url}")
+
+        # Configure SSL verification
+        if skip_ssl_verification:
+            logger.warning("SSL verification disabled for S3 connection")
+            client_kwargs['verify'] = False
 
         self.s3_client = session.client('s3', **client_kwargs)
 
