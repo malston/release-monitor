@@ -38,7 +38,21 @@ echo "Bucket: ${S3_BUCKET}"
 
 # Find and upload files
 UPLOAD_COUNT=0
-cd ../downloads
+
+# Find the downloads directory
+if [[ -d "/tmp/downloads" ]]; then
+    DOWNLOADS_DIR="/tmp/downloads"
+elif [[ -d "../downloads" ]]; then
+    DOWNLOADS_DIR="../downloads"
+elif [[ -d "downloads" ]]; then
+    DOWNLOADS_DIR="downloads"
+else
+    echo "ERROR: Could not find downloads directory!"
+    exit 1
+fi
+
+echo "Using downloads directory: ${DOWNLOADS_DIR}"
+cd "${DOWNLOADS_DIR}"
 
 for file in $(find . -type f \( -name "*.gz" -o -name "*.zip" \) ); do
     # Remove leading ./

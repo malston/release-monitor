@@ -46,9 +46,24 @@ def main():
     bucket = os.environ['S3_BUCKET']
     
     # Find and upload all release files
-    downloads_dir = Path('../downloads')
-    if not downloads_dir.exists():
-        print(f'ERROR: {downloads_dir} does not exist!')
+    # Check multiple possible locations for the downloads directory
+    possible_paths = [
+        Path('/tmp/downloads'),           # Absolute path used by pipeline
+        Path('../downloads'),             # Relative path from scripts/
+        Path('downloads'),                # Current directory
+        Path(os.environ.get('DOWNLOAD_DIR', '/tmp/downloads'))  # Environment variable
+    ]
+    
+    downloads_dir = None
+    for path in possible_paths:
+        if path.exists():
+            downloads_dir = path
+            print(f'Found downloads directory at: {downloads_dir}')
+            break
+    
+    if not downloads_dir:
+        print(f'ERROR: Could not find downloads directory!')
+        print(f'Searched in: {[str(p) for p in possible_paths]}')
         sys.exit(1)
         
     uploaded_count = 0
