@@ -68,14 +68,19 @@ class ReleaseDownloadCoordinator:
             use_mc_s3 = os.environ.get('S3_USE_MC', 'true').lower() == 'true'
             
             if use_mc_s3:
-                # Use mc-based S3 version storage for better compatibility
-                from github_version_s3_mc import S3VersionDatabase
-                self.version_db = S3VersionDatabase(
-                    bucket=s3_config.get('bucket'),
-                    key_prefix=s3_config.get('prefix', 'release-monitor/')
-                )
-                logger.info(f"Using mc-based S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json")
-            else:
+                # Try to use mc-based S3 version storage for better compatibility
+                try:
+                    from github_version_s3_mc import S3VersionDatabase
+                    self.version_db = S3VersionDatabase(
+                        bucket=s3_config.get('bucket'),
+                        key_prefix=s3_config.get('prefix', 'release-monitor/')
+                    )
+                    logger.info(f"Using mc-based S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json")
+                except ImportError:
+                    logger.warning("mc-based S3 implementation not available, falling back to boto3")
+                    use_mc_s3 = False
+            
+            if not use_mc_s3:
                 # Check if we should use S3-compatible storage (for MinIO, etc.)
                 endpoint_url = s3_config.get('endpoint_url') or os.environ.get('AWS_ENDPOINT_URL')
                 
