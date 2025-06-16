@@ -63,9 +63,10 @@ def main():
             
             try:
                 with open(file_path, 'rb') as f:
-                    s3.put_object(Bucket=bucket, Key=s3_key, Body=f)
+                    file_data = f.read()
+                s3.put_object(Bucket=bucket, Key=s3_key, Body=file_data)
                 uploaded_count += 1
-                print(f'  Success: Uploaded {file_path.stat().st_size} bytes')
+                print(f'  Success: Uploaded {len(file_data)} bytes')
             except Exception as e:
                 print(f'Error uploading {file_path}: {e}')
                 raise
