@@ -174,8 +174,11 @@ run:
       import boto3, os
       from botocore.config import Config
       
-      config = Config(verify=False) if os.getenv('S3_SKIP_SSL_VERIFICATION') == 'true' else Config()
-      s3 = boto3.client('s3', endpoint_url=os.getenv('S3_ENDPOINT'), config=config)
+      config = Config()
+      client_kwargs = {'endpoint_url': os.getenv('S3_ENDPOINT'), 'config': config}
+      if os.getenv('S3_SKIP_SSL_VERIFICATION') == 'true':
+          client_kwargs['verify'] = False
+      s3 = boto3.client('s3', **client_kwargs)
       print('Buckets:', [b['Name'] for b in s3.list_buckets()['Buckets']])
       "
 EOF

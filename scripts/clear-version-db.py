@@ -24,18 +24,18 @@ def main():
         s3={'addressing_style': 'path'}
     )
     
-    # Configure SSL verification
-    if skip_ssl_verification:
-        print("WARNING: Skipping SSL verification for S3 endpoint")
-        client_config.merge(Config(
-            use_ssl=True,
-            verify=False
-        ))
-    
     s3_kwargs = {
         'region_name': 'us-east-1',
         'config': client_config
     }
+    
+    # Configure SSL verification
+    if skip_ssl_verification:
+        print("WARNING: Skipping SSL verification for S3 endpoint")
+        s3_kwargs['verify'] = False
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
     if endpoint_url:
         s3_kwargs['endpoint_url'] = endpoint_url
         print(f'Using S3-compatible endpoint: {endpoint_url}')

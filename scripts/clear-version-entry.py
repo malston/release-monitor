@@ -37,22 +37,25 @@ def clear_version_entry(repo_key):
         s3={'addressing_style': 'path'}
     )
     
+    # Build client arguments
+    client_kwargs = {
+        'service_name': 's3',
+        'endpoint_url': endpoint_url,
+        'aws_access_key_id': access_key,
+        'aws_secret_access_key': secret_key,
+        'region_name': 'us-east-1',
+        'config': client_config
+    }
+    
+    # Configure SSL verification
     if skip_ssl_verification:
         print("WARNING: Skipping SSL verification for S3 endpoint")
-        client_config.merge(Config(
-            use_ssl=True,
-            verify=False
-        ))
+        client_kwargs['verify'] = False
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # Create S3 client
-    s3 = boto3.client(
-        's3',
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        region_name='us-east-1',
-        config=client_config
-    )
+    s3 = boto3.client(**client_kwargs)
 
     # Download current version database
     version_db_key = 'version-db/version_db.json'
