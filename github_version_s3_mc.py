@@ -278,6 +278,200 @@ class S3VersionStorageMC:
         
         return versions
 
+    def get_current_version(self, owner: str, repo: str) -> Optional[str]:
+        """
+        Get the current version for a repository.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+
+        Returns:
+            Current version string or None if not found
+        """
+        if self._cache is None:
+            self._cache = self.load_versions()
+        
+        repo_key = f"{owner}/{repo}"
+        repo_data = self._cache.get('repositories', {}).get(repo_key, {})
+        return repo_data.get('current_version')
+
+    def update_version(self, owner: str, repo: str, version: str,
+                      metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Update the version for a repository.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            version: New version string
+            metadata: Optional metadata to store with the version
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if self._cache is None:
+            self._cache = self.load_versions()
+
+        if 'repositories' not in self._cache:
+            self._cache['repositories'] = {}
+
+        repo_key = f"{owner}/{repo}"
+        
+        # Update repository data
+        repo_data = {
+            'current_version': version,
+            'last_updated': datetime.now(timezone.utc).isoformat()
+        }
+        
+        if metadata:
+            repo_data['metadata'] = metadata
+
+        self._cache['repositories'][repo_key] = repo_data
+
+        return self.save_versions(self._cache)
+
+    def get_download_history(self, owner: str, repo: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get download history for a repository.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            limit: Maximum number of history entries to return
+
+        Returns:
+            List of download history entries
+        """
+        if self._cache is None:
+            self._cache = self.load_versions()
+
+        repo_key = f"{owner}/{repo}"
+        repo_data = self._cache.get('repositories', {}).get(repo_key, {})
+        history = repo_data.get('download_history', [])
+        
+        return history[-limit:] if limit > 0 else history
+
+    def add_download_record(self, owner: str, repo: str, version: str,
+                           assets: List[Dict[str, Any]],
+                           metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Add a download record to the history.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            version: Version that was downloaded
+            assets: List of assets that were downloaded
+            metadata: Optional metadata
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if self._cache is None:
+            self._cache = self.load_versions()
+
+        if 'repositories' not in self._cache:
+            self._cache['repositories'] = {}
+
+        repo_key = f"{owner}/{repo}"
+        
+        if repo_key not in self._cache['repositories']:
+            self._cache['repositories'][repo_key] = {}
+
+        if 'download_history' not in self._cache['repositories'][repo_key]:
+            self._cache['repositories'][repo_key]['download_history'] = []
+
+        # Create download record
+        record = {
+            'version': version,
+            'downloaded_at': datetime.now(timezone.utc).isoformat(),
+            'assets': assets
+        }
+        
+        if metadata:
+            record['metadata'] = metadata
+
+        self._cache['repositories'][repo_key]['download_history'].append(record)
+
+        return self.save_versions(self._cache)
+
+    def export_to_file(self, file_path: str) -> bool:
+        """
+        Export version data to a local file.
+
+        Args:
+            file_path: Path to export file
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if self._cache is None:
+                self._cache = self.load_versions()
+
+            with open(file_path, 'w') as f:
+                json.dump(self._cache, f, indent=2, sort_keys=True)
+
+            logger.info(f"Exported version data to {file_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error exporting to file: {e}")
+            return False
+
+    def import_from_file(self, file_path: str, merge: bool = False) -> bool:
+        """
+        Import version data from a local file.
+
+        Args:
+            file_path: Path to import file
+            merge: Whether to merge with existing data
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with open(file_path, 'r') as f:
+                file_data = json.load(f)
+
+            if merge and self._cache is not None:
+                # Merge repositories
+                if 'repositories' in file_data:
+                    if 'repositories' not in self._cache:
+                        self._cache['repositories'] = {}
+                    self._cache['repositories'].update(file_data['repositories'])
+            else:
+                self._cache = file_data
+
+            success = self.save_versions(self._cache)
+            if success:
+                logger.info(f"Imported version data from {file_path}")
+            
+            return success
+
+        except Exception as e:
+            logger.error(f"Error importing from file: {e}")
+            return False
+
+    def test_connection(self) -> bool:
+        """
+        Test the S3 connection.
+
+        Returns:
+            True if connection is successful, False otherwise
+        """
+        try:
+            # Try to list the bucket contents
+            insecure_flag = "--insecure" if self.skip_ssl else ""
+            cmd = f"mc ls {insecure_flag} {self.alias}/{self.bucket}/ --limit 1"
+            self._run_mc_command(cmd)
+            return True
+
+        except Exception as e:
+            logger.error(f"S3 connection test failed: {e}")
+            return False
+
     def clear_cache(self):
         """Clear the local cache, forcing a reload on next access."""
         self._cache = None
