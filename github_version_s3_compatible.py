@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.client import Config
+import warnings
+import urllib3
 
 logger = logging.getLogger(__name__)
 
@@ -61,16 +63,17 @@ class S3CompatibleVersionStorage:
         # Configure SSL verification
         if not verify_ssl:
             logger.warning("SSL verification disabled for S3 connection")
-            client_config.merge(Config(
-                use_ssl=True,  # Still use HTTPS but don't verify certificates
-                verify=False
-            ))
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Build client arguments
         client_args = {
             'service_name': 's3',
             'config': client_config
         }
+        
+        # Add verify parameter if SSL verification is disabled
+        if not verify_ssl:
+            client_args['verify'] = False
 
         # Add endpoint URL if provided
         if endpoint_url:
@@ -203,11 +206,13 @@ class S3CompatibleVersionStorage:
 
         # Save metadata
         try:
+            json_bytes = json.dumps(metadata, indent=2).encode('utf-8')
             self.s3_client.put_object(
                 Bucket=self.bucket,
                 Key=self._get_metadata_key(),
-                Body=json.dumps(metadata, indent=2),
-                ContentType='application/json'
+                Body=json_bytes,
+                ContentType='application/json',
+                ContentLength=len(json_bytes)
             )
         except ClientError as e:
             logger.error(f"Error saving metadata: {e}")
@@ -217,11 +222,13 @@ class S3CompatibleVersionStorage:
         versions = database.get('versions', {})
         for repo_key, version_data in versions.items():
             try:
+                json_bytes = json.dumps(version_data, indent=2).encode('utf-8')
                 self.s3_client.put_object(
                     Bucket=self.bucket,
                     Key=self._get_version_key(repo_key),
-                    Body=json.dumps(version_data, indent=2),
-                    ContentType='application/json'
+                    Body=json_bytes,
+                    ContentType='application/json',
+                    ContentLength=len(json_bytes)
                 )
             except ClientError as e:
                 logger.error(f"Error saving version data for {repo_key}: {e}")
@@ -267,11 +274,13 @@ class S3CompatibleVersionStorage:
         version_info['last_updated'] = datetime.now(timezone.utc).isoformat()
 
         try:
+            json_bytes = json.dumps(version_info, indent=2).encode('utf-8')
             self.s3_client.put_object(
                 Bucket=self.bucket,
                 Key=self._get_version_key(repo_key),
-                Body=json.dumps(version_info, indent=2),
-                ContentType='application/json'
+                Body=json_bytes,
+                ContentType='application/json',
+                ContentLength=len(json_bytes)
             )
 
             # Update metadata to reflect change
@@ -292,11 +301,13 @@ class S3CompatibleVersionStorage:
         }
 
         try:
+            json_bytes = json.dumps(metadata, indent=2).encode('utf-8')
             self.s3_client.put_object(
                 Bucket=self.bucket,
                 Key=self._get_metadata_key(),
-                Body=json.dumps(metadata, indent=2),
-                ContentType='application/json'
+                Body=json_bytes,
+                ContentType='application/json',
+                ContentLength=len(json_bytes)
             )
         except ClientError as e:
             logger.error(f"Error updating metadata: {e}")

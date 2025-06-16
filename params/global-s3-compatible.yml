@@ -3,7 +3,7 @@
 
 # Git repository configuration
 git_repo_uri: git@github.com:malston/release-monitor.git
-git_branch: feature/6-minio-support
+git_branch: bugfixes
 git_private_key: ((git_private_key))
 
 # GitHub API configuration
@@ -59,4 +59,4 @@ download_repository_overrides: |
 cleanup_days_to_keep: "30"
 
 # Force download testing
-force_download_repo: "etcd-io/etcd"  # Default repo for force download testing
+force_download_repo: "etcd-io/etcd" # Default repo for force download testing
