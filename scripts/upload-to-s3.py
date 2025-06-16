@@ -66,18 +66,28 @@ def main():
                 file_size = file_path.stat().st_size
                 print(f'  File size: {file_size} bytes')
                 
-                # For S3-compatible services with strict ContentLength requirements,
-                # use put_object instead of upload_file to avoid multipart issues
+                # Read file data
                 with open(file_path, 'rb') as f:
                     file_data = f.read()
                 
-                s3.put_object(
+                # Try with explicit headers and metadata
+                content_length = len(file_data)
+                print(f'  Content-Length: {content_length}')
+                
+                # Use put_object with all possible parameters
+                response = s3.put_object(
                     Bucket=bucket,
                     Key=s3_key,
                     Body=file_data,
-                    ContentLength=len(file_data),
-                    ContentType='application/octet-stream'
+                    ContentLength=content_length,
+                    ContentType='application/octet-stream',
+                    ContentEncoding='identity',
+                    Metadata={
+                        'uploaded-by': 'release-monitor',
+                        'original-size': str(content_length)
+                    }
                 )
+                print(f'  Upload response: {response.get("ResponseMetadata", {}).get("HTTPStatusCode")}')
                 uploaded_count += 1
                 print(f'  Success: Uploaded {file_size} bytes')
             except Exception as e:
