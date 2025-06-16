@@ -56,6 +56,16 @@ class ReleaseDownloadCoordinator:
         # Check if S3 storage is configured
         s3_config = download_config.get('s3_storage', {})
         use_s3 = s3_config.get('enabled', False)
+        
+        # Auto-detect S3 usage if environment variables are present
+        if not use_s3 and os.environ.get('VERSION_DB_S3_BUCKET'):
+            use_s3 = True
+            logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
+        
+        # Allow disabling S3 via environment variable for compatibility issues
+        if os.environ.get('DISABLE_S3_VERSION_DB', 'false').lower() == 'true':
+            use_s3 = False
+            logger.warning("S3 version database disabled via DISABLE_S3_VERSION_DB environment variable")
 
         if use_s3:
             # Check if we should use S3-compatible storage (for MinIO, etc.)

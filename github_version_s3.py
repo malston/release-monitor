@@ -452,7 +452,7 @@ class VersionDatabase(S3VersionStorage):
     This allows existing code to work with S3 storage without modification.
     """
 
-    def __init__(self, db_path: str = 'version_db.json', use_s3: bool = True,
+    def __init__(self, db_path: str = 'version_db.json', use_s3: bool = None,
                  s3_bucket: Optional[str] = None, s3_prefix: Optional[str] = None,
                  aws_region: Optional[str] = None, aws_profile: Optional[str] = None):
         """
@@ -466,6 +466,17 @@ class VersionDatabase(S3VersionStorage):
             aws_region: AWS region
             aws_profile: AWS profile name
         """
+        # Auto-detect S3 usage if not explicitly specified
+        if use_s3 is None:
+            use_s3 = bool(os.environ.get('VERSION_DB_S3_BUCKET'))
+            if use_s3:
+                logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
+        
+        # Allow disabling S3 via environment variable for compatibility issues
+        if os.environ.get('DISABLE_S3_VERSION_DB', 'false').lower() == 'true':
+            use_s3 = False
+            logger.warning("S3 version database disabled via DISABLE_S3_VERSION_DB environment variable")
+        
         self.use_s3 = use_s3
 
         if use_s3:
