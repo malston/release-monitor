@@ -14,6 +14,8 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 import os
 from pathlib import Path
+import warnings
+import urllib3
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,10 @@ class S3VersionStorage:
 
         # Configure SSL verification
         skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
+        
+        # Suppress SSL warnings if SSL verification is disabled
+        if skip_ssl_verification:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Configure boto3 client config
         from botocore.config import Config
@@ -125,13 +131,15 @@ class S3VersionStorage:
 
             # Convert to JSON
             json_content = json.dumps(data, indent=2, sort_keys=True)
+            json_bytes = json_content.encode('utf-8')
 
             # Upload to S3
             response = self.s3_client.put_object(
                 Bucket=self.bucket,
                 Key=self.versions_key,
-                Body=json_content.encode('utf-8'),
+                Body=json_bytes,
                 ContentType='application/json',
+                ContentLength=len(json_bytes),
                 Metadata={
                     'purpose': 'github-release-monitor-versions',
                     'format': 'json'

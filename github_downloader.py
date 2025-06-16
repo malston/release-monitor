@@ -58,6 +58,9 @@ class GitHubDownloader:
         if skip_ssl_verification:
             logger.warning("SSL verification disabled for GitHub downloads")
             self.session.verify = False
+            # Suppress SSL warnings
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
         logger.info(f"GitHub downloader initialized, download dir: {self.download_dir}")
     
