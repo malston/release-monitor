@@ -68,25 +68,37 @@ class ReleaseDownloadCoordinator:
             logger.warning("S3 version database disabled via DISABLE_S3_VERSION_DB environment variable")
 
         if use_s3:
-            # Check if we should use S3-compatible storage (for MinIO, etc.)
-            endpoint_url = s3_config.get('endpoint_url') or os.environ.get('AWS_ENDPOINT_URL')
+            # Check if we should use mc-based S3 implementation
+            use_mc_s3 = os.environ.get('S3_USE_MC', 'true').lower() == 'true'
             
-            # Set endpoint URL for boto3 before importing S3 modules
-            if endpoint_url:
-                os.environ['AWS_ENDPOINT_URL_S3'] = endpoint_url
-            
-            # Use S3-based version storage
-            from github_version_s3 import VersionDatabase as S3VersionDatabase
-            self.version_db = S3VersionDatabase(
-                use_s3=True,
-                s3_bucket=s3_config.get('bucket'),
-                s3_prefix=s3_config.get('prefix', 'release-monitor/'),
-                aws_region=s3_config.get('region'),
-                aws_profile=s3_config.get('profile')
-            )
-            
-            endpoint_info = f" via {endpoint_url}" if endpoint_url else ""
-            logger.info(f"Using S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json{endpoint_info}")
+            if use_mc_s3:
+                # Use mc-based S3 version storage for better compatibility
+                from github_version_s3_mc import S3VersionDatabase
+                self.version_db = S3VersionDatabase(
+                    bucket=s3_config.get('bucket'),
+                    key_prefix=s3_config.get('prefix', 'release-monitor/')
+                )
+                logger.info(f"Using mc-based S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json")
+            else:
+                # Check if we should use S3-compatible storage (for MinIO, etc.)
+                endpoint_url = s3_config.get('endpoint_url') or os.environ.get('AWS_ENDPOINT_URL')
+                
+                # Set endpoint URL for boto3 before importing S3 modules
+                if endpoint_url:
+                    os.environ['AWS_ENDPOINT_URL_S3'] = endpoint_url
+                
+                # Use boto3-based S3 version storage
+                from github_version_s3 import VersionDatabase as S3VersionDatabase
+                self.version_db = S3VersionDatabase(
+                    use_s3=True,
+                    s3_bucket=s3_config.get('bucket'),
+                    s3_prefix=s3_config.get('prefix', 'release-monitor/'),
+                    aws_region=s3_config.get('region'),
+                    aws_profile=s3_config.get('profile')
+                )
+                
+                endpoint_info = f" via {endpoint_url}" if endpoint_url else ""
+                logger.info(f"Using boto3-based S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json{endpoint_info}")
         else:
             # Use local file storage
             self.version_db = VersionDatabase(
