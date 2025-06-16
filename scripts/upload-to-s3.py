@@ -20,6 +20,23 @@ def main():
     endpoint_url = os.environ.get('S3_ENDPOINT')
     skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
     
+    # Check for proxy settings
+    http_proxy = os.environ.get('HTTP_PROXY') or os.environ.get('http_proxy')
+    https_proxy = os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy')
+    no_proxy = os.environ.get('NO_PROXY') or os.environ.get('no_proxy')
+    
+    if http_proxy or https_proxy:
+        print(f'Proxy detected:')
+        print(f'  HTTP_PROXY: {http_proxy}')
+        print(f'  HTTPS_PROXY: {https_proxy}')
+        print(f'  NO_PROXY: {no_proxy}')
+        
+        # Check if S3 endpoint should bypass proxy
+        if endpoint_url and 'example.com' in endpoint_url:
+            if not no_proxy or 'example.com' not in no_proxy:
+                print(f'WARNING: S3 endpoint {endpoint_url} may be going through proxy')
+                print(f'Consider adding example.com to NO_PROXY environment variable')
+    
     # Configure boto3 client config
     client_config = Config(
         signature_version='s3v4',
