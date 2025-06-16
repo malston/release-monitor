@@ -62,10 +62,6 @@ class ReleaseDownloadCoordinator:
             use_s3 = True
             logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
         
-        # Allow disabling S3 via environment variable for compatibility issues
-        if os.environ.get('DISABLE_S3_VERSION_DB', 'false').lower() == 'true':
-            use_s3 = False
-            logger.warning("S3 version database disabled via DISABLE_S3_VERSION_DB environment variable")
 
         if use_s3:
             # Check if we should use mc-based S3 implementation
