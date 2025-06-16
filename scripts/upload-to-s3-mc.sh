@@ -78,7 +78,7 @@ echo "=========================================="
 # Optional: List uploaded files
 echo ""
 echo "Listing uploaded files:"
-mc ls ${INSECURE} ${TARGET_PATH} --recursive | grep -E '\.(gz|zip)$' | tail -20
+mc ls ${INSECURE} ${TARGET_PATH} --recursive | grep -E "\\.(gz|zip)$" | tail -20
 
 # Clean up alias
 mc alias rm ${ALIAS}
