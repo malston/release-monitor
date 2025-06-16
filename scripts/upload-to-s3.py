@@ -10,7 +10,6 @@ import os
 import sys
 import boto3
 from botocore.config import Config
-from boto3.s3.transfer import TransferConfig
 from pathlib import Path
 
 
@@ -46,14 +45,6 @@ def main():
     s3 = boto3.client('s3', **s3_kwargs)
     bucket = os.environ['S3_BUCKET']
     
-    # Configure transfer to avoid multipart uploads which cause ContentLength issues
-    transfer_config = TransferConfig(
-        multipart_threshold=1024 * 1024 * 1024,  # 1GB - effectively disable multipart for our files
-        max_concurrency=1,
-        multipart_chunksize=1024 * 1024 * 1024,
-        use_threads=False
-    )
-    
     # Find and upload all release files
     downloads_dir = Path('../downloads')
     if not downloads_dir.exists():
@@ -75,12 +66,17 @@ def main():
                 file_size = file_path.stat().st_size
                 print(f'  File size: {file_size} bytes')
                 
-                # Use upload_file with custom config to avoid multipart uploads
-                s3.upload_file(
-                    str(file_path),
-                    bucket,
-                    s3_key,
-                    Config=transfer_config
+                # For S3-compatible services with strict ContentLength requirements,
+                # use put_object instead of upload_file to avoid multipart issues
+                with open(file_path, 'rb') as f:
+                    file_data = f.read()
+                
+                s3.put_object(
+                    Bucket=bucket,
+                    Key=s3_key,
+                    Body=file_data,
+                    ContentLength=len(file_data),
+                    ContentType='application/octet-stream'
                 )
                 uploaded_count += 1
                 print(f'  Success: Uploaded {file_size} bytes')
