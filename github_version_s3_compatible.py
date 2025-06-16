@@ -211,8 +211,7 @@ class S3CompatibleVersionStorage:
                 Bucket=self.bucket,
                 Key=self._get_metadata_key(),
                 Body=json_bytes,
-                ContentType='application/json',
-                ContentLength=len(json_bytes)
+                ContentType='application/json'
             )
         except ClientError as e:
             logger.error(f"Error saving metadata: {e}")
@@ -227,8 +226,7 @@ class S3CompatibleVersionStorage:
                     Bucket=self.bucket,
                     Key=self._get_version_key(repo_key),
                     Body=json_bytes,
-                    ContentType='application/json',
-                    ContentLength=len(json_bytes)
+                    ContentType='application/json'
                 )
             except ClientError as e:
                 logger.error(f"Error saving version data for {repo_key}: {e}")
@@ -279,8 +277,7 @@ class S3CompatibleVersionStorage:
                 Bucket=self.bucket,
                 Key=self._get_version_key(repo_key),
                 Body=json_bytes,
-                ContentType='application/json',
-                ContentLength=len(json_bytes)
+                ContentType='application/json'
             )
 
             # Update metadata to reflect change
@@ -306,8 +303,7 @@ class S3CompatibleVersionStorage:
                 Bucket=self.bucket,
                 Key=self._get_metadata_key(),
                 Body=json_bytes,
-                ContentType='application/json',
-                ContentLength=len(json_bytes)
+                ContentType='application/json'
             )
         except ClientError as e:
             logger.error(f"Error updating metadata: {e}")
