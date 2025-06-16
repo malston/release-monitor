@@ -35,7 +35,7 @@ def main():
         if endpoint_url and 'example.com' in endpoint_url:
             if not no_proxy or 'example.com' not in no_proxy:
                 print(f'WARNING: S3 endpoint {endpoint_url} may be going through proxy')
-                print(f'Consider adding example.com to NO_PROXY environment variable')
+                print(f'Consider adding your S3 domain to NO_PROXY environment variable')
     
     # Configure boto3 client config
     client_config = Config(

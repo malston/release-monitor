@@ -41,7 +41,7 @@ class S3VersionStorageMC:
         self.versions_key = f"{self.key_prefix}version_db.json"
         
         # Get S3 configuration from environment
-        self.endpoint_url = endpoint_url or os.environ.get('S3_ENDPOINT', 'https://cml-clfn.s3.cf.example.com:443')
+        self.endpoint_url = endpoint_url or os.environ.get('S3_ENDPOINT', 'https://s3.example.com:443')
         self.access_key = os.environ.get('AWS_ACCESS_KEY_ID')
         self.secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
         self.skip_ssl = skip_ssl_verification or os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'

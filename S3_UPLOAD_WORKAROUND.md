@@ -1,7 +1,7 @@
 # S3 Upload Workaround
 
 ## Problem
-The S3-compatible service at `cml-clfn.s3.cf.example.com` is rejecting all upload attempts with "MissingContentLength" errors, even when ContentLength is explicitly provided. This appears to be a compatibility issue between boto3 and this specific S3 implementation.
+The S3-compatible service is rejecting all upload attempts with "MissingContentLength" errors, even when ContentLength is explicitly provided. This appears to be a compatibility issue between boto3 and this specific S3 implementation.
 
 ## Workarounds
 

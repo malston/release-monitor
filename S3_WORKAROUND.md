@@ -1,7 +1,7 @@
 # S3 ContentLength Workaround
 
 ## Problem
-The S3-compatible service at `cml-clfn.s3.cf.example.com` requires explicit `Content-Length` headers for all PUT operations, but boto3's automatic header handling conflicts with this requirement, causing "MissingContentLength" errors.
+The S3-compatible service requires explicit `Content-Length` headers for all PUT operations, but boto3's automatic header handling conflicts with this requirement, causing "MissingContentLength" errors.
 
 ## Temporary Workaround
 To allow the pipeline to work while we resolve the S3 compatibility issues, you can disable S3 version tracking by setting this environment variable:

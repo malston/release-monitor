@@ -30,7 +30,7 @@ def main():
     """Upload release files to S3 using mc."""
     
     # Get configuration from environment
-    s3_endpoint = os.environ.get('S3_ENDPOINT', 'https://cml-clfn.s3.cf.example.com:443')
+    s3_endpoint = os.environ.get('S3_ENDPOINT', 'https://s3.example.com:443')
     s3_bucket = os.environ.get('S3_BUCKET', 'release-monitor-artifacts')
     access_key = os.environ.get('AWS_ACCESS_KEY_ID')
     secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')

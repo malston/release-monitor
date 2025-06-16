@@ -5,7 +5,7 @@
 set -e
 
 # S3 configuration from environment
-S3_ENDPOINT="${S3_ENDPOINT:-https://cml-clfn.s3.cf.example.com:443}"
+S3_ENDPOINT="${S3_ENDPOINT:-https://s3.example.com:443}"
 S3_BUCKET="${S3_BUCKET:-release-monitor-artifacts}"
 AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
 AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
