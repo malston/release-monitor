@@ -5,6 +5,7 @@ Unit tests for GitHubMonitor class
 
 import os
 import sys
+import json
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 import requests
@@ -13,7 +14,7 @@ from datetime import datetime, timezone
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from github_monitor import GitHubMonitor, ReleaseTracker, parse_release_date
+from github_monitor import GitHubMonitor, ReleaseTracker, parse_release_date, load_config
 
 
 class TestGitHubMonitor(unittest.TestCase):
@@ -410,6 +411,158 @@ with patch('github_monitor.GitHubMonitor.get_latest_release',
 
         finally:
             os.unlink(config_file)
+
+
+class TestConfigLoading(unittest.TestCase):
+    """Test cases for configuration loading with environment overrides"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        import tempfile
+        import yaml
+        
+        # Create a test config file
+        self.test_config = {
+            'repositories': [
+                {'owner': 'original', 'repo': 'repo1', 'description': 'Original repo 1'},
+                {'owner': 'original', 'repo': 'repo2', 'description': 'Original repo 2'}
+            ],
+            'settings': {
+                'rate_limit_delay': 1.0
+            }
+        }
+        
+        self.config_file = tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False)
+        yaml.dump(self.test_config, self.config_file)
+        self.config_file.close()
+
+    def tearDown(self):
+        """Clean up test fixtures"""
+        os.unlink(self.config_file.name)
+        # Clean up environment variable if set
+        os.environ.pop('REPOSITORIES_OVERRIDE', None)
+
+    def test_load_config_without_override(self):
+        """Test loading configuration without environment override"""
+        config = load_config(self.config_file.name)
+        
+        self.assertEqual(len(config['repositories']), 2)
+        self.assertEqual(config['repositories'][0]['owner'], 'original')
+        self.assertEqual(config['repositories'][0]['repo'], 'repo1')
+        self.assertEqual(config['settings']['rate_limit_delay'], 1.0)
+
+    def test_load_config_with_valid_override(self):
+        """Test loading configuration with valid REPOSITORIES_OVERRIDE"""
+        override_repos = [
+            {'owner': 'kubernetes', 'repo': 'kubernetes', 'description': 'K8s'},
+            {'owner': 'istio', 'repo': 'istio', 'description': 'Service mesh'},
+            {'owner': 'helm', 'repo': 'helm', 'description': 'Package manager'}
+        ]
+        
+        os.environ['REPOSITORIES_OVERRIDE'] = json.dumps(override_repos)
+        
+        config = load_config(self.config_file.name)
+        
+        # Verify repositories were overridden
+        self.assertEqual(len(config['repositories']), 3)
+        self.assertEqual(config['repositories'][0]['owner'], 'kubernetes')
+        self.assertEqual(config['repositories'][0]['repo'], 'kubernetes')
+        self.assertEqual(config['repositories'][1]['owner'], 'istio')
+        self.assertEqual(config['repositories'][2]['owner'], 'helm')
+        
+        # Verify other settings remain unchanged
+        self.assertEqual(config['settings']['rate_limit_delay'], 1.0)
+
+    def test_load_config_with_empty_override(self):
+        """Test loading configuration with empty REPOSITORIES_OVERRIDE"""
+        os.environ['REPOSITORIES_OVERRIDE'] = '[]'
+        
+        config = load_config(self.config_file.name)
+        
+        # Verify repositories were overridden with empty list
+        self.assertEqual(len(config['repositories']), 0)
+        
+        # Verify other settings remain unchanged
+        self.assertEqual(config['settings']['rate_limit_delay'], 1.0)
+
+    def test_load_config_with_invalid_json_override(self):
+        """Test loading configuration with invalid JSON in REPOSITORIES_OVERRIDE"""
+        os.environ['REPOSITORIES_OVERRIDE'] = 'invalid json {'
+        
+        # Should not raise exception, just log error
+        config = load_config(self.config_file.name)
+        
+        # Original repositories should remain
+        self.assertEqual(len(config['repositories']), 2)
+        self.assertEqual(config['repositories'][0]['owner'], 'original')
+
+    def test_load_config_with_non_array_override(self):
+        """Test loading configuration with non-array JSON in REPOSITORIES_OVERRIDE"""
+        os.environ['REPOSITORIES_OVERRIDE'] = '{"owner": "test", "repo": "test"}'
+        
+        # Should not raise exception, just log error
+        config = load_config(self.config_file.name)
+        
+        # Original repositories should remain
+        self.assertEqual(len(config['repositories']), 2)
+        self.assertEqual(config['repositories'][0]['owner'], 'original')
+
+    def test_load_config_with_single_repo_override(self):
+        """Test loading configuration with single repository override"""
+        override_repos = [
+            {'owner': 'open-policy-agent', 'repo': 'gatekeeper', 'description': 'Policy Controller'}
+        ]
+        
+        os.environ['REPOSITORIES_OVERRIDE'] = json.dumps(override_repos)
+        
+        config = load_config(self.config_file.name)
+        
+        # Verify single repository override
+        self.assertEqual(len(config['repositories']), 1)
+        self.assertEqual(config['repositories'][0]['owner'], 'open-policy-agent')
+        self.assertEqual(config['repositories'][0]['repo'], 'gatekeeper')
+        self.assertEqual(config['repositories'][0]['description'], 'Policy Controller')
+
+    @patch('github_monitor.logger')
+    def test_load_config_logs_override_info(self, mock_logger):
+        """Test that configuration override logs appropriate messages"""
+        override_repos = [
+            {'owner': 'test', 'repo': 'repo1'},
+            {'owner': 'test', 'repo': 'repo2'}
+        ]
+        
+        os.environ['REPOSITORIES_OVERRIDE'] = json.dumps(override_repos)
+        
+        config = load_config(self.config_file.name)
+        
+        # Verify info log was called
+        mock_logger.info.assert_called_with(
+            'Overrode repositories list with 2 repositories from REPOSITORIES_OVERRIDE environment variable'
+        )
+
+    @patch('github_monitor.logger')
+    def test_load_config_logs_json_error(self, mock_logger):
+        """Test that invalid JSON logs error message"""
+        os.environ['REPOSITORIES_OVERRIDE'] = 'not valid json'
+        
+        config = load_config(self.config_file.name)
+        
+        # Verify error log was called
+        mock_logger.error.assert_called()
+        error_call_args = mock_logger.error.call_args[0][0]
+        self.assertIn('Invalid JSON in REPOSITORIES_OVERRIDE', error_call_args)
+
+    @patch('github_monitor.logger')
+    def test_load_config_logs_type_error(self, mock_logger):
+        """Test that non-array JSON logs error message"""
+        os.environ['REPOSITORIES_OVERRIDE'] = '{"not": "an array"}'
+        
+        config = load_config(self.config_file.name)
+        
+        # Verify error log was called
+        mock_logger.error.assert_called_with(
+            'REPOSITORIES_OVERRIDE must be a JSON array of repository objects'
+        )
 
 
 if __name__ == '__main__':
