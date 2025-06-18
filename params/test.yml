@@ -17,6 +17,9 @@ download_include_prereleases: "true"
 download_keep_versions: "3"
 cleanup_days_to_keep: "7"
 
+# Test repository list override (smaller set for faster testing)
+repositories_override: ""
+
 # Test-specific repository overrides (smaller set for faster testing)
 download_repository_overrides: |
   {

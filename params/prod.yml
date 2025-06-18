@@ -19,6 +19,9 @@ download_cleanup_old_versions: "true"
 download_keep_versions: "10"
 cleanup_days_to_keep: "90"
 
+# Production repository list override
+repositories_override: ""
+
 # Production-specific repository overrides (comprehensive set)
 download_repository_overrides: |
   {

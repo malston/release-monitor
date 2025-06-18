@@ -42,6 +42,10 @@ download_verify_downloads: "true"
 download_cleanup_old_versions: "true"
 download_keep_versions: "5"
 
+# Repository list override (JSON array of repository objects)
+# Example: '[{"owner": "kubernetes", "repo": "kubernetes", "description": "Kubernetes"}, {"owner": "istio", "repo": "istio", "description": "Istio"}]'
+repositories_override: ""
+
 # Repository-specific download overrides
 download_repository_overrides: |
   {

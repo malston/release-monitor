@@ -190,10 +190,26 @@ class ReleaseTracker:
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
-    """Load configuration from YAML file"""
+    """Load configuration from YAML file with environment variable overrides"""
     try:
         with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+        
+        # Allow overriding repositories via environment variable
+        repositories_override = os.getenv('REPOSITORIES_OVERRIDE')
+        if repositories_override:
+            try:
+                # Parse JSON list of repositories
+                override_repos = json.loads(repositories_override)
+                if isinstance(override_repos, list):
+                    config['repositories'] = override_repos
+                    logger.info(f"Overrode repositories list with {len(override_repos)} repositories from REPOSITORIES_OVERRIDE environment variable")
+                else:
+                    logger.error("REPOSITORIES_OVERRIDE must be a JSON array of repository objects")
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON in REPOSITORIES_OVERRIDE environment variable: {e}")
+                
+        return config
     except (yaml.YAMLError, IOError) as e:
         logger.error(f"Could not load config file: {e}")
         sys.exit(1)

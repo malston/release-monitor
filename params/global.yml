@@ -28,6 +28,10 @@ use_s3_version_db: "true"
 version_db_s3_bucket: ((s3_bucket))
 version_db_s3_prefix: "release-monitor/"
 
+# Repository list override (JSON array of repository objects)
+# Example: '[{"owner": "kubernetes", "repo": "kubernetes", "description": "Kubernetes"}, {"owner": "istio", "repo": "istio", "description": "Istio"}]'
+repositories_override: ""
+
 # Repository-specific download overrides (JSON format)
 download_repository_overrides: |
   {
