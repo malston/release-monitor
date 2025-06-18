@@ -258,6 +258,8 @@ The script outputs structured data about new releases:
 
 The project includes complete Concourse CI/CD pipeline support with multiple pipeline options:
 
+📊 **[View Pipeline Flowchart](docs/pipeline-flowchart.md)** - Visual overview of how the pipeline works
+
 ```text
 ci/
 ├── pipeline-s3-compatible.yml       # S3-compatible pipeline (MinIO/AWS S3) ⭐ PRIMARY
