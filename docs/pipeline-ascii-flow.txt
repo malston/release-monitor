@@ -1,0 +1,105 @@
+GitHub Release Monitor - Concourse Pipeline Flow
+=================================================
+
+MAIN PIPELINE (Automatic):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               MONITORING PHASE                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+⏰ Timer (1h) ─┐
+               ├──► 🔍 monitor-releases
+🗂️ Git Repo ───┘        │
+                        ▼
+                   📋 check-releases task
+                        │ (REPOSITORIES_OVERRIDE)
+                        │ (GITHUB_TOKEN)
+                        ▼
+                   📜 scripts/monitor.sh
+                        │ ──► github_monitor.py
+                        ▼
+                   🐙 GitHub API calls
+                        │ (check repositories)
+                        ▼
+                   📄 releases.json
+                        │ (new releases found)
+                        ▼
+                   ☁️ S3: latest-releases.json
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               DOWNLOAD PHASE                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+☁️ S3: latest-releases.json (trigger)
+🗂️ Git Repo ─────────────────┐
+                              ├──► ⬇️ download-new-releases
+                              │
+                              ▼
+                         📥 download-releases task
+                              │ (VERSION_DB_S3_BUCKET)
+                              │ (ASSET_PATTERNS)
+                              │ (REPOSITORY_OVERRIDES)
+                              ▼
+                         📜 download_releases.py
+                              │
+                    ┌─────────┼─────────┐
+                    ▼         ▼         ▼
+              ☁️ S3 Version   🐙 GitHub    📁 /tmp/downloads
+                Database      Downloads   (local files)
+                    │                           │
+                    │                           ▼
+                    │                      ☁️ upload-to-s3 task
+                    │                           │ (S3_ENDPOINT)
+                    │                           │ (S3_BUCKET)
+                    │                           ▼
+                    │                      📜 upload-to-s3.py
+                    │                           │ (or upload-to-s3-mc.py)
+                    │                           ▼
+                    └───────────────────► ☁️ S3 Release Storage
+                                              (artifacts bucket)
+
+UTILITY JOBS (Manual):
+======================
+
+🗑️ clear-version-database:
+   📜 clear-version-db.py ──► ☁️ S3 Version Database (clear all)
+
+🔄 force-download-repo (param: REPO_NAME):
+   📜 clear-version-entry.py ──► ☁️ S3 Version DB (clear specific repo)
+   📋 check-releases ──► 📥 download-releases ──► ☁️ upload-to-s3
+
+
+ENVIRONMENT VARIABLES:
+======================
+
+Core Configuration:
+  REPOSITORIES_OVERRIDE    - JSON array of repos to monitor
+  GITHUB_TOKEN            - GitHub API authentication
+  
+S3 Configuration:
+  S3_ENDPOINT             - S3-compatible endpoint
+  S3_USE_MC               - Use MinIO client vs boto3
+  VERSION_DB_S3_BUCKET    - Version database bucket
+  S3_BUCKET               - Release artifacts bucket
+  S3_SKIP_SSL_VERIFICATION - Skip SSL for S3-compatible
+
+Download Configuration:
+  ASSET_PATTERNS          - File patterns to download
+  REPOSITORY_OVERRIDES    - Per-repo download settings
+  INCLUDE_PRERELEASES     - Include pre-release versions
+
+
+DATA FLOW SUMMARY:
+==================
+
+1. Timer triggers monitoring every hour
+2. Monitor checks GitHub for new releases
+3. Results stored in S3 (latest-releases.json)
+4. Download job triggered by new results
+5. Downloads assets and updates version database
+6. Uploads downloaded files to S3 storage
+
+Key Features:
+- S3-compatible storage support (MinIO, etc.)
+- Version tracking prevents re-downloads
+- Configurable repository lists and download patterns
+- Manual jobs for testing and maintenance
