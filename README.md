@@ -65,6 +65,7 @@ $ python3 github_monitor.py --config config.yaml
 - **Configurable**: YAML-based configuration for repository lists and settings
 - **📥 Release Downloads**: Automatically download release assets with version management
 - **🔍 Asset Filtering**: Download only specific file types using configurable patterns
+- **📜 Manifest Support**: Download Kubernetes manifests, YAML configs, and source archives
 - **✅ Verification**: Built-in checksum verification for downloaded files
 - **🗂️ Smart Organization**: Organize downloads by repository and version
 
@@ -226,6 +227,20 @@ python3 github_monitor.py --config config.yaml --download
 ```
 
 See the [Download Guide](DOWNLOAD_GUIDE.md) for detailed configuration and usage.
+
+### Kubernetes Manifests and Source Code
+
+Many repositories provide Kubernetes manifests (YAML files) or only source code instead of binary releases:
+
+```bash
+# Download YAML manifests and source archives
+python3 github_monitor.py --config config.yaml --download
+
+# Example repository: Wavefront Observability for Kubernetes
+# Downloads: wavefront-operator.yaml + source tarball
+```
+
+See the [Source Code Downloads Guide](docs/SOURCE_CODE_DOWNLOADS.md) for repositories that release manifests or source-only.
 
 ## Output Format
 

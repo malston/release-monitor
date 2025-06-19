@@ -209,3 +209,6 @@ site/
 *.db
 *.sqlite
 *.sqlite3
+
+# Claude files
+CLAUDE.md

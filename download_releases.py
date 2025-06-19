@@ -121,7 +121,17 @@ class ReleaseDownloadCoordinator:
         self.verify_downloads = download_config.get('verify_downloads', True)
         self.cleanup_enabled = download_config.get('cleanup_old_versions', False)
         self.keep_versions = download_config.get('keep_versions', 5)
+        
+        # Source archive settings
+        self.source_config = download_config.get('source_archives', {
+            'enabled': True,
+            'prefer': 'tarball',
+            'fallback_only': True
+        })
 
+        # Repository overrides
+        self.repository_overrides = download_config.get('repository_overrides', {})
+        
         logger.info("Release download coordinator initialized")
 
     def process_monitor_output(self, monitor_output: Dict[str, Any]) -> Dict[str, Any]:
@@ -229,21 +239,28 @@ class ReleaseDownloadCoordinator:
                 'reason': reason
             }
 
-        # Check if release has downloadable assets
-        if not release.get('assets'):
-            logger.debug(f"No assets found for {repository}:{tag_name}")
+        # Check if release has downloadable content (assets or source code)
+        has_assets = bool(release.get('assets'))
+        has_source = bool(release.get('tarball_url') or release.get('zipball_url'))
+        
+        if not has_assets and not has_source:
+            logger.debug(f"No downloadable content found for {repository}:{tag_name}")
             return {
                 'repository': repository,
                 'tag_name': tag_name,
                 'current_version': current_version,
                 'action': 'skipped',
-                'reason': 'No downloadable assets'
+                'reason': 'No downloadable content (no assets or source archives)'
             }
 
-        # Download the release assets
+        # Get repository-specific configuration
+        repo_config = self._get_repository_config(repository)
+        
+        # Download the release assets and/or source code
         try:
-            download_results = self.downloader.download_release_assets(
-                release, self.asset_patterns
+            download_results = self.downloader.download_release_content(
+                release, repo_config.get('asset_patterns', self.asset_patterns),
+                repo_config.get('source_archives', self.source_config)
             )
 
             successful_downloads = [r for r in download_results if r['success']]
@@ -291,6 +308,26 @@ class ReleaseDownloadCoordinator:
                 'action': 'failed',
                 'reason': f"Download error: {str(e)}"
             }
+
+    def _get_repository_config(self, repository: str) -> Dict[str, Any]:
+        """
+        Get repository-specific configuration with fallbacks.
+        
+        Args:
+            repository: Repository name in owner/repo format
+            
+        Returns:
+            Repository configuration with merged overrides
+        """
+        repo_override = self.repository_overrides.get(repository, {})
+        
+        # Merge with defaults
+        config = {
+            'asset_patterns': repo_override.get('asset_patterns', self.asset_patterns),
+            'source_archives': {**self.source_config, **repo_override.get('source_archives', {})}
+        }
+        
+        return config
 
     def get_status_report(self) -> Dict[str, Any]:
         """
