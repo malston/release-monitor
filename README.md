@@ -495,6 +495,8 @@ make help           # Show all available commands
 - **SSL certificate errors in corporate environments**: Check [SSL Verification Guide](docs/SSL_VERIFICATION_GUIDE.md)
 - **401 Unauthorized errors**: See [Troubleshooting 401 Errors](docs/TROUBLESHOOTING_401_ERROR.md)
 - **MinIO setup issues**: Review [MinIO Setup Guide](docs/MINIO_SETUP.md)
+- **Download configuration**: Check [Download Guide](docs/DOWNLOAD_GUIDE.md) for detailed setup
+- **Concourse pipeline deployment**: See [Concourse Deployment Guide](docs/CONCOURSE_DEPLOYMENT.md)
 
 ### Testing and Verification
 
