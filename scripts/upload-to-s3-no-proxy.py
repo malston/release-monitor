@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 Upload release files to S3 storage with proxy bypass.
-This script temporarily disables proxy for S3 uploads.
+
+This script temporarily disables proxy for S3 uploads and supports uploading
+release assets including archives (.gz, .zip, .tar), manifests (.yaml, .yml), 
+configuration files (.json, .xml, .toml), and binary packages (.exe, .deb, .rpm, .dmg, .msi).
 """
 
 import os
@@ -72,34 +75,55 @@ def main():
             sys.exit(1)
             
         uploaded_count = 0
+        skipped_count = 0
+        
+        # Define supported file extensions for upload
+        supported_extensions = {'.gz', '.zip', '.tar', '.yaml', '.yml', '.json', '.xml', '.toml', '.exe', '.deb', '.rpm', '.dmg', '.msi'}
+        
+        print(f'Scanning for files with extensions: {sorted(supported_extensions)}')
         
         for file_path in downloads_dir.rglob('*'):
-            if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
-                relative_path = file_path.relative_to(downloads_dir)
-                s3_key = f'release-downloads/{relative_path}'
-                
-                print(f'Uploading {relative_path} to s3://{bucket}/{s3_key}')
-                
-                try:
-                    with open(file_path, 'rb') as f:
-                        file_data = f.read()
+            if file_path.is_file():
+                # Skip checksum files
+                if file_path.name.endswith('.sha256'):
+                    continue
                     
-                    s3.put_object(
-                        Bucket=bucket,
-                        Key=s3_key,
-                        Body=file_data,
-                        ContentLength=len(file_data),
-                        ContentType='application/octet-stream'
-                    )
-                    uploaded_count += 1
-                    print(f'  Success: Uploaded {len(file_data)} bytes')
-                except Exception as e:
-                    print(f'Error uploading {file_path}: {e}')
-                    raise
+                if file_path.suffix in supported_extensions or file_path.name.endswith('.tar.gz'):
+                    relative_path = file_path.relative_to(downloads_dir)
+                    s3_key = f'release-downloads/{relative_path}'
+                    
+                    print(f'Uploading {relative_path} to s3://{bucket}/{s3_key}')
+                    
+                    try:
+                        with open(file_path, 'rb') as f:
+                            file_data = f.read()
+                        
+                        s3.put_object(
+                            Bucket=bucket,
+                            Key=s3_key,
+                            Body=file_data,
+                            ContentLength=len(file_data),
+                            ContentType='application/octet-stream'
+                        )
+                        uploaded_count += 1
+                        print(f'  Success: Uploaded {len(file_data)} bytes')
+                    except Exception as e:
+                        print(f'Error uploading {file_path}: {e}')
+                        raise
+                else:
+                    relative_path = file_path.relative_to(downloads_dir)
+                    print(f'Skipping {relative_path} (extension: {file_path.suffix})')
+                    skipped_count += 1
+        
+        print(f'\n=== UPLOAD SUMMARY ===')
+        print(f'Files uploaded: {uploaded_count}')
+        print(f'Files skipped: {skipped_count}')
         
         if uploaded_count == 0:
             print('\nINFO: No release files found to upload.')
             print('This is normal when all monitored releases are already at their latest versions.')
+            if skipped_count > 0:
+                print(f'\nNote: {skipped_count} files were skipped due to unsupported extensions.')
         else:
             print(f'\nSUCCESS: Uploaded {uploaded_count} files to S3.')
             
