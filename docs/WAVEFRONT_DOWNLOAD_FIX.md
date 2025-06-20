@@ -70,7 +70,39 @@ python github_monitor.py --config config.yaml --download
 python github_monitor.py --config config.yaml | jq '.releases[].assets'
 ```
 
-## Testing the Fix
+## Verification and Testing
+
+### Quick Verification Tests
+
+Before running full tests, verify the fix is applied:
+
+```bash
+# 1. Test upload script file filtering logic
+python -m pytest tests/test_upload_scripts.py::TestUploadScriptFileFiltering -v
+
+# 2. Verify all upload scripts support YAML
+python -m pytest tests/test_upload_scripts.py::TestAllUploadScriptsYAMLSupport -v
+
+# 3. Check upload script extensions manually
+grep -A 3 "supported_extensions" scripts/upload-to-s3.py
+```
+
+Expected: Should see `.yaml` and `.yml` in supported extensions list.
+
+### Testing SSL and Proxy Configuration
+
+If you're in a corporate environment with proxy and SSL issues:
+
+```bash
+# Test proxy and SSL configuration
+python -m pytest tests/test_upload_scripts.py::TestProxySSLConfiguration -v
+
+# Set environment variables for testing
+export GITHUB_SKIP_SSL_VERIFICATION=true
+export S3_SKIP_SSL_VERIFICATION=true
+export HTTP_PROXY=http://your-proxy:80
+export HTTPS_PROXY=http://your-proxy:80
+```
 
 ### 1. Test Monitor Output
 
@@ -136,6 +168,98 @@ test-downloads/
         ├── wavefrontHQ_...-v2.30.0.tar.gz      # ~1MB source archive
         └── wavefrontHQ_...-v2.30.0.tar.gz.sha256
 ```
+
+### Verify S3 Upload
+
+Check that YAML files are uploaded to S3:
+
+```bash
+# Test upload script logic (dry run)
+python scripts/upload-to-s3.py
+
+# Check S3 bucket for YAML files
+aws s3 ls s3://your-bucket/release-downloads/ --recursive | grep yaml
+
+# For MinIO or corporate S3-compatible storage
+mc ls your-alias/your-bucket/release-downloads/ --recursive | grep yaml
+```
+
+Expected output should show:
+```
+Uploading wavefrontHQ_observability-for-kubernetes/v2.30.0/wavefront-operator.yaml to s3://...
+Success: Uploaded 56535 bytes
+```
+
+### End-to-End Pipeline Test
+
+Test the complete pipeline with YAML downloads:
+
+```bash
+# 1. Monitor for new releases
+python github_monitor.py --config config.yaml --output releases.json
+
+# 2. Download releases (including YAML files)  
+python download_releases.py --config config.yaml --input releases.json
+
+# 3. Verify downloads
+find downloads/ -name "*.yaml" -o -name "*.yml"
+
+# 4. Upload to S3
+python scripts/upload-to-s3.py
+
+# 5. Verify in S3 storage
+aws s3 ls s3://your-bucket/release-downloads/ --recursive | grep -E "\.(yaml|yml)$"
+```
+
+### Upload Script Variants
+
+The system includes multiple upload scripts for different environments:
+
+- **`upload-to-s3.py`** - Default boto3 implementation
+- **`upload-to-s3-mc.py`** - MinIO client for better S3-compatible service support
+- **`upload-to-s3-no-proxy.py`** - Proxy bypass version for corporate environments
+
+All scripts now support YAML files. Test with:
+
+```bash
+# Test specific upload script
+python scripts/upload-to-s3-mc.py      # For MinIO environments
+python scripts/upload-to-s3-no-proxy.py # For proxy bypass
+```
+
+### Troubleshooting Upload Issues
+
+If YAML files are still not uploaded:
+
+1. **Check downloads exist**:
+   ```bash
+   find downloads/ -name "*.yaml" -type f
+   ```
+
+2. **Check upload script debug output**:
+   ```bash
+   python scripts/upload-to-s3.py
+   # Look for: "Scanning for files with extensions: ['.yaml', '.yml', ...]"
+   # Should show: "Uploading *.yaml" not "Skipping *.yaml"
+   ```
+
+3. **Test file filtering logic**:
+   ```bash
+   python -c "
+   supported_extensions = {'.gz', '.zip', '.tar', '.yaml', '.yml', '.json', '.xml', '.toml', '.exe', '.deb', '.rpm', '.dmg', '.msi'}
+   filename = 'wavefront-operator.yaml'
+   should_upload = filename.endswith('.yaml') and '.yaml' in supported_extensions
+   print(f'Should upload {filename}: {should_upload}')
+   "
+   ```
+
+4. **Verify S3 credentials and permissions**:
+   ```bash
+   # Test S3 access
+   aws s3 ls s3://your-bucket/ --region your-region
+   # Or for MinIO
+   mc ls your-alias/your-bucket/
+   ```
 
 ## Code Flow
 
