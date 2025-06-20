@@ -277,10 +277,20 @@ class TestVersionDatabaseWrapper(unittest.TestCase):
     
     def test_local_mode(self):
         """Test wrapper in local mode."""
-        with patch('github_version_db.VersionDatabase') as mock_local_db:
-            db = VersionDatabase(use_s3=False, db_path='test.json')
-            self.assertFalse(db.use_s3)
-            self.assertEqual(db.db_path, 'test.json')
+        # Use a temporary file to avoid leaving files behind
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp_file:
+            temp_path = temp_file.name
+        
+        try:
+            with patch('github_version_s3.VersionDatabase.__getattribute__', wraps=VersionDatabase.__getattribute__) as mock_getattr:
+                db = VersionDatabase(use_s3=False, db_path=temp_path)
+                # Directly access the attribute without delegation
+                self.assertFalse(object.__getattribute__(db, 'use_s3'))
+                self.assertEqual(object.__getattribute__(db, 'db_path'), temp_path)
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
     
     def test_s3_mode_missing_bucket(self):
         """Test error when S3 bucket not specified."""

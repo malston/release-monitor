@@ -64,6 +64,38 @@ class GitHubDownloader:
         
         logger.info(f"GitHub downloader initialized, download dir: {self.download_dir}")
     
+    def download_release_content(self, release_data: Dict[str, Any], 
+                               asset_patterns: Optional[List[str]] = None,
+                               source_config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Download all available content from a GitHub release (assets + source code).
+        
+        Args:
+            release_data: Release data from GitHub API or monitor
+            asset_patterns: Optional list of patterns to filter content (e.g., ['*.tar.gz', '*.zip', '*.yaml'])
+            source_config: Optional source archive configuration
+            
+        Returns:
+            List of download results with metadata
+        """
+        download_results = []
+        
+        # Default source configuration
+        if source_config is None:
+            source_config = {'enabled': True, 'prefer': 'tarball', 'fallback_only': True}
+        
+        # Download release assets (binaries, manifests, etc.)
+        if release_data.get('assets'):
+            asset_results = self.download_release_assets(release_data, asset_patterns)
+            download_results.extend(asset_results)
+        
+        # Download source code archives based on configuration
+        if source_config.get('enabled', True) and self._should_download_source(release_data, asset_patterns, download_results, source_config):
+            source_results = self.download_source_archives(release_data, asset_patterns, source_config)
+            download_results.extend(source_results)
+        
+        return download_results
+    
     def download_release_assets(self, release_data: Dict[str, Any], 
                               asset_patterns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -359,17 +391,27 @@ class GitHubDownloader:
         """
         import fnmatch
         
+        filename_lower = filename.lower()
+        matched = False
+        
+        # First check inclusion patterns
+        for pattern in patterns:
+            if not pattern.startswith('!'):
+                if fnmatch.fnmatch(filename_lower, pattern.lower()):
+                    matched = True
+                    break
+        
+        # If no inclusion pattern matched, return False
+        if not matched:
+            return False
+        
+        # Now check exclusion patterns
         for pattern in patterns:
             if pattern.startswith('!'):
-                # Exclusion pattern
-                if fnmatch.fnmatch(filename.lower(), pattern[1:].lower()):
+                if fnmatch.fnmatch(filename_lower, pattern[1:].lower()):
                     return False
-            else:
-                # Inclusion pattern
-                if fnmatch.fnmatch(filename.lower(), pattern.lower()):
-                    return True
         
-        return False
+        return True
     
     def get_download_stats(self) -> Dict[str, Any]:
         """
@@ -450,3 +492,174 @@ class GitHubDownloader:
             'freed_space': freed_space,
             'freed_space_mb': round(freed_space / (1024 * 1024), 2)
         }
+    
+    def _should_download_source(self, release_data: Dict[str, Any], 
+                               asset_patterns: Optional[List[str]], 
+                               asset_results: List[Dict[str, Any]],
+                               source_config: Dict[str, Any]) -> bool:
+        """
+        Determine if source code archives should be downloaded.
+        
+        Args:
+            release_data: Release data from GitHub API
+            asset_patterns: Asset filtering patterns
+            asset_results: Results from asset downloads
+            source_config: Source archive configuration
+            
+        Returns:
+            True if source code should be downloaded
+        """
+        # Check if fallback_only is disabled (always download source)
+        if not source_config.get('fallback_only', True):
+            return True
+        
+        # If no asset patterns specified, download source when no assets were found
+        if not asset_patterns:
+            return len([r for r in asset_results if r['success']]) == 0
+        
+        # Check if patterns explicitly request source archives (only exact matches for source-specific terms)
+        explicit_source_patterns = ['source', 'tarball', 'zipball']
+        for pattern in asset_patterns:
+            pattern_lower = pattern.lower()
+            if any(sp == pattern_lower for sp in explicit_source_patterns):
+                return True
+        
+        # Check if patterns include manifest/config file types that might not have traditional assets
+        manifest_patterns = ['*.yaml', '*.yml', '*.json', '*.xml', '*.toml']
+        for pattern in asset_patterns:
+            pattern_lower = pattern.lower()
+            if any(mp in pattern_lower for mp in manifest_patterns):
+                # If looking for manifests but no assets matched, try source
+                return len([r for r in asset_results if r['success']]) == 0
+        
+        # If assets were successfully downloaded, don't download source unless explicitly requested
+        successful_assets = [r for r in asset_results if r['success']]
+        if successful_assets:
+            return False
+        
+        # No successful asset downloads, fall back to source
+        return True
+    
+    def download_source_archives(self, release_data: Dict[str, Any], 
+                                asset_patterns: Optional[List[str]] = None,
+                                source_config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Download source code archives (tarball and/or zipball) from GitHub release.
+        
+        Args:
+            release_data: Release data from GitHub API or monitor
+            asset_patterns: Optional list of patterns to filter archives
+            source_config: Optional source archive configuration
+            
+        Returns:
+            List of download results with metadata
+        """
+        download_results = []
+        
+        # Default source configuration
+        if source_config is None:
+            source_config = {'enabled': True, 'prefer': 'tarball', 'fallback_only': True}
+        
+        # Create release-specific directory
+        repo_name = release_data.get('repository', 'unknown').replace('/', '_')
+        tag_name = release_data.get('tag_name', 'unknown')
+        release_dir = self.download_dir / repo_name / tag_name
+        release_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Prepare source archive info based on preference
+        source_archives = []
+        prefer = source_config.get('prefer', 'tarball').lower()
+        
+        if prefer == 'both':
+            # Download both tarball and zipball
+            if release_data.get('tarball_url'):
+                source_archives.append({
+                    'name': f'{repo_name}-{tag_name}.tar.gz',
+                    'url': release_data['tarball_url'],
+                    'type': 'tarball'
+                })
+            if release_data.get('zipball_url'):
+                source_archives.append({
+                    'name': f'{repo_name}-{tag_name}.zip', 
+                    'url': release_data['zipball_url'],
+                    'type': 'zipball'
+                })
+        elif prefer == 'zipball':
+            # Prefer zipball, fallback to tarball
+            if release_data.get('zipball_url'):
+                source_archives.append({
+                    'name': f'{repo_name}-{tag_name}.zip', 
+                    'url': release_data['zipball_url'],
+                    'type': 'zipball'
+                })
+            elif release_data.get('tarball_url'):
+                source_archives.append({
+                    'name': f'{repo_name}-{tag_name}.tar.gz',
+                    'url': release_data['tarball_url'],
+                    'type': 'tarball'
+                })
+        else:
+            # Default: prefer tarball, fallback to zipball
+            if release_data.get('tarball_url'):
+                source_archives.append({
+                    'name': f'{repo_name}-{tag_name}.tar.gz',
+                    'url': release_data['tarball_url'],
+                    'type': 'tarball'
+                })
+            elif release_data.get('zipball_url'):
+                source_archives.append({
+                    'name': f'{repo_name}-{tag_name}.zip', 
+                    'url': release_data['zipball_url'],
+                    'type': 'zipball'
+                })
+        
+        for archive in source_archives:
+            try:
+                # Source archives are controlled by source_config settings (prefer, fallback_only, etc.)
+                # rather than asset_patterns. Asset patterns are for filtering release assets.
+                # However, if someone explicitly includes source-specific keywords like 'tarball' or 'zipball'
+                # in asset_patterns, we treat these as filters for source archive types.
+                should_skip_archive = False
+                if asset_patterns:
+                    # Check for explicit source type filters
+                    has_tarball_filter = 'tarball' in [p.lower() for p in asset_patterns]
+                    has_zipball_filter = 'zipball' in [p.lower() for p in asset_patterns]
+                    
+                    # If specific source type filters are present, only download matching types
+                    if has_tarball_filter or has_zipball_filter:
+                        if archive['type'] == 'tarball' and not has_tarball_filter:
+                            should_skip_archive = True
+                        elif archive['type'] == 'zipball' and not has_zipball_filter:
+                            should_skip_archive = True
+                
+                if should_skip_archive:
+                    logger.debug(f"Skipping source archive {archive['name']} (type {archive['type']} not in explicit filters)")
+                    continue
+                
+                # Create a pseudo-asset for the source archive
+                pseudo_asset = {
+                    'name': archive['name'],
+                    'browser_download_url': archive['url'],
+                    'size': None  # GitHub doesn't provide size for source archives
+                }
+                
+                # Download the source archive
+                result = self._download_single_asset(pseudo_asset, release_dir, release_data)
+                result['source_type'] = archive['type']  # Mark as source archive
+                download_results.append(result)
+                
+            except Exception as e:
+                logger.error(f"Failed to download source archive {archive['name']}: {e}")
+                download_results.append({
+                    'asset_name': archive['name'],
+                    'source_type': archive['type'],
+                    'success': False,
+                    'error': str(e),
+                    'download_time': time.time()
+                })
+        
+        if download_results:
+            successful = sum(1 for r in download_results if r['success'])
+            logger.info(f"Downloaded {successful} of {len(download_results)} source archives for {repo_name}:{tag_name}")
+        
+        return download_results

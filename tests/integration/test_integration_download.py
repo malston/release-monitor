@@ -262,15 +262,15 @@ class TestIntegrationDownload(unittest.TestCase):
         
         try:
             # Mock import error for download_releases module specifically
-            import github_monitor
-            original_import = github_monitor.__import__
+            import builtins
+            original_import = builtins.__import__
             
             def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
                 if name == 'download_releases':
                     raise ImportError("No module named 'download_releases'")
                 return original_import(name, globals, locals, fromlist, level)
             
-            with patch.object(github_monitor, '__import__', side_effect=mock_import):
+            with patch.object(builtins, '__import__', side_effect=mock_import):
                 # Run the monitor
                 monitor_main()
                 

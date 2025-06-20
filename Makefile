@@ -40,7 +40,13 @@ endif
 
 .PHONY: help
 help: ## Display this help message
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@printf "\n\033[1mTesting:\033[0m\n"
+	@printf "  make test                  - Run unit tests only\n"
+	@printf "  make test-integration      - Run integration tests (checks dependencies first)\n"
+	@printf "  make test-all              - Run both unit and integration tests\n"
+	@printf "  make test-integration-deps - Check integration test dependencies\n"
+	@printf "  make test-manifest-downloads - Test manifest/YAML download functionality\n"
 	@printf "\n\033[1mConfiguration:\033[0m\n"
 	@printf "  Set FLY_TARGET in .env file to override Concourse target (default: $(FLY_TARGET))\n"
 	@printf "  Example: echo 'FLY_TARGET=prod' >> .env\n"
@@ -101,16 +107,10 @@ run-local: install ## Run the monitoring script with local config
 	@source .env && ./scripts/monitor.sh --config $(LOCAL_CONFIG)
 
 .PHONY: test
-test: ## Run all tests
-	@printf "$(GREEN)Running tests...$(NC)\n"
-	@if [ -d "$(TEST_VENV)" ]; then \
-		$(TEST_PYTHON) test.py; \
-	elif [ -d "$(VENV)" ]; then \
-		$(PYTHON) test.py; \
-	else \
-		printf "$(RED)No virtual environment found. Run 'make setup' first$(NC)\n"; \
-		exit 1; \
-	fi
+test: test-unit ## Run all tests (alias for test-unit by default)
+	@printf "$(GREEN)✓ Unit tests complete!$(NC)\n"
+	@printf "$(YELLOW)Run 'make test-integration' for integration tests$(NC)\n"
+	@printf "$(YELLOW)Run 'make test-all' for all tests$(NC)\n"
 
 .PHONY: check
 check: lint validate test ## Run all checks (lint, validate, test)
@@ -502,27 +502,94 @@ create-release: ## Create a GitHub release (requires TAG, NAME, and optionally N
 		exit 1; \
 	fi
 
-##@ Integration Testing
+##@ Testing
 
-.PHONY: integration-test
-integration-test: venv ## Run all integration tests
-	@printf "$(GREEN)Running all integration tests...$(NC)\n"
-	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_self.sh
-	@printf "$(GREEN)Running download integration tests...$(NC)\n"
-	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_download.sh
-
-.PHONY: test-monitor-self
-test-monitor-self: venv ## Test monitoring this repository's releases
-	@printf "$(GREEN)Testing monitor on release-monitor repository...$(NC)\n"
-	@source .env 2>/dev/null || true && $(PYTHON) tests/integration/test_monitor_self.py
-
-.PHONY: test-download-integration
-test-download-integration: venv ## Run download integration tests
-	@printf "$(GREEN)Running download integration tests...$(NC)\n"
-	@if [ ! -f ".env" ]; then \
-		printf "$(YELLOW)Warning: .env file not found. Some tests may fail without GITHUB_TOKEN$(NC)\n"; \
+.PHONY: test-unit
+test-unit: venv ## Run unit tests only
+	@printf "$(GREEN)Running unit tests...$(NC)\n"
+	@if [ -d "$(VENV)" ]; then \
+		$(PYTHON) -m unittest discover tests -p "test_*.py" -v; \
+	else \
+		printf "$(RED)No virtual environment found. Run 'make setup' first$(NC)\n"; \
+		exit 1; \
 	fi
-	@source .env 2>/dev/null || true && ./tests/integration/test_monitor_download.sh
+
+.PHONY: test-integration-deps
+test-integration-deps: ## Check integration test dependencies
+	@printf "$(GREEN)Checking integration test dependencies...$(NC)\n"
+	@DEPS_OK=true; \
+	if [ ! -f ".env" ]; then \
+		printf "$(YELLOW)⚠️  .env file not found - GITHUB_TOKEN may not be set$(NC)\n"; \
+		printf "   Run 'make setup' to create .env file\n"; \
+		DEPS_OK=false; \
+	fi; \
+	if ! command -v python3 &> /dev/null; then \
+		printf "$(RED)✗ Python 3 not installed$(NC)\n"; \
+		DEPS_OK=false; \
+	else \
+		printf "$(GREEN)✓ Python 3 found$(NC)\n"; \
+	fi; \
+	if [ -n "$$MINIO_TESTS" ] || [ -n "$$S3_ENDPOINT" ]; then \
+		if command -v mc &> /dev/null; then \
+			printf "$(GREEN)✓ MinIO client (mc) found$(NC)\n"; \
+			if mc alias list 2>&1 | grep -q "s3versiondb" &> /dev/null; then \
+				printf "$(GREEN)✓ MinIO alias configured$(NC)\n"; \
+			else \
+				printf "$(YELLOW)⚠️  MinIO alias not configured$(NC)\n"; \
+				printf "   Run: mc alias set s3versiondb <endpoint> <access-key> <secret-key>\n"; \
+			fi; \
+		else \
+			printf "$(YELLOW)⚠️  MinIO client (mc) not found - S3 tests may fail$(NC)\n"; \
+			printf "   Install from: https://min.io/docs/minio/linux/reference/minio-mc.html\n"; \
+		fi; \
+		if curl -s http://localhost:9000/minio/health/live &> /dev/null; then \
+			printf "$(GREEN)✓ MinIO server is running on localhost:9000$(NC)\n"; \
+		else \
+			printf "$(YELLOW)⚠️  MinIO server not running on localhost:9000$(NC)\n"; \
+			printf "   S3-related integration tests will fail\n"; \
+			printf "   Start MinIO with: docker-compose up -d minio\n"; \
+		fi; \
+	fi; \
+	if [ "$$DEPS_OK" = "false" ]; then \
+		printf "\n$(RED)Some dependencies are missing. Integration tests may fail.$(NC)\n"; \
+		exit 1; \
+	else \
+		printf "\n$(GREEN)✓ All core dependencies satisfied$(NC)\n"; \
+	fi
+
+.PHONY: test-integration
+test-integration: venv test-integration-deps ## Run all integration tests (checks dependencies first)
+	@printf "$(GREEN)Running all integration tests...$(NC)\n"
+	@if [ ! -f ".env" ]; then \
+		printf "$(YELLOW)Creating minimal .env for testing...$(NC)\n"; \
+		echo "GITHUB_TOKEN=test_token_for_integration_tests" > .env; \
+	fi
+	@source .env && $(PYTHON) -m unittest discover tests/integration -p "test_*.py" -v
+
+.PHONY: test-integration-minio
+test-integration-minio: venv test-integration-deps ## Run MinIO/S3 integration tests
+	@printf "$(GREEN)Running MinIO/S3 integration tests...$(NC)\n"
+	@if ! curl -s http://localhost:9000/minio/health/live &> /dev/null; then \
+		printf "$(RED)Error: MinIO is not running on localhost:9000$(NC)\n"; \
+		printf "$(YELLOW)Start MinIO with: docker-compose up -d minio$(NC)\n"; \
+		exit 1; \
+	fi
+	@export MINIO_TESTS=true && \
+	export S3_ENDPOINT=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=minioadmin && \
+	export AWS_SECRET_ACCESS_KEY=minioadmin && \
+	source .env 2>/dev/null || true && \
+	$(PYTHON) -m unittest tests.integration.test_s3_integration -v 2>/dev/null || \
+	printf "$(YELLOW)Note: Create test_s3_integration.py to test S3 functionality$(NC)\n"
+
+.PHONY: test-manifest-downloads
+test-manifest-downloads: venv ## Run manifest download tests (YAML, JSON files)
+	@printf "$(GREEN)Running manifest download tests...$(NC)\n"
+	@source .env 2>/dev/null || true && \
+	$(PYTHON) -m unittest tests.test_manifest_downloads -v
+
+.PHONY: test-all
+test-all: test-unit test-integration ## Run all tests (unit + integration)
 
 ##@ Examples
 

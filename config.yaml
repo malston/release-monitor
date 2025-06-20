@@ -74,11 +74,23 @@ download:
   asset_patterns:
     - "*.tar.gz"       # Include .tar.gz files
     - "*.zip"          # Include .zip files
+    - "*.yaml"         # Include Kubernetes manifests
+    - "*.yml"          # Include YAML configuration files  
+    - "*.json"         # Include JSON configuration files
     - "!*-sources.zip" # Exclude source archives
     - "!*.sig"         # Exclude signature files
   
   # Include pre-releases in downloads (overrides global setting)
   include_prereleases: false
+  
+  # Source code download settings
+  source_archives:
+    # Enable downloading source code (tarball/zipball) when no matching assets found
+    enabled: true
+    # Prefer tarball over zipball (tarball, zipball, both)
+    prefer: "tarball"
+    # Only download source if no assets match patterns
+    fallback_only: true
   
   # Verification settings
   verify_downloads: true
@@ -98,6 +110,15 @@ download:
         - "kubernetes-client-*.tar.gz"
         - "kubernetes-server-*.tar.gz"
       include_prereleases: false
+    
+    # Example: Repository with Kubernetes manifests only
+    wavefrontHQ/observability-for-kubernetes:
+      asset_patterns:
+        - "*.yaml"
+        - "*.yml"
+      source_archives:
+        fallback_only: false  # Always download source for this repo
+        prefer: "tarball"
     
     # Example: Skip downloads for documentation-only repos
     # some/docs-repo:

@@ -36,7 +36,13 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
             }
         }
         
-        self.coordinator = ReleaseDownloadCoordinator(self.config, 'test_token')
+        # Mock GitHubDownloader to avoid network initialization
+        with patch('download_releases.GitHubDownloader') as mock_downloader_class:
+            mock_downloader = Mock()
+            mock_downloader_class.return_value = mock_downloader
+            
+            self.coordinator = ReleaseDownloadCoordinator(self.config, 'test_token')
+            self.mock_downloader = mock_downloader
     
     def tearDown(self):
         """Clean up test environment."""
@@ -47,14 +53,14 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         """Test coordinator initialization."""
         self.assertIsNotNone(self.coordinator.version_db)
         self.assertIsNotNone(self.coordinator.version_comparator)
-        self.assertIsNotNone(self.coordinator.downloader)
+        # Verify downloader was mocked
+        self.assertEqual(self.coordinator.downloader, self.mock_downloader)
         self.assertEqual(self.coordinator.asset_patterns, ['*.tar.gz', '*.zip'])
     
-    @patch('download_releases.GitHubDownloader.download_release_assets')
-    def test_process_single_release_new_version(self, mock_download):
+    def test_process_single_release_new_version(self):
         """Test processing a new release version."""
         # Mock successful download
-        mock_download.return_value = [
+        self.mock_downloader.download_release_content.return_value = [
             {
                 'success': True,
                 'asset_name': 'release.tar.gz',
@@ -83,8 +89,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         self.assertIn('download_results', result)
         self.assertIn('metadata', result)
     
-    @patch('download_releases.GitHubDownloader.download_release_assets')
-    def test_process_single_release_older_version(self, mock_download):
+    def test_process_single_release_older_version(self):
         """Test processing an older release version."""
         # First, add a newer version to the database
         self.coordinator.version_db.update_version('test', 'repo', 'v2.0.0')
@@ -104,7 +109,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         
         self.assertEqual(result['action'], 'skipped')
         self.assertIn('not newer than', result['reason'])
-        mock_download.assert_not_called()
+        self.mock_downloader.download_release_content.assert_not_called()
     
     def test_process_single_release_no_assets(self):
         """Test processing a release with no assets."""
@@ -117,7 +122,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         result = self.coordinator._process_single_release(release)
         
         self.assertEqual(result['action'], 'skipped')
-        self.assertEqual(result['reason'], 'No downloadable assets')
+        self.assertEqual(result['reason'], 'No downloadable content (no assets or source archives)')
     
     def test_process_single_release_invalid_repository(self):
         """Test processing a release with invalid repository format."""
@@ -132,11 +137,10 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         self.assertEqual(result['action'], 'failed')
         self.assertEqual(result['reason'], 'Invalid repository format')
     
-    @patch('download_releases.GitHubDownloader.download_release_assets')
-    def test_process_single_release_download_failure(self, mock_download):
+    def test_process_single_release_download_failure(self):
         """Test processing when download fails."""
         # Mock failed download
-        mock_download.return_value = [
+        self.mock_downloader.download_release_content.return_value = [
             {
                 'success': False,
                 'asset_name': 'release.tar.gz',
@@ -160,11 +164,10 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         self.assertEqual(result['action'], 'failed')
         self.assertEqual(result['reason'], 'All asset downloads failed')
     
-    @patch('download_releases.GitHubDownloader.download_release_assets')
-    def test_process_monitor_output(self, mock_download):
+    def test_process_monitor_output(self):
         """Test processing complete monitor output."""
         # Mock successful downloads
-        mock_download.return_value = [
+        self.mock_downloader.download_release_content.return_value = [
             {
                 'success': True,
                 'asset_name': 'release.tar.gz',
@@ -226,18 +229,17 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         self.assertEqual(results['total_releases_checked'], 0)
         self.assertEqual(results['new_downloads'], 0)
     
-    @patch('download_releases.GitHubDownloader.download_release_assets')
-    def test_process_monitor_output_mixed_results(self, mock_download):
+    def test_process_monitor_output_mixed_results(self):
         """Test processing with mixed success/failure results."""
         # Mock mixed download results
-        def mock_download_side_effect(release_data, patterns=None):
+        def mock_download_side_effect(release_data, patterns=None, source_config=None):
             repo = release_data.get('repository', '')
             if 'success' in repo:
                 return [{'success': True, 'asset_name': 'file.tar.gz', 'file_path': '/path', 'file_size': 1024, 'download_time': 1.0}]
             else:
                 return [{'success': False, 'asset_name': 'file.tar.gz', 'error': 'Download failed'}]
         
-        mock_download.side_effect = mock_download_side_effect
+        self.mock_downloader.download_release_content.side_effect = mock_download_side_effect
         
         monitor_output = {
             'releases': [
@@ -308,10 +310,13 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         config_with_prereleases = self.config.copy()
         config_with_prereleases['download']['include_prereleases'] = True
         
-        coordinator = ReleaseDownloadCoordinator(config_with_prereleases, 'test_token')
-        
-        with patch('download_releases.GitHubDownloader.download_release_assets') as mock_download:
-            mock_download.return_value = [
+        with patch('download_releases.GitHubDownloader') as mock_downloader_class:
+            mock_downloader = Mock()
+            mock_downloader_class.return_value = mock_downloader
+            
+            coordinator = ReleaseDownloadCoordinator(config_with_prereleases, 'test_token')
+            
+            mock_downloader.download_release_content.return_value = [
                 {
                     'success': True,
                     'asset_name': 'release.tar.gz',
