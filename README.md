@@ -487,6 +487,27 @@ make pipeline-set-prod-with-key  # Deploy to production (private repos with SSH 
 make help           # Show all available commands
 ```
 
+## Troubleshooting
+
+### Common Issues
+
+- **YAML files not uploading to S3**: See [Wavefront Download Fix Guide](docs/WAVEFRONT_DOWNLOAD_FIX.md) for comprehensive verification steps
+- **SSL certificate errors in corporate environments**: Check [SSL Verification Guide](docs/SSL_VERIFICATION_GUIDE.md)
+- **401 Unauthorized errors**: See [Troubleshooting 401 Errors](docs/TROUBLESHOOTING_401_ERROR.md)
+- **MinIO setup issues**: Review [MinIO Setup Guide](docs/MINIO_SETUP.md)
+
+### Testing and Verification
+
+Run the comprehensive test suite to verify functionality:
+
+```bash
+# Test upload script YAML support
+python -m pytest tests/test_upload_scripts.py -v
+
+# Test all components
+make test
+```
+
 ## License
 
 This project is provided as-is for educational and operational use.
