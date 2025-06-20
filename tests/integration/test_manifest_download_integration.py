@@ -103,7 +103,7 @@ class TestManifestDownloadIntegration(unittest.TestCase):
         # Mock the actual file downloads
         downloaded_files = []
         
-        def mock_download_with_retry(url, file_path, asset):
+        def mock_download_with_retry(self, url, file_path, asset, max_retries=3):
             # Track what's being downloaded
             downloaded_files.append({
                 'url': url,
@@ -117,33 +117,37 @@ class TestManifestDownloadIntegration(unittest.TestCase):
             
             return True, None
         
-        # Patch the download method
-        with patch.object(GitHubDownloader, '_download_with_retry', mock_download_with_retry):
-            # Create coordinator and process
-            coordinator = ReleaseDownloadCoordinator(config, 'fake_token')
-            results = coordinator.process_monitor_output(monitor_output)
+        # Patch both the download method and session creation
+        with patch('requests.Session') as mock_session_class:
+            mock_session = Mock()
+            mock_session_class.return_value = mock_session
             
-            # Verify results
-            self.assertEqual(results['new_downloads'], 1)
-            self.assertEqual(results['failed_downloads'], 0)
-            
-            # Check downloaded files
-            self.assertEqual(len(downloaded_files), 2, 
-                           f"Expected 2 files (yaml + source), got {len(downloaded_files)}")
-            
-            # Verify both asset and source were downloaded
-            asset_names = [f['asset_name'] for f in downloaded_files]
-            self.assertIn('wavefront-operator.yaml', asset_names)
-            self.assertTrue(any('.tar.gz' in name for name in asset_names))
-            
-            # Check download metadata
-            download_result = results['download_results'][0]
-            self.assertEqual(download_result['action'], 'downloaded')
-            self.assertEqual(download_result['repository'], 'wavefrontHQ/observability-for-kubernetes')
-            
-            metadata = download_result['metadata']
-            self.assertEqual(metadata['download_count'], 2)
-            self.assertEqual(len(metadata['downloaded_files']), 2)
+            with patch.object(GitHubDownloader, '_download_with_retry', mock_download_with_retry):
+                # Create coordinator and process
+                coordinator = ReleaseDownloadCoordinator(config, 'fake_token')
+                results = coordinator.process_monitor_output(monitor_output)
+                
+                # Verify results
+                self.assertEqual(results['new_downloads'], 1)
+                self.assertEqual(results['failed_downloads'], 0)
+                
+                # Check downloaded files
+                self.assertEqual(len(downloaded_files), 2, 
+                               f"Expected 2 files (yaml + source), got {len(downloaded_files)}")
+                
+                # Verify both asset and source were downloaded
+                asset_names = [f['asset_name'] for f in downloaded_files]
+                self.assertIn('wavefront-operator.yaml', asset_names)
+                self.assertTrue(any('.tar.gz' in name for name in asset_names))
+                
+                # Check download metadata
+                download_result = results['download_results'][0]
+                self.assertEqual(download_result['action'], 'downloaded')
+                self.assertEqual(download_result['repository'], 'wavefrontHQ/observability-for-kubernetes')
+                
+                metadata = download_result['metadata']
+                self.assertEqual(metadata['download_count'], 2)
+                self.assertEqual(len(metadata['downloaded_files']), 2)
     
     def test_manifest_only_repository(self):
         """Test repository with only manifest files (no binaries)."""
@@ -175,7 +179,7 @@ class TestManifestDownloadIntegration(unittest.TestCase):
         
         downloaded_files = []
         
-        def track_downloads(url, file_path, asset):
+        def track_downloads(self, url, file_path, asset, max_retries=3):
             downloaded_files.append(asset.get('name', Path(file_path).name))
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text("mock")
@@ -212,7 +216,7 @@ class TestManifestDownloadIntegration(unittest.TestCase):
         
         downloaded_files = []
         
-        def track_downloads(url, file_path, asset):
+        def track_downloads(self, url, file_path, asset, max_retries=3):
             downloaded_files.append(Path(file_path).name)
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text("mock")
@@ -234,14 +238,14 @@ class TestManifestDownloadIntegration(unittest.TestCase):
         
         # First download
         with patch.object(GitHubDownloader, '_download_with_retry', 
-                         lambda url, fp, asset: (fp.write_text("mock") or True, None)):
+                         lambda self, url, fp, asset, max_retries=3: (fp.parent.mkdir(parents=True, exist_ok=True) or fp.write_text("mock") or True, None)):
             coordinator = ReleaseDownloadCoordinator(config, 'fake_token')
             results1 = coordinator.process_monitor_output(monitor_output)
             self.assertEqual(results1['new_downloads'], 1)
         
         # Second attempt - should skip
         with patch.object(GitHubDownloader, '_download_with_retry', 
-                         lambda url, fp, asset: (fp.write_text("mock") or True, None)):
+                         lambda self, url, fp, asset, max_retries=3: (fp.parent.mkdir(parents=True, exist_ok=True) or fp.write_text("mock") or True, None)):
             coordinator2 = ReleaseDownloadCoordinator(config, 'fake_token')
             results2 = coordinator2.process_monitor_output(monitor_output)
             self.assertEqual(results2['new_downloads'], 0)

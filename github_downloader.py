@@ -517,11 +517,11 @@ class GitHubDownloader:
         if not asset_patterns:
             return len([r for r in asset_results if r['success']]) == 0
         
-        # Check if patterns explicitly request source archives
-        source_patterns = ['*.tar.gz', '*.zip', 'source', 'tarball', 'zipball']
+        # Check if patterns explicitly request source archives (only exact matches for source-specific terms)
+        explicit_source_patterns = ['source', 'tarball', 'zipball']
         for pattern in asset_patterns:
             pattern_lower = pattern.lower()
-            if any(sp in pattern_lower for sp in source_patterns):
+            if any(sp == pattern_lower for sp in explicit_source_patterns):
                 return True
         
         # Check if patterns include manifest/config file types that might not have traditional assets
@@ -615,9 +615,25 @@ class GitHubDownloader:
         
         for archive in source_archives:
             try:
-                # Check if archive matches patterns
-                if asset_patterns and not self._matches_patterns(archive['name'], asset_patterns):
-                    logger.debug(f"Skipping source archive {archive['name']} (doesn't match patterns)")
+                # Source archives are controlled by source_config settings (prefer, fallback_only, etc.)
+                # rather than asset_patterns. Asset patterns are for filtering release assets.
+                # However, if someone explicitly includes source-specific keywords like 'tarball' or 'zipball'
+                # in asset_patterns, we treat these as filters for source archive types.
+                should_skip_archive = False
+                if asset_patterns:
+                    # Check for explicit source type filters
+                    has_tarball_filter = 'tarball' in [p.lower() for p in asset_patterns]
+                    has_zipball_filter = 'zipball' in [p.lower() for p in asset_patterns]
+                    
+                    # If specific source type filters are present, only download matching types
+                    if has_tarball_filter or has_zipball_filter:
+                        if archive['type'] == 'tarball' and not has_tarball_filter:
+                            should_skip_archive = True
+                        elif archive['type'] == 'zipball' and not has_zipball_filter:
+                            should_skip_archive = True
+                
+                if should_skip_archive:
+                    logger.debug(f"Skipping source archive {archive['name']} (type {archive['type']} not in explicit filters)")
                     continue
                 
                 # Create a pseudo-asset for the source archive
