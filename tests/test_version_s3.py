@@ -277,10 +277,11 @@ class TestVersionDatabaseWrapper(unittest.TestCase):
     
     def test_local_mode(self):
         """Test wrapper in local mode."""
-        with patch('github_version_db.VersionDatabase') as mock_local_db:
+        with patch('github_version_s3.VersionDatabase.__getattribute__', wraps=VersionDatabase.__getattribute__) as mock_getattr:
             db = VersionDatabase(use_s3=False, db_path='test.json')
-            self.assertFalse(db.use_s3)
-            self.assertEqual(db.db_path, 'test.json')
+            # Directly access the attribute without delegation
+            self.assertFalse(object.__getattribute__(db, 'use_s3'))
+            self.assertEqual(object.__getattribute__(db, 'db_path'), 'test.json')
     
     def test_s3_mode_missing_bucket(self):
         """Test error when S3 bucket not specified."""

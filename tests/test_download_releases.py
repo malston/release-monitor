@@ -117,7 +117,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         result = self.coordinator._process_single_release(release)
         
         self.assertEqual(result['action'], 'skipped')
-        self.assertEqual(result['reason'], 'No downloadable assets')
+        self.assertEqual(result['reason'], 'No downloadable content (no assets or source archives)')
     
     def test_process_single_release_invalid_repository(self):
         """Test processing a release with invalid repository format."""

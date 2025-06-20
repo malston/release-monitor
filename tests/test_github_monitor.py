@@ -310,11 +310,12 @@ import sys
 sys.path.insert(0, "%s")
 from unittest.mock import patch
 import requests.exceptions
+sys.argv = ["github_monitor.py", "--config", "%s"]
 with patch('github_monitor.GitHubMonitor.get_latest_release',
            side_effect=requests.exceptions.RequestException("Connection failed")):
     import github_monitor
     github_monitor.main()
-''' % os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+''' % (os.path.dirname(os.path.dirname(os.path.abspath(__file__))), config_file)
 
             result = subprocess.run(
                 [sys.executable, '-c', test_script],

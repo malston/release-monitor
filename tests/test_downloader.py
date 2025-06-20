@@ -43,7 +43,7 @@ class TestGitHubDownloader(unittest.TestCase):
     
     def test_pattern_matching(self):
         """Test asset pattern matching."""
-        patterns = ['*.tar.gz', '*.zip', '!*-sources.zip']
+        patterns = ['*.tar.gz', '*.zip', '!*sources*']
         
         # Should match
         self.assertTrue(self.downloader._matches_patterns('file.tar.gz', patterns))

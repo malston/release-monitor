@@ -391,17 +391,27 @@ class GitHubDownloader:
         """
         import fnmatch
         
+        filename_lower = filename.lower()
+        matched = False
+        
+        # First check inclusion patterns
+        for pattern in patterns:
+            if not pattern.startswith('!'):
+                if fnmatch.fnmatch(filename_lower, pattern.lower()):
+                    matched = True
+                    break
+        
+        # If no inclusion pattern matched, return False
+        if not matched:
+            return False
+        
+        # Now check exclusion patterns
         for pattern in patterns:
             if pattern.startswith('!'):
-                # Exclusion pattern
-                if fnmatch.fnmatch(filename.lower(), pattern[1:].lower()):
+                if fnmatch.fnmatch(filename_lower, pattern[1:].lower()):
                     return False
-            else:
-                # Inclusion pattern
-                if fnmatch.fnmatch(filename.lower(), pattern.lower()):
-                    return True
         
-        return False
+        return True
     
     def get_download_stats(self) -> Dict[str, Any]:
         """
