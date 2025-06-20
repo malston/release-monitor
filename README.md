@@ -226,7 +226,7 @@ python3 github_monitor.py --config config.yaml --download
 ./scripts/monitor.sh | ./scripts/download.sh
 ```
 
-See the [Download Guide](DOWNLOAD_GUIDE.md) for detailed configuration and usage.
+See the [Download Guide](docs/DOWNLOAD_GUIDE.md) for detailed configuration and usage.
 
 ### Kubernetes Manifests and Source Code
 
