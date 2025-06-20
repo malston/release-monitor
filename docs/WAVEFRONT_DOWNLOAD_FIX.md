@@ -3,6 +3,7 @@
 ## Issue Summary
 
 When downloading releases from `wavefrontHQ/observability-for-kubernetes`, the system should download:
+
 1. `wavefront-operator.yaml` (the YAML manifest asset)
 2. Source tarball (because `fallback_only: false` for this repository)
 
@@ -29,18 +30,22 @@ repository_overrides:
 ## Common Issues and Solutions
 
 ### Issue 1: Downloads Not Enabled
+
 **Symptom**: Nothing downloads even though releases are found
 
 **Check**: In `config.yaml`, ensure:
+
 ```yaml
 download:
   enabled: true  # Must be true for --download flag to work
 ```
 
 ### Issue 2: Version Already Tracked
+
 **Symptom**: Release is skipped because it's already in version database
 
-**Solution**: 
+**Solution**:
+
 ```bash
 # Option 1: Force check (ignores version tracking)
 python github_monitor.py --config config.yaml --force-check --download
@@ -55,9 +60,11 @@ python github_monitor.py --config config.yaml --download
 ```
 
 ### Issue 3: Assets Not Being Downloaded
+
 **Symptom**: Only source code downloads, not the YAML file
 
 **Check**: Ensure the monitor output includes assets:
+
 ```bash
 # Test monitor output
 python github_monitor.py --config config.yaml | jq '.releases[].assets'
@@ -66,6 +73,7 @@ python github_monitor.py --config config.yaml | jq '.releases[].assets'
 ## Testing the Fix
 
 ### 1. Test Monitor Output
+
 ```bash
 # Create a test config with just wavefront
 cat > test-wavefront.yaml << EOF
@@ -95,6 +103,7 @@ python github_monitor.py --config test-wavefront.yaml --force-check
 ```
 
 ### 2. Test Download Separately
+
 ```bash
 # Save monitor output
 python github_monitor.py --config test-wavefront.yaml --force-check > monitor-output.json
@@ -104,6 +113,7 @@ cat monitor-output.json | python download_releases.py --config test-wavefront.ya
 ```
 
 ### 3. Test Combined Flow
+
 ```bash
 # Clean state
 rm -f version_db.json
@@ -116,6 +126,7 @@ python github_monitor.py --config test-wavefront.yaml --force-check --download
 ## Expected Results
 
 After successful download, you should see:
+
 ```
 test-downloads/
 └── wavefrontHQ_observability-for-kubernetes/
@@ -129,12 +140,14 @@ test-downloads/
 ## Code Flow
 
 1. **Monitor** (`github_monitor.py`):
+
    ```python
    # Includes assets in output (line 302)
    'assets': latest_release.get('assets', [])
    ```
 
 2. **Download Coordinator** (`download_releases.py`):
+
    ```python
    # Gets repository-specific config (line 257)
    repo_config = self._get_repository_config(repository)
@@ -148,6 +161,7 @@ test-downloads/
    ```
 
 3. **Downloader** (`github_downloader.py`):
+
    ```python
    # Downloads assets first (line 89)
    if release_data.get('assets'):
