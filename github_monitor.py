@@ -57,6 +57,15 @@ class GitHubMonitor:
             self.session.proxies = proxy_settings
             logger.info(f"Configured proxy settings: {list(proxy_settings.keys())}")
 
+        # Configure SSL verification
+        skip_ssl_verification = os.environ.get('GITHUB_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
+        if skip_ssl_verification:
+            logger.warning("SSL verification disabled for GitHub API calls")
+            self.session.verify = False
+            # Suppress SSL warnings
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     def get_latest_release(self, owner: str, repo: str) -> Optional[Dict[str, Any]]:
         """
         Get the latest release information for a repository
@@ -194,7 +203,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
     try:
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
-        
+
         # Allow overriding repositories via environment variable
         repositories_override = os.getenv('REPOSITORIES_OVERRIDE')
         if repositories_override:
@@ -208,7 +217,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
                     logger.error("REPOSITORIES_OVERRIDE must be a JSON array of repository objects")
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON in REPOSITORIES_OVERRIDE environment variable: {e}")
-                
+
         return config
     except (yaml.YAMLError, IOError) as e:
         logger.error(f"Could not load config file: {e}")
