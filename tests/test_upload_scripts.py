@@ -327,17 +327,23 @@ class TestProxySSLConfiguration(unittest.TestCase):
         """Set up test environment."""
         # Store original environment variables
         self.original_env = {}
-        env_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'GITHUB_SKIP_SSL_VERIFICATION']
+        env_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'GITHUB_SKIP_SSL_VERIFICATION', 
+                   'http_proxy', 'https_proxy', 'no_proxy']
         for var in env_vars:
             self.original_env[var] = os.getenv(var)
     
     def tearDown(self):
         """Restore original environment variables."""
+        # First, aggressively clean all proxy-related variables
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy']
+        for var in proxy_vars:
+            if var in os.environ:
+                del os.environ[var]
+        
+        # Then restore original values
         for var, value in self.original_env.items():
             if value is not None:
                 os.environ[var] = value
-            elif var in os.environ:
-                del os.environ[var]
     
     def test_proxy_configuration_logic(self):
         """Test proxy configuration logic from github_monitor and github_downloader."""
