@@ -62,13 +62,30 @@ original_get_latest_release = github_monitor.GitHubMonitor.get_latest_release
 def mock_get_latest_release(self, owner, repo):
     if owner == "test-owner-1":
         raise requests.exceptions.RequestException("Connection failed")
-    return {{"tag_name": "v1.0.0", "published_at": "2023-01-01T00:00:00Z"}}
+    return {{
+        "tag_name": "v1.0.0", 
+        "name": "Release v1.0.0", 
+        "published_at": "2023-01-01T00:00:00Z",
+        "tarball_url": "https://api.github.com/repos/test-owner-2/test-repo-2/tarball/v1.0.0",
+        "zipball_url": "https://api.github.com/repos/test-owner-2/test-repo-2/zipball/v1.0.0",
+        "html_url": "https://github.com/test-owner-2/test-repo-2/releases/tag/v1.0.0",
+        "prerelease": False,
+        "draft": False,
+        "assets": []
+    }}
 
 with patch.object(github_monitor.GitHubMonitor, 'get_latest_release', mock_get_latest_release):
-    github_monitor.main([
+    import sys
+    old_argv = sys.argv
+    sys.argv = [
+        "github_monitor.py",
         "--config", "{self.config_file}",
         "--force-check"
-    ])
+    ]
+    try:
+        github_monitor.main()
+    finally:
+        sys.argv = old_argv
 '''
         
         result = subprocess.run(
@@ -101,14 +118,31 @@ import github_monitor
 def mock_get_latest_release(self, owner, repo):
     if owner == "test-owner-1":
         raise requests.exceptions.RequestException("Connection failed")
-    return {{"tag_name": "v1.0.0", "published_at": "2023-01-01T00:00:00Z"}}
+    return {{
+        "tag_name": "v1.0.0", 
+        "name": "Release v1.0.0", 
+        "published_at": "2023-01-01T00:00:00Z",
+        "tarball_url": "https://api.github.com/repos/test-owner-2/test-repo-2/tarball/v1.0.0",
+        "zipball_url": "https://api.github.com/repos/test-owner-2/test-repo-2/zipball/v1.0.0",
+        "html_url": "https://github.com/test-owner-2/test-repo-2/releases/tag/v1.0.0",
+        "prerelease": False,
+        "draft": False,
+        "assets": []
+    }}
 
 with patch.object(github_monitor.GitHubMonitor, 'get_latest_release', mock_get_latest_release):
-    github_monitor.main([
+    import sys
+    old_argv = sys.argv
+    sys.argv = [
+        "github_monitor.py",
         "--config", "{self.config_file}",
         "--force-check",
         "--format", "json"
-    ])
+    ]
+    try:
+        github_monitor.main()
+    finally:
+        sys.argv = old_argv
 '''
         
         result = subprocess.run(
@@ -149,10 +183,17 @@ def mock_get_latest_release(self, owner, repo):
     raise requests.exceptions.RequestException("Connection failed")
 
 with patch.object(github_monitor.GitHubMonitor, 'get_latest_release', mock_get_latest_release):
-    github_monitor.main([
+    import sys
+    old_argv = sys.argv
+    sys.argv = [
+        "github_monitor.py",
         "--config", "{self.config_file}",
         "--force-check"
-    ])
+    ]
+    try:
+        github_monitor.main()
+    finally:
+        sys.argv = old_argv
 '''
         
         result = subprocess.run(

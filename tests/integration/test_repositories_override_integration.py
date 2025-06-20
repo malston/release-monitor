@@ -64,7 +64,7 @@ class TestRepositoriesOverrideIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             env=env,
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
         
         # If we don't have a real GitHub token, the script will fail but we can still check the logs
@@ -96,7 +96,7 @@ class TestRepositoriesOverrideIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             env=env,
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
         
         # Should see the override log message
@@ -118,7 +118,7 @@ class TestRepositoriesOverrideIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             env=env,
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
         
         # Should see error log about invalid JSON
