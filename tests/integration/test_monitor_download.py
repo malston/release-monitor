@@ -245,13 +245,22 @@ class TestMonitorDownloadIntegration:
             {"name": "README.md"}
         ]
         
-        filtered = coordinator._filter_assets(assets, config['download']['asset_patterns'])
-        filtered_names = [a['name'] for a in filtered]
+        # Test asset filtering using the GitHubDownloader's _matches_patterns method
+        from github_downloader import GitHubDownloader
+        downloader = GitHubDownloader("fake_token")
         
-        assert "kubernetes.tar.gz" in filtered_names
-        assert "kubernetes-src.tar.gz" not in filtered_names
-        assert "kubernetes.zip" not in filtered_names
-        assert "README.md" not in filtered_names
+        patterns = config['download']['asset_patterns']
+        
+        # Test each asset against the patterns
+        kubernetes_tar_gz_matches = downloader._matches_patterns("kubernetes.tar.gz", patterns)
+        kubernetes_src_tar_gz_matches = downloader._matches_patterns("kubernetes-src.tar.gz", patterns)
+        kubernetes_zip_matches = downloader._matches_patterns("kubernetes.zip", patterns)
+        readme_matches = downloader._matches_patterns("README.md", patterns)
+        
+        assert kubernetes_tar_gz_matches  # Should match *.tar.gz
+        assert not kubernetes_src_tar_gz_matches  # Should be excluded by !*-src.tar.gz
+        assert not kubernetes_zip_matches  # Should not match *.tar.gz
+        assert not readme_matches  # Should not match *.tar.gz
     
     @patch('requests.get')
     def test_monitor_download_error_handling(self, mock_get, test_config, temp_dir, mock_github_response):

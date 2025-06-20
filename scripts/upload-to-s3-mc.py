@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 Upload release files to S3 using MinIO client (mc).
+
 This wrapper uses mc instead of boto3 for better S3-compatible service support.
+Uploads release assets including archives (.gz, .zip, .tar), manifests (.yaml, .yml), 
+configuration files (.json, .xml, .toml), and binary packages (.exe, .deb, .rpm, .dmg, .msi).
 """
 
 import os
@@ -66,9 +69,36 @@ def main():
         print("ERROR: Could not find downloads directory!")
         sys.exit(1)
     
+    # Define supported file extensions for upload
+    # Include common release asset types: archives, manifests, and configuration files
+    supported_extensions = ['.gz', '.zip', '.tar', '.yaml', '.yml', '.json', '.xml', '.toml', '.exe', '.deb', '.rpm', '.dmg', '.msi']
+    
+    print(f"Scanning for files with extensions: {supported_extensions}")
+    
     # Count files to upload
-    files_to_upload = list(downloads_dir.rglob('*.gz')) + list(downloads_dir.rglob('*.zip'))
+    files_to_upload = []
+    skipped_files = []
+    
+    for file_path in downloads_dir.rglob('*'):
+        if file_path.is_file():
+            # Skip checksum files
+            if file_path.name.endswith('.sha256'):
+                continue
+                
+            if file_path.suffix in supported_extensions or file_path.name.endswith('.tar.gz'):
+                files_to_upload.append(file_path)
+            else:
+                skipped_files.append(file_path)
+    
     total_files = len(files_to_upload)
+    print(f"Files to upload: {total_files}")
+    print(f"Files to skip: {len(skipped_files)}")
+    
+    # Show some examples of what's being skipped
+    if skipped_files:
+        print(f"Skipped file examples: {[f.name for f in skipped_files[:3]]}")
+        if len(skipped_files) > 3:
+            print(f"  ... and {len(skipped_files) - 3} more")
     
     if total_files == 0:
         print("\nINFO: No release files found to upload.")

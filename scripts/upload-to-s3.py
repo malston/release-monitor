@@ -2,8 +2,10 @@
 """
 Upload downloaded release files to S3-compatible storage.
 
-This script uploads all .gz and .zip files from the downloads directory
-to S3-compatible storage (AWS S3, MinIO, etc.).
+This script uploads release assets from the downloads directory to S3-compatible 
+storage (AWS S3, MinIO, etc.), including archives (.gz, .zip, .tar), manifests 
+(.yaml, .yml), configuration files (.json, .xml, .toml), and binary packages 
+(.exe, .deb, .rpm, .dmg, .msi).
 """
 
 import os
@@ -84,56 +86,78 @@ def main():
         sys.exit(1)
         
     uploaded_count = 0
+    skipped_count = 0
+    
+    # Define supported file extensions for upload
+    # Include common release asset types: archives, manifests, and configuration files
+    supported_extensions = {'.gz', '.zip', '.tar', '.yaml', '.yml', '.json', '.xml', '.toml', '.exe', '.deb', '.rpm', '.dmg', '.msi'}
+    
+    print(f'Scanning for files with extensions: {sorted(supported_extensions)}')
+    print(f'Also including files ending with: .tar.gz')
+    print()
     
     for file_path in downloads_dir.rglob('*'):
-        if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
-            # Create S3 key maintaining directory structure
-            relative_path = file_path.relative_to(downloads_dir)
-            s3_key = f'release-downloads/{relative_path}'
-            
-            print(f'Uploading {relative_path} to s3://{bucket}/{s3_key}')
-            
-            try:
-                # Get file size for debugging
-                file_size = file_path.stat().st_size
-                print(f'  File size: {file_size} bytes')
+        if file_path.is_file():
+            # Skip checksum files
+            if file_path.name.endswith('.sha256'):
+                continue
                 
-                # Read file data
-                with open(file_path, 'rb') as f:
-                    file_data = f.read()
+            if file_path.suffix in supported_extensions or file_path.name.endswith('.tar.gz'):
+                # Create S3 key maintaining directory structure
+                relative_path = file_path.relative_to(downloads_dir)
+                s3_key = f'release-downloads/{relative_path}'
                 
-                # Try with explicit headers and metadata
-                content_length = len(file_data)
-                print(f'  Content-Length: {content_length}')
+                print(f'Uploading {relative_path} to s3://{bucket}/{s3_key}')
                 
-                # Use put_object with all possible parameters
-                response = s3.put_object(
-                    Bucket=bucket,
-                    Key=s3_key,
-                    Body=file_data,
-                    ContentLength=content_length,
-                    ContentType='application/octet-stream',
-                    ContentEncoding='identity',
-                    Metadata={
-                        'uploaded-by': 'release-monitor',
-                        'original-size': str(content_length)
-                    }
-                )
-                print(f'  Upload response: {response.get("ResponseMetadata", {}).get("HTTPStatusCode")}')
-                uploaded_count += 1
-                print(f'  Success: Uploaded {file_size} bytes')
-            except Exception as e:
-                print(f'Error uploading {file_path}: {e}')
-                raise
+                try:
+                    # Get file size for debugging
+                    file_size = file_path.stat().st_size
+                    print(f'  File size: {file_size} bytes')
+                    
+                    # Read file data
+                    with open(file_path, 'rb') as f:
+                        file_data = f.read()
+                    
+                    # Try with explicit headers and metadata
+                    content_length = len(file_data)
+                    print(f'  Content-Length: {content_length}')
+                    
+                    # Use put_object with all possible parameters
+                    response = s3.put_object(
+                        Bucket=bucket,
+                        Key=s3_key,
+                        Body=file_data,
+                        ContentLength=content_length,
+                        ContentType='application/octet-stream',
+                        ContentEncoding='identity',
+                        Metadata={
+                            'uploaded-by': 'release-monitor',
+                            'original-size': str(content_length)
+                        }
+                    )
+                    print(f'  Upload response: {response.get("ResponseMetadata", {}).get("HTTPStatusCode")}')
+                    uploaded_count += 1
+                    print(f'  Success: Uploaded {file_size} bytes')
+                except Exception as e:
+                    print(f'Error uploading {file_path}: {e}')
+                    raise
+            else:
+                # Track skipped files for debugging
+                relative_path = file_path.relative_to(downloads_dir)
+                print(f'Skipping {relative_path} (extension: {file_path.suffix})')
+                skipped_count += 1
+    
+    print(f'\n=== UPLOAD SUMMARY ===')
+    print(f'Files uploaded: {uploaded_count}')
+    print(f'Files skipped: {skipped_count}')
     
     if uploaded_count == 0:
         print('\nINFO: No release files found to upload.')
         print('This is normal when all monitored releases are already at their latest versions.')
         
-        # Show what files were found for debugging
-        file_count = sum(1 for p in downloads_dir.rglob('*') if p.is_file())
-        if file_count > 0:
-            print(f'\nFound {file_count} metadata files in downloads directory.')
+        if skipped_count > 0:
+            print(f'\nNote: {skipped_count} files were skipped due to unsupported extensions.')
+            print(f'Supported extensions: {sorted(supported_extensions)}')
     else:
         print(f'\nSUCCESS: Uploaded {uploaded_count} files to S3.')
 
