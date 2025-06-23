@@ -52,7 +52,7 @@ def format_release_details(release):
 
 def generate_email_content(releases_data):
     """Generate email body and subject from releases data"""
-    new_releases = releases_data.get('new_releases', [])
+    new_releases = releases_data.get('releases', [])
     
     if not new_releases:
         return None, None
@@ -71,7 +71,7 @@ def generate_email_content(releases_data):
 Summary:
 ========
 Total new releases: {len(new_releases)}
-Timestamp: {datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+Timestamp: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 
 Release Details:
 ================
@@ -104,7 +104,7 @@ def main():
         sys.exit(1)
     
     # Check if we have any new releases
-    new_releases = releases_data.get('new_releases', [])
+    new_releases = releases_data.get('releases', [])
     if not new_releases:
         print("No new releases found, skipping email notification")
         sys.exit(0)
@@ -137,7 +137,7 @@ def main():
 <h3>Summary</h3>
 <ul>
 <li>Total new releases: {len(new_releases)}</li>
-<li>Timestamp: {datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</li>
+<li>Timestamp: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</li>
 </ul>
 
 <h3>Release Details</h3>
@@ -187,6 +187,8 @@ def main():
     
     print(f"Email notification prepared for {len(new_releases)} new releases")
     print(f"Subject: {subject}")
+    
+    sys.exit(0)
 
 
 if __name__ == '__main__':
