@@ -185,6 +185,11 @@ def main():
     with open(email_dir / 'body.html', 'w') as f:
         f.write(html_body)
     
+    # Write headers file for proper content type
+    headers = 'MIME-Version: 1.0\nContent-Type: text/html; charset="UTF-8"'
+    with open(email_dir / 'headers', 'w') as f:
+        f.write(headers)
+    
     print(f"Email notification prepared for {len(new_releases)} new releases")
     print(f"Subject: {subject}")
     

@@ -227,6 +227,10 @@ class TestEmailGenerationScript(unittest.TestCase):
         # Should write HTML body
         self.assertEqual(calls[3][0][0], Path('/email/body.html'))
         self.assertEqual(calls[3][0][1], 'w')
+        
+        # Should write headers
+        self.assertEqual(calls[4][0][0], Path('/email/headers'))
+        self.assertEqual(calls[4][0][1], 'w')
     
     @patch('generate_email.Path.exists')
     def test_main_no_releases_file(self, mock_exists):
