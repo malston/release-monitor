@@ -9,6 +9,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any
 
+# Add the repository root to Python path so we can import the version database modules
+# Since the task runs from release-monitor-repo/, we need to add current directory to path
+sys.path.insert(0, '.')
+
 
 def get_version_database():
     """
