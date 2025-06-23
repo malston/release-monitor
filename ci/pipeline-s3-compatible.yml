@@ -78,12 +78,11 @@ jobs:
           EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
           INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
           REPOSITORIES_OVERRIDE: ((repositories_override))
-
-      - put: email-notification
-        params:
-          subject: email/subject
-          body: email/body.html
-          headers: email/headers
+        on_success:
+          put: email-notification
+          params:
+            subject: email/subject
+            body: email/body.html
 
   - name: download-new-releases
     plan:
