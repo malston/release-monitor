@@ -1,0 +1,96 @@
+# Github Release Monitor Pipeline Params
+dry_run: false
+
+# Git repository configuration
+git_uri: git@github.com:malston/release-monitor.git
+git_branch: feature/email-notifications
+git_private_key: ((dtca_tkgi_eng_git_org_private_key))
+git_release_tag: release-v0.0.1
+
+# Public GitHub API configuration
+github_token: ((github_token))  # Fixed: Use secret reference
+
+# S3/Minio bucket configuration
+s3_access_key: ((concourse_s3_access_key_id))
+s3_secret_key: ((concourse_s3_secret_access_key))
+
+# Bucket configuration (created by docker-compose)
+s3_monitor_bucket: releases
+s3_releases_bucket: releases
+s3_bucket: releases  # Fixed: Added missing s3_bucket parameter
+s3_region: us-east-1
+
+# S3-compatible specific settings
+s3_skip_ssl_verification: true
+
+# Version database configuration
+use_s3_version_db: true
+s3_use_mc: true
+version_db_s3_bucket: releases
+version_db_s3_prefix: version-db/
+version_db_s3_region: us-east-1
+
+# Download configuration - FIXED: Removed *.tar.gz and *.zip from global pattern
+# This allows repository-specific overrides to work properly
+download_asset_patterns: '["*.yaml", "*.yml", "*.json", "!*-sources.zip", "!*.sig"]'
+download_include_prereleases: false
+download_verify_downloads: true
+download_cleanup_old_versions: true
+download_keep_versions: 5
+
+# Repository list
+repositories_override: |
+ [
+   {
+     "owner": "istio",
+     "repo": "istio",
+     "description": "Istio"
+   },
+   {
+     "owner": "open-policy-agent",
+     "repo": "gatekeeper",
+     "description": "Gatekeeper"
+   },
+   {
+     "owner": "wavefrontHQ",
+     "repo": "observability-for-kubernetes",
+     "description": "Observability for Kubernetes Operator"
+   }
+ ]
+
+# Repository-specific download overrides - This will now work correctly
+download_repository_overrides: |
+ {
+   "istio/istio": {
+     "asset_patterns": ["istio-*-linux-amd64.tar.gz"],
+     "include_prereleases": false
+   },
+   "open-policy-agent/gatekeeper": {
+     "asset_patterns": ["*-linux-amd64.tar.gz"],
+     "include_prereleases": false
+   },
+   "wavefrontHQ/observability-for-kubernetes": {
+     "asset_patterns": ["*.yaml", "*.yml"],
+     "include_prereleases": false
+   }
+ }
+
+# Cleanup configuration
+cleanup_days_to_keep: 30
+
+# Force download testing
+force_download_repo: "etcd-io/etcd"
+
+# Email notification configuration
+smtp_host: smtp.example.com  # Fixed: Added missing SMTP host
+smtp_port: "25"
+smtp_anonymous: true
+
+# Email addresses
+email_from: ecs-concourse-do-not-reply@example.com
+email_to:
+ - marktalston@gmail.com
+
+# Email notification options
+email_subject_prefix: "[GitHub Release Monitor]"
+email_include_asset_details: true

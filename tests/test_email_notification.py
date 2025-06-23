@@ -958,6 +958,289 @@ class TestAssetPatternsFiltering(unittest.TestCase):
             print(f"{'='*60}")
 
 
+class TestGatekeeperAssetPatterns(unittest.TestCase):
+    """Test ASSET_PATTERNS filtering for Gatekeeper releases"""
+    
+    def setUp(self):
+        """Set up test data for Gatekeeper pattern testing"""
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        
+        from github_downloader import GitHubDownloader
+        self.GitHubDownloader = GitHubDownloader
+        
+        # Sample Gatekeeper v3.14.0 release data
+        self.gatekeeper_release_data = {
+            'id': 987654321,
+            'tag_name': 'v3.14.0',
+            'name': 'Gatekeeper v3.14.0',
+            'published_at': '2023-11-15T18:30:00Z',
+            'html_url': 'https://github.com/open-policy-agent/gatekeeper/releases/tag/v3.14.0',
+            'assets': [
+                # Gator CLI binaries
+                {
+                    'id': 2001,
+                    'name': 'gator-v3.14.0-linux-amd64.tar.gz',
+                    'size': 15234567,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/gator-v3.14.0-linux-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 2002,
+                    'name': 'gator-v3.14.0-linux-arm64.tar.gz',
+                    'size': 14876543,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/gator-v3.14.0-linux-arm64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 2003,
+                    'name': 'gator-v3.14.0-darwin-amd64.tar.gz',
+                    'size': 15456789,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/gator-v3.14.0-darwin-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 2004,
+                    'name': 'gator-v3.14.0-windows-amd64.tar.gz',
+                    'size': 16234567,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/gator-v3.14.0-windows-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                # Manager binaries
+                {
+                    'id': 2005,
+                    'name': 'manager-v3.14.0-linux-amd64.tar.gz',
+                    'size': 45234567,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/manager-v3.14.0-linux-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 2006,
+                    'name': 'manager-v3.14.0-linux-arm64.tar.gz',
+                    'size': 44876543,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/manager-v3.14.0-linux-arm64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 2007,
+                    'name': 'manager-v3.14.0-darwin-amd64.tar.gz',
+                    'size': 45456789,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/manager-v3.14.0-darwin-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                # Additional assets
+                {
+                    'id': 2008,
+                    'name': 'gatekeeper-v3.14.0-helm-chart.tgz',
+                    'size': 12345,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/gatekeeper-v3.14.0-helm-chart.tgz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 2009,
+                    'name': 'gatekeeper-v3.14.0-manifests.yaml',
+                    'size': 67890,
+                    'browser_download_url': 'https://github.com/open-policy-agent/gatekeeper/releases/download/v3.14.0/gatekeeper-v3.14.0-manifests.yaml',
+                    'content_type': 'text/yaml'
+                }
+            ]
+        }
+    
+    def test_specific_gatekeeper_pattern(self):
+        """Test the specific pattern: ['gator-v*-linux-amd64.tar.gz', '*-linux-amd64.tar.gz']"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Your specific pattern
+            asset_patterns = ['gator-v*-linux-amd64.tar.gz', '*-linux-amd64.tar.gz']
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.gatekeeper_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify exactly 2 assets match (gator + manager, both Linux AMD64)
+            self.assertEqual(len(matching_assets), 2)
+            
+            expected_assets = [
+                'gator-v3.14.0-linux-amd64.tar.gz',
+                'manager-v3.14.0-linux-amd64.tar.gz'
+            ]
+            
+            matching_names = [asset['name'] for asset in matching_assets]
+            for expected_name in expected_assets:
+                self.assertIn(expected_name, matching_names)
+            
+            # Verify excluded assets
+            excluded_assets = [
+                'gator-v3.14.0-linux-arm64.tar.gz',
+                'gator-v3.14.0-darwin-amd64.tar.gz',
+                'gator-v3.14.0-windows-amd64.tar.gz',
+                'manager-v3.14.0-linux-arm64.tar.gz',
+                'manager-v3.14.0-darwin-amd64.tar.gz',
+                'gatekeeper-v3.14.0-helm-chart.tgz',
+                'gatekeeper-v3.14.0-manifests.yaml'
+            ]
+            
+            for excluded_name in excluded_assets:
+                self.assertNotIn(excluded_name, matching_names)
+            
+            # Verify file sizes
+            gator_asset = next(a for a in matching_assets if 'gator' in a['name'])
+            manager_asset = next(a for a in matching_assets if 'manager' in a['name'])
+            
+            self.assertEqual(gator_asset['size'], 15234567)  # ~14.5 MB
+            self.assertEqual(manager_asset['size'], 45234567)  # ~43.1 MB
+    
+    def test_gator_cli_only_pattern(self):
+        """Test pattern for Gator CLI only: ['gator-v*-linux-amd64.tar.gz']"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Gator CLI only pattern
+            asset_patterns = ['gator-v*-linux-amd64.tar.gz']
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.gatekeeper_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify only 1 asset matches (gator CLI only)
+            self.assertEqual(len(matching_assets), 1)
+            self.assertEqual(matching_assets[0]['name'], 'gator-v3.14.0-linux-amd64.tar.gz')
+            
+            # Verify manager is excluded
+            matching_names = [asset['name'] for asset in matching_assets]
+            self.assertNotIn('manager-v3.14.0-linux-amd64.tar.gz', matching_names)
+    
+    def test_manager_only_pattern(self):
+        """Test pattern for Manager only: ['manager-v*-linux-amd64.tar.gz']"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Manager only pattern
+            asset_patterns = ['manager-v*-linux-amd64.tar.gz']
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.gatekeeper_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify only 1 asset matches (manager only)
+            self.assertEqual(len(matching_assets), 1)
+            self.assertEqual(matching_assets[0]['name'], 'manager-v3.14.0-linux-amd64.tar.gz')
+            
+            # Verify gator is excluded
+            matching_names = [asset['name'] for asset in matching_assets]
+            self.assertNotIn('gator-v3.14.0-linux-amd64.tar.gz', matching_names)
+    
+    def test_all_linux_amd64_pattern(self):
+        """Test pattern for all Linux AMD64: ['*-linux-amd64.tar.gz']"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # All Linux AMD64 pattern
+            asset_patterns = ['*-linux-amd64.tar.gz']
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.gatekeeper_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify 2 assets match (gator + manager, both Linux AMD64)
+            self.assertEqual(len(matching_assets), 2)
+            
+            expected_assets = [
+                'gator-v3.14.0-linux-amd64.tar.gz',
+                'manager-v3.14.0-linux-amd64.tar.gz'
+            ]
+            
+            matching_names = [asset['name'] for asset in matching_assets]
+            for expected_name in expected_assets:
+                self.assertIn(expected_name, matching_names)
+    
+    def test_multi_platform_gator_pattern(self):
+        """Test pattern for multi-platform Gator: ['gator-v*']"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Multi-platform Gator pattern
+            asset_patterns = ['gator-v*']
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.gatekeeper_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify 4 Gator assets match (all platforms)
+            self.assertEqual(len(matching_assets), 4)
+            
+            # All should be gator assets
+            for asset in matching_assets:
+                self.assertTrue(asset['name'].startswith('gator-v'))
+                self.assertFalse(asset['name'].startswith('manager-v'))
+    
+    def test_config_only_pattern(self):
+        """Test pattern for config only: ['*.yaml', '*.yml', '*.tgz']"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Config only pattern
+            asset_patterns = ['*.yaml', '*.yml', '*.tgz']
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.gatekeeper_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify 2 config assets match
+            self.assertEqual(len(matching_assets), 2)
+            
+            expected_assets = [
+                'gatekeeper-v3.14.0-helm-chart.tgz',
+                'gatekeeper-v3.14.0-manifests.yaml'
+            ]
+            
+            matching_names = [asset['name'] for asset in matching_assets]
+            for expected_name in expected_assets:
+                self.assertIn(expected_name, matching_names)
+            
+            # Verify no binary assets
+            for asset in matching_assets:
+                self.assertNotIn('.tar.gz', asset['name'])
+
+
 class TestHTMLGeneration(unittest.TestCase):
     """Test HTML email generation"""
     
