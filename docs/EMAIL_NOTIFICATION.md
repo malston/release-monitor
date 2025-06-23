@@ -102,7 +102,7 @@ smtp_password: your-sendgrid-api-key
 To debug email generation, you can run the task locally:
 
 ```bash
-# Create test data
+# Create test data (from repository root)
 mkdir -p release-output
 cat > release-output/releases.json << EOF
 {

@@ -213,23 +213,23 @@ class TestEmailGenerationScript(unittest.TestCase):
         calls = mock_file_open.call_args_list
         
         # Should read releases.json
-        self.assertEqual(calls[0][0][0], Path('/release-output/releases.json'))
+        self.assertEqual(calls[0][0][0], Path('release-output/releases.json'))
         self.assertEqual(calls[0][0][1], 'r')
         
         # Should write subject
-        self.assertEqual(calls[1][0][0], Path('/email/subject'))
+        self.assertEqual(calls[1][0][0], Path('email/subject'))
         self.assertEqual(calls[1][0][1], 'w')
         
         # Should write body
-        self.assertEqual(calls[2][0][0], Path('/email/body'))
+        self.assertEqual(calls[2][0][0], Path('email/body'))
         self.assertEqual(calls[2][0][1], 'w')
         
         # Should write HTML body
-        self.assertEqual(calls[3][0][0], Path('/email/body.html'))
+        self.assertEqual(calls[3][0][0], Path('email/body.html'))
         self.assertEqual(calls[3][0][1], 'w')
         
         # Should write headers
-        self.assertEqual(calls[4][0][0], Path('/email/headers'))
+        self.assertEqual(calls[4][0][0], Path('email/headers'))
         self.assertEqual(calls[4][0][1], 'w')
     
     @patch('generate_email.Path.exists')
