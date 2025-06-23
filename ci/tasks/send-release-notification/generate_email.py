@@ -7,6 +7,114 @@ import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import List, Dict, Any
+
+
+def get_version_database():
+    """
+    Get version database instance based on environment configuration.
+    Returns None if version database is disabled or unavailable.
+    """
+    # Check if version database is disabled
+    if os.getenv('DISABLE_S3_VERSION_DB', '').lower() == 'true':
+        print("Version database disabled, will not filter releases")
+        return None
+    
+    # Check if we should use S3 version database
+    if not os.getenv('USE_S3_VERSION_DB', '').lower() == 'true':
+        print("S3 version database not enabled, will not filter releases")
+        return None
+    
+    # Try to import and initialize S3 version database
+    try:
+        # Check if we should use MinIO client
+        use_mc_s3 = os.getenv('S3_USE_MC', '').lower() == 'true'
+        
+        if use_mc_s3:
+            try:
+                from github_version_s3_mc import S3VersionDatabase
+                print("Using MinIO client for version database")
+            except ImportError:
+                print("MinIO client version not available, falling back to boto3")
+                use_mc_s3 = False
+        
+        if not use_mc_s3:
+            from github_version_s3 import S3VersionStorage as S3VersionDatabase
+            print("Using boto3 for version database")
+        
+        # Get S3 configuration
+        bucket = os.getenv('VERSION_DB_S3_BUCKET', os.getenv('S3_BUCKET'))
+        prefix = os.getenv('VERSION_DB_S3_PREFIX', 'version-db/')
+        
+        if not bucket:
+            print("No S3 bucket configured for version database")
+            return None
+        
+        # Initialize version database
+        version_db = S3VersionDatabase(bucket=bucket, key_prefix=prefix)
+        print(f"Initialized version database with bucket: {bucket}, prefix: {prefix}")
+        return version_db
+        
+    except ImportError as e:
+        print(f"Version database modules not available: {e}")
+        return None
+    except Exception as e:
+        print(f"Failed to initialize version database: {e}")
+        return None
+
+
+def filter_undownloaded_releases(releases: List[Dict[str, Any]], version_db) -> List[Dict[str, Any]]:
+    """
+    Filter releases to only include those not already in the version database.
+    
+    Args:
+        releases: List of release information dictionaries
+        version_db: Version database instance (can be None)
+    
+    Returns:
+        List of releases that are not yet in the version database
+    """
+    if not version_db:
+        print("No version database available, including all releases")
+        return releases
+    
+    filtered_releases = []
+    
+    for release in releases:
+        repo_name = release.get('repository', '')
+        tag_name = release.get('tag_name', '')
+        
+        if not repo_name or not tag_name:
+            print(f"Skipping release with missing repository or tag: {release}")
+            continue
+        
+        try:
+            # Parse owner/repo from repository name
+            if '/' in repo_name:
+                owner, repo = repo_name.split('/', 1)
+            else:
+                print(f"Invalid repository format: {repo_name}")
+                continue
+            
+            # Check if this version is already in the database
+            current_version = version_db.get_current_version(owner, repo)
+            
+            if current_version == tag_name:
+                print(f"Release {repo_name} {tag_name} already downloaded, skipping email notification")
+                continue
+            elif current_version:
+                print(f"Release {repo_name} {tag_name} is new (current: {current_version}), including in email")
+            else:
+                print(f"Release {repo_name} {tag_name} is first release, including in email")
+            
+            filtered_releases.append(release)
+            
+        except Exception as e:
+            print(f"Error checking version database for {repo_name}: {e}")
+            # Include the release if we can't check the database
+            filtered_releases.append(release)
+    
+    return filtered_releases
 
 
 def format_release_details(release):
@@ -104,14 +212,31 @@ def main():
         print(f"Error parsing releases.json: {e}")
         sys.exit(1)
     
-    # Check if we have any new releases
-    new_releases = releases_data.get('releases', [])
-    if not new_releases:
-        print("No new releases found, skipping email notification")
+    # Get all releases from the data
+    all_releases = releases_data.get('releases', [])
+    if not all_releases:
+        print("No releases found in releases.json, skipping email notification")
         sys.exit(0)
     
+    # Initialize version database for filtering
+    version_db = get_version_database()
+    
+    # Filter to only include releases not already downloaded
+    new_releases = filter_undownloaded_releases(all_releases, version_db)
+    
+    if not new_releases:
+        print("All releases have already been downloaded, skipping email notification")
+        sys.exit(0)
+    
+    print(f"Found {len(new_releases)} releases that need email notification (out of {len(all_releases)} total)")
+    
+    # Create filtered releases data for email generation
+    filtered_releases_data = releases_data.copy()
+    filtered_releases_data['releases'] = new_releases
+    filtered_releases_data['new_releases_found'] = len(new_releases)
+    
     # Generate email content
-    subject, body = generate_email_content(releases_data)
+    subject, body = generate_email_content(filtered_releases_data)
     
     if not subject or not body:
         print("Failed to generate email content")

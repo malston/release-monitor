@@ -278,6 +278,129 @@ class TestEmailGenerationScript(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
 
 
+class TestVersionDatabaseFiltering(unittest.TestCase):
+    """Test version database filtering functionality"""
+    
+    def setUp(self):
+        """Set up test data"""
+        self.sample_releases = [
+            {
+                'repository': 'kubernetes/kubernetes',
+                'tag_name': 'v1.28.0',
+                'name': 'Kubernetes v1.28.0',
+                'published_at': '2023-08-15T12:00:00Z',
+                'html_url': 'https://github.com/kubernetes/kubernetes/releases/tag/v1.28.0',
+                'author': {'login': 'k8s-release-robot'},
+                'assets': []
+            },
+            {
+                'repository': 'prometheus/prometheus',
+                'tag_name': 'v2.46.0',
+                'name': 'Prometheus 2.46.0',
+                'published_at': '2023-08-15T10:00:00Z',
+                'html_url': 'https://github.com/prometheus/prometheus/releases/tag/v2.46.0',
+                'author': {'login': 'prombot'},
+                'assets': []
+            }
+        ]
+    
+    def test_filter_with_no_version_db(self):
+        """Test filtering when no version database is available"""
+        from generate_email import filter_undownloaded_releases
+        
+        result = filter_undownloaded_releases(self.sample_releases, None)
+        
+        # Should return all releases when no version DB
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result, self.sample_releases)
+    
+    def test_filter_with_version_db(self):
+        """Test filtering with version database"""
+        from generate_email import filter_undownloaded_releases
+        
+        # Mock version database
+        mock_version_db = MagicMock()
+        mock_version_db.get_current_version.side_effect = lambda owner, repo: {
+            ('kubernetes', 'kubernetes'): 'v1.28.0',  # Already downloaded
+            ('prometheus', 'prometheus'): 'v2.45.0'   # Older version, new one available
+        }.get((owner, repo))
+        
+        result = filter_undownloaded_releases(self.sample_releases, mock_version_db)
+        
+        # Should only return prometheus release (kubernetes already downloaded)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['repository'], 'prometheus/prometheus')
+        self.assertEqual(result[0]['tag_name'], 'v2.46.0')
+    
+    def test_filter_with_new_repos(self):
+        """Test filtering when repositories have no previous versions"""
+        from generate_email import filter_undownloaded_releases
+        
+        # Mock version database with no existing versions
+        mock_version_db = MagicMock()
+        mock_version_db.get_current_version.return_value = None
+        
+        result = filter_undownloaded_releases(self.sample_releases, mock_version_db)
+        
+        # Should return all releases for new repositories
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result, self.sample_releases)
+    
+    def test_filter_with_invalid_repository_format(self):
+        """Test filtering with invalid repository format"""
+        from generate_email import filter_undownloaded_releases
+        
+        invalid_releases = [
+            {
+                'repository': 'invalid-repo-format',
+                'tag_name': 'v1.0.0',
+                'name': 'Invalid Release',
+                'published_at': '2023-08-15T12:00:00Z',
+                'html_url': 'https://github.com/invalid',
+                'author': {'login': 'user'},
+                'assets': []
+            }
+        ]
+        
+        mock_version_db = MagicMock()
+        result = filter_undownloaded_releases(invalid_releases, mock_version_db)
+        
+        # Should skip releases with invalid format
+        self.assertEqual(len(result), 0)
+    
+    @patch.dict(os.environ, {'USE_S3_VERSION_DB': 'true', 'VERSION_DB_S3_BUCKET': 'test-bucket'})
+    @patch('github_version_s3.S3VersionStorage')
+    def test_get_version_database_success(self, mock_s3_class):
+        """Test successful version database initialization"""
+        from generate_email import get_version_database
+        
+        mock_instance = MagicMock()
+        mock_s3_class.return_value = mock_instance
+        
+        result = get_version_database()
+        
+        self.assertIsNotNone(result)
+        mock_s3_class.assert_called_once_with(bucket='test-bucket', key_prefix='version-db/')
+    
+    @patch.dict(os.environ, {'DISABLE_S3_VERSION_DB': 'true'})
+    def test_get_version_database_disabled(self):
+        """Test version database when disabled"""
+        from generate_email import get_version_database
+        
+        result = get_version_database()
+        
+        self.assertIsNone(result)
+    
+    @patch.dict(os.environ, {'USE_S3_VERSION_DB': 'false'})
+    def test_get_version_database_not_enabled(self):
+        """Test version database when not enabled"""
+        from generate_email import get_version_database
+        
+        result = get_version_database()
+        
+        self.assertIsNone(result)
+
+
 class TestHTMLGeneration(unittest.TestCase):
     """Test HTML email generation"""
     

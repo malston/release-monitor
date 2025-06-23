@@ -18,6 +18,19 @@ params:
   EMAIL_SUBJECT_PREFIX: "[GitHub Release Monitor]"
   INCLUDE_ASSET_DETAILS: true
   REPOSITORIES_OVERRIDE: ""
+  
+  # Version database configuration for filtering
+  USE_S3_VERSION_DB: false
+  DISABLE_S3_VERSION_DB: false
+  VERSION_DB_S3_BUCKET: ""
+  VERSION_DB_S3_PREFIX: "version-db/"
+  S3_USE_MC: false
+  
+  # S3 credentials (will be passed from pipeline)
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+  S3_ENDPOINT: ""
+  S3_SKIP_SSL_VERIFICATION: false
 
 run:
   path: /bin/bash
@@ -28,7 +41,7 @@ run:
       cd release-monitor-repo
       
       # Install required dependencies
-      pip3 install --quiet pyyaml jinja2
+      pip3 install --quiet pyyaml jinja2 boto3
       
       # Run the email generation script
       python3 ci/tasks/send-release-notification/generate_email.py

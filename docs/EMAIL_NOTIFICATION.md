@@ -62,9 +62,19 @@ smtp_password: your-sendgrid-api-key
 
 ## Pipeline Behavior
 
-1. **New Releases**: When new releases are detected, an HTML email is sent with release details
-2. **No New Releases**: When no new releases are found, the email task exits cleanly without sending
-3. **Errors**: If the email task fails, the pipeline continues (email is non-critical)
+1. **Version Database Filtering**: The email task checks the S3 version database to only send notifications for releases that haven't been downloaded yet
+2. **New Releases**: When truly new releases are detected (not in version DB), an HTML email is sent with release details
+3. **Already Downloaded**: When releases have already been downloaded, the email task exits cleanly without sending duplicate notifications
+4. **No Version Database**: If version database is disabled, all detected releases will trigger notifications
+5. **Errors**: If the email task fails, the pipeline continues (email is non-critical)
+
+### Version Database Integration
+
+The email notification integrates with the same S3 version database used by the download process:
+
+- **Prevents Duplicate Notifications**: Only sends emails for releases not yet in the version database
+- **Consistent with Downloads**: Uses the same filtering logic as the download process
+- **Configurable**: Can be disabled to send notifications for all detected releases
 
 ## Email Format
 

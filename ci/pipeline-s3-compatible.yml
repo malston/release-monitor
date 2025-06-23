@@ -78,6 +78,18 @@ jobs:
           EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
           INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
           REPOSITORIES_OVERRIDE: ((repositories_override))
+          
+          # Version database configuration for filtering
+          USE_S3_VERSION_DB: ((use_s3_version_db))
+          VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+          VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
+          S3_USE_MC: ((s3_use_mc))
+          
+          # S3 credentials for version database access
+          AWS_ACCESS_KEY_ID: ((s3_access_key))
+          AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+          S3_ENDPOINT: ((s3_endpoint))
+          S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
         on_success:
           put: email-notification
           params:

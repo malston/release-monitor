@@ -34,6 +34,7 @@ use_s3_version_db: true
 version_db_s3_bucket: release-monitor-output
 version_db_s3_prefix: version-db/
 version_db_s3_region: us-east-1
+s3_use_mc: false
 
 # Download configuration
 download_asset_patterns: '["*.tar.gz", "*.zip", "!*-sources.zip", "!*.sig"]'
