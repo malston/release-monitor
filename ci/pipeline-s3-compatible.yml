@@ -33,6 +33,22 @@ resources:
       # File configuration
       versioned_file: release-monitor/latest-releases.json
 
+  - name: email-notification
+    type: email
+    source:
+      smtp:
+        host: ((smtp_host))
+        port: ((smtp_port))
+        username: ((smtp_username))
+        password: ((smtp_password))
+        anonymous: ((smtp_anonymous))
+        skip_ssl_validation: ((smtp_skip_ssl_validation))
+        ca_cert: ((smtp_ca_cert))
+        host_origin: ((smtp_host_origin))
+        login_auth: ((smtp_login_auth))
+      from: ((email_from))
+      to: ((email_to))
+
 
 jobs:
   - name: monitor-releases
@@ -55,6 +71,19 @@ jobs:
         params:
           file: release-output/releases.json
           content_type: application/json
+
+      - task: prepare-email-notification
+        file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
+        params:
+          EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
+          INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+        on_success:
+          put: email-notification
+          params:
+            subject_text: "email/subject"
+            body_text: "email/body"
+            body_html: "email/body.html"
 
   - name: download-new-releases
     plan:
@@ -291,3 +320,9 @@ resource_types:
     source:
       repository: concourse/s3-resource
       tag: 1.2.1  # Use specific version that supports endpoints
+  
+  - name: email
+    type: registry-image
+    source:
+      repository: pcfseceng/email-resource
+      tag: 1.0.19

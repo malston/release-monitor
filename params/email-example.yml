@@ -1,0 +1,23 @@
+# Email notification configuration parameters
+# Add these parameters to your existing parameter files
+
+# SMTP Configuration
+smtp_host: smtp.gmail.com
+smtp_port: "587"
+smtp_username: your-email@gmail.com
+smtp_password: ((smtp_password))  # Store in Concourse secrets
+smtp_anonymous: false
+smtp_skip_ssl_validation: false
+smtp_ca_cert: ""
+smtp_host_origin: ""
+smtp_login_auth: true
+
+# Email addresses
+email_from: release-monitor@example.com
+email_to: 
+  - devops-team@example.com
+  - platform-team@example.com
+
+# Email notification options
+email_subject_prefix: "[GitHub Release Monitor]"
+email_include_asset_details: true

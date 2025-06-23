@@ -1,0 +1,34 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: python
+    tag: "3.11-slim"
+
+inputs:
+  - name: release-monitor-repo
+  - name: release-output
+
+outputs:
+  - name: email
+
+params:
+  EMAIL_SUBJECT_PREFIX: "[GitHub Release Monitor]"
+  INCLUDE_ASSET_DETAILS: true
+  REPOSITORIES_OVERRIDE: ""
+
+run:
+  path: /bin/bash
+  args:
+    - -exc
+    - |
+      # Navigate to repo directory
+      cd release-monitor-repo
+      
+      # Install required dependencies
+      pip3 install --quiet pyyaml jinja2
+      
+      # Run the email generation script
+      python3 ci/tasks/send-release-notification/generate_email.py
