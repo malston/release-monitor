@@ -91,8 +91,8 @@ This is an automated notification from the GitHub Release Monitor pipeline.
 def main():
     """Main function to generate email notification"""
     # Read the releases data
-    # Concourse mounts inputs relative to working directory
-    releases_file = Path('release-output/releases.json')
+    # Concourse mounts inputs at the same level as the working directory
+    releases_file = Path('../release-output/releases.json')
     if not releases_file.exists():
         print("No releases.json file found, skipping email notification")
         sys.exit(0)
@@ -118,8 +118,8 @@ def main():
         sys.exit(1)
     
     # Write email content for Concourse email resource
-    # Concourse expects outputs relative to the working directory
-    email_dir = Path('email')
+    # Concourse expects outputs at the same level as inputs
+    email_dir = Path('../email')
     email_dir.mkdir(exist_ok=True)
     
     # Write subject

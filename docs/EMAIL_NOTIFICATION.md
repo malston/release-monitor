@@ -102,7 +102,8 @@ smtp_password: your-sendgrid-api-key
 To debug email generation, you can run the task locally:
 
 ```bash
-# Create test data (from repository root)
+# Create test data structure like Concourse
+# From outside the repo directory:
 mkdir -p release-output
 cat > release-output/releases.json << EOF
 {
@@ -121,14 +122,15 @@ cat > release-output/releases.json << EOF
 }
 EOF
 
-# Run the email generation script
+# Run the email generation script from inside the repo
+cd release-monitor  # or your repo directory
 export EMAIL_SUBJECT_PREFIX="[Test]"
 export INCLUDE_ASSET_DETAILS="true"
 python ci/tasks/send-release-notification/generate_email.py
 
-# Check output
-cat email/subject
-cat email/body.html
+# Check output (one level up from repo)
+cat ../email/subject
+cat ../email/body.html
 ```
 
 ## Email Resource Details
