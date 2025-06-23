@@ -615,6 +615,349 @@ class TestAssetFiltering(unittest.TestCase):
         self.assertIn('1.26.2', body)
 
 
+class TestAssetPatternsFiltering(unittest.TestCase):
+    """Test ASSET_PATTERNS parameter filtering for Istio releases"""
+    
+    def setUp(self):
+        """Set up test data for asset patterns testing"""
+        # Add the repo root to path so we can import GitHubDownloader
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        
+        from github_downloader import GitHubDownloader
+        self.GitHubDownloader = GitHubDownloader
+        
+        # Sample Istio 1.26.2 release with all assets
+        self.istio_release_data = {
+            'id': 12345,
+            'tag_name': '1.26.2',
+            'name': 'Istio 1.26.2',
+            'published_at': '2024-11-14T20:35:04Z',
+            'html_url': 'https://github.com/istio/istio/releases/tag/1.26.2',
+            'assets': [
+                {
+                    'id': 1001,
+                    'name': 'istio-1.26.2-linux-amd64.tar.gz',
+                    'size': 23456789,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-linux-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1002,
+                    'name': 'istio-1.26.2-linux-arm64.tar.gz',
+                    'size': 22345678,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-linux-arm64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1003,
+                    'name': 'istio-1.26.2-osx-amd64.tar.gz',
+                    'size': 23567890,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-osx-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1004,
+                    'name': 'istio-1.26.2-osx-arm64.tar.gz',
+                    'size': 23678901,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-osx-arm64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1005,
+                    'name': 'istio-1.26.2-win.zip',
+                    'size': 24567890,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-win.zip',
+                    'content_type': 'application/zip'
+                },
+                {
+                    'id': 1006,
+                    'name': 'istioctl-1.26.2-linux-amd64.tar.gz',
+                    'size': 12345678,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-linux-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1007,
+                    'name': 'istioctl-1.26.2-linux-arm64.tar.gz',
+                    'size': 12234567,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-linux-arm64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1008,
+                    'name': 'istioctl-1.26.2-osx-amd64.tar.gz',
+                    'size': 12456789,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-osx-amd64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1009,
+                    'name': 'istioctl-1.26.2-osx-arm64.tar.gz',
+                    'size': 12567890,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-osx-arm64.tar.gz',
+                    'content_type': 'application/gzip'
+                },
+                {
+                    'id': 1010,
+                    'name': 'istioctl-1.26.2-win.exe',
+                    'size': 13456789,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-win.exe',
+                    'content_type': 'application/octet-stream'
+                }
+            ]
+        }
+    
+    def test_asset_patterns_filter_amd64_tarballs_only(self):
+        """Test ASSET_PATTERNS filtering to keep only AMD64 tarballs from Istio 1.26.2"""
+        # Create a temporary directory for downloads
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Initialize downloader
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Define asset patterns to only match AMD64 tarballs
+            asset_patterns = ["*-amd64.tar.gz"]
+            
+            # Get the list of assets that would be downloaded
+            matching_assets = []
+            for asset in self.istio_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify only AMD64 tarballs are matched
+            self.assertEqual(len(matching_assets), 4)  # 2 istio + 2 istioctl amd64 variants
+            
+            expected_assets = [
+                'istio-1.26.2-linux-amd64.tar.gz',
+                'istio-1.26.2-osx-amd64.tar.gz', 
+                'istioctl-1.26.2-linux-amd64.tar.gz',
+                'istioctl-1.26.2-osx-amd64.tar.gz'
+            ]
+            
+            matching_names = [asset['name'] for asset in matching_assets]
+            for expected_name in expected_assets:
+                self.assertIn(expected_name, matching_names)
+            
+            # Verify excluded assets
+            excluded_assets = [
+                'istio-1.26.2-linux-arm64.tar.gz',
+                'istio-1.26.2-osx-arm64.tar.gz', 
+                'istio-1.26.2-win.zip',
+                'istioctl-1.26.2-linux-arm64.tar.gz',
+                'istioctl-1.26.2-osx-arm64.tar.gz',
+                'istioctl-1.26.2-win.exe'
+            ]
+            
+            for excluded_name in excluded_assets:
+                self.assertNotIn(excluded_name, matching_names)
+    
+    def test_asset_patterns_filter_linux_amd64_only(self):
+        """Test ASSET_PATTERNS filtering to keep only Linux AMD64 tarballs"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Define asset patterns to only match Linux AMD64 tarballs
+            asset_patterns = ["*-linux-amd64.tar.gz"]
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.istio_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify only Linux AMD64 tarballs are matched
+            self.assertEqual(len(matching_assets), 2)
+            
+            expected_assets = [
+                'istio-1.26.2-linux-amd64.tar.gz',
+                'istioctl-1.26.2-linux-amd64.tar.gz'
+            ]
+            
+            matching_names = [asset['name'] for asset in matching_assets]
+            for expected_name in expected_assets:
+                self.assertIn(expected_name, matching_names)
+            
+            # Verify all other assets are excluded
+            self.assertEqual(len(self.istio_release_data['assets']) - len(matching_assets), 8)
+    
+    def test_asset_patterns_exclude_istioctl(self):
+        """Test ASSET_PATTERNS filtering to exclude istioctl, keep only main istio AMD64"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Define asset patterns: include AMD64 tarballs but exclude istioctl
+            asset_patterns = ["*-amd64.tar.gz", "!istioctl-*"]
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.istio_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify only main istio AMD64 packages (no istioctl)
+            self.assertEqual(len(matching_assets), 2)
+            
+            expected_assets = [
+                'istio-1.26.2-linux-amd64.tar.gz',
+                'istio-1.26.2-osx-amd64.tar.gz'
+            ]
+            
+            matching_names = [asset['name'] for asset in matching_assets]
+            for expected_name in expected_assets:
+                self.assertIn(expected_name, matching_names)
+            
+            # Verify istioctl packages are excluded
+            for name in matching_names:
+                self.assertNotIn('istioctl', name)
+    
+    def test_asset_patterns_single_specific_file(self):
+        """Test ASSET_PATTERNS filtering to get only istio-1.26.2-linux-amd64.tar.gz"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Define very specific pattern for exactly one file
+            asset_patterns = ["istio-1.26.2-linux-amd64.tar.gz"]
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.istio_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Verify only one specific asset matches
+            self.assertEqual(len(matching_assets), 1)
+            self.assertEqual(matching_assets[0]['name'], 'istio-1.26.2-linux-amd64.tar.gz')
+            self.assertEqual(matching_assets[0]['size'], 23456789)
+    
+    def test_asset_patterns_real_world_deployment_scenario(self):
+        """Test realistic deployment scenario filtering"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Real-world scenario: CI/CD system that only needs Linux AMD64 
+            # main istio package for deployment, not istioctl or other platforms
+            asset_patterns = ["istio-*.tar.gz", "!istioctl-*", "!*-arm64*", "!*-osx-*", "!*-win*"]
+            
+            # Get matching assets
+            matching_assets = []
+            for asset in self.istio_release_data['assets']:
+                if downloader._matches_patterns(asset['name'], asset_patterns):
+                    matching_assets.append(asset)
+            
+            # Should match only the main istio Linux AMD64 package
+            self.assertEqual(len(matching_assets), 1)
+            self.assertEqual(matching_assets[0]['name'], 'istio-1.26.2-linux-amd64.tar.gz')
+            
+            # Verify it's the right size (matches our test data)
+            self.assertEqual(matching_assets[0]['size'], 23456789)
+    
+    def test_asset_patterns_demonstrate_filtering_power(self):
+        """Comprehensive test demonstrating the power of ASSET_PATTERNS filtering"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            downloader = self.GitHubDownloader(
+                token="fake-token",
+                download_dir=temp_dir
+            )
+            
+            # Test multiple filtering scenarios
+            test_scenarios = [
+                {
+                    'name': 'All AMD64 tarballs',
+                    'patterns': ['*-amd64.tar.gz'],
+                    'expected_count': 4,
+                    'expected_includes': ['istio-1.26.2-linux-amd64.tar.gz', 'istioctl-1.26.2-linux-amd64.tar.gz']
+                },
+                {
+                    'name': 'Only Linux AMD64',
+                    'patterns': ['*-linux-amd64.tar.gz'],
+                    'expected_count': 2,
+                    'expected_includes': ['istio-1.26.2-linux-amd64.tar.gz', 'istioctl-1.26.2-linux-amd64.tar.gz']
+                },
+                {
+                    'name': 'Main istio only (no istioctl)',
+                    'patterns': ['istio-*.tar.gz', '!istioctl-*'],
+                    'expected_count': 4,
+                    'expected_includes': ['istio-1.26.2-linux-amd64.tar.gz', 'istio-1.26.2-osx-amd64.tar.gz']
+                },
+                {
+                    'name': 'Single specific file',
+                    'patterns': ['istio-1.26.2-linux-amd64.tar.gz'],
+                    'expected_count': 1,
+                    'expected_includes': ['istio-1.26.2-linux-amd64.tar.gz']
+                },
+                {
+                    'name': 'No Windows files',
+                    'patterns': ['*.tar.gz', '!*-win*'],
+                    'expected_count': 8,  # All tarballs, excluding win.zip and win.exe
+                    'expected_excludes': ['istio-1.26.2-win.zip', 'istioctl-1.26.2-win.exe']
+                }
+            ]
+            
+            print(f"\n{'='*60}")
+            print(f"ASSET_PATTERNS Filtering Demonstration - Istio 1.26.2")
+            print(f"{'='*60}")
+            print(f"Original release has {len(self.istio_release_data['assets'])} assets:")
+            for asset in self.istio_release_data['assets']:
+                size_mb = asset['size'] / (1024 * 1024)
+                print(f"  - {asset['name']} ({size_mb:.1f} MB)")
+            
+            for scenario in test_scenarios:
+                print(f"\n{'-'*40}")
+                print(f"Scenario: {scenario['name']}")
+                print(f"Patterns: {scenario['patterns']}")
+                
+                # Apply filtering
+                matching_assets = []
+                for asset in self.istio_release_data['assets']:
+                    if downloader._matches_patterns(asset['name'], scenario['patterns']):
+                        matching_assets.append(asset)
+                
+                # Verify count
+                self.assertEqual(len(matching_assets), scenario['expected_count'])
+                print(f"Matched {len(matching_assets)} assets:")
+                
+                matching_names = [asset['name'] for asset in matching_assets]
+                for asset in matching_assets:
+                    size_mb = asset['size'] / (1024 * 1024)
+                    print(f"  ✓ {asset['name']} ({size_mb:.1f} MB)")
+                
+                # Verify expected includes
+                if 'expected_includes' in scenario:
+                    for expected_name in scenario['expected_includes']:
+                        self.assertIn(expected_name, matching_names)
+                
+                # Verify expected excludes
+                if 'expected_excludes' in scenario:
+                    for excluded_name in scenario['expected_excludes']:
+                        self.assertNotIn(excluded_name, matching_names)
+            
+            print(f"\n{'='*60}")
+            print("✅ All ASSET_PATTERNS filtering scenarios verified!")
+            print(f"{'='*60}")
+
+
 class TestHTMLGeneration(unittest.TestCase):
     """Test HTML email generation"""
     
