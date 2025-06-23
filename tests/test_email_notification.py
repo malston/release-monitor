@@ -401,6 +401,220 @@ class TestVersionDatabaseFiltering(unittest.TestCase):
         self.assertIsNone(result)
 
 
+class TestAssetFiltering(unittest.TestCase):
+    """Test asset filtering functionality for email notifications"""
+    
+    def setUp(self):
+        """Set up test data with Istio 1.26.2 release assets"""
+        self.istio_release = {
+            'repository': 'istio/istio',
+            'owner': 'istio',
+            'repo': 'istio',
+            'tag_name': '1.26.2',
+            'name': 'Istio 1.26.2',
+            'published_at': '2024-11-14T20:35:04Z',
+            'html_url': 'https://github.com/istio/istio/releases/tag/1.26.2',
+            'author': {'login': 'istio-release-robot'},
+            'assets': [
+                {
+                    'name': 'istio-1.26.2-linux-amd64.tar.gz',
+                    'size': 23456789,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-linux-amd64.tar.gz'
+                },
+                {
+                    'name': 'istio-1.26.2-linux-arm64.tar.gz',
+                    'size': 22345678,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-linux-arm64.tar.gz'
+                },
+                {
+                    'name': 'istio-1.26.2-osx-amd64.tar.gz',
+                    'size': 23567890,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-osx-amd64.tar.gz'
+                },
+                {
+                    'name': 'istio-1.26.2-osx-arm64.tar.gz',
+                    'size': 23678901,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-osx-arm64.tar.gz'
+                },
+                {
+                    'name': 'istio-1.26.2-win.zip',
+                    'size': 24567890,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istio-1.26.2-win.zip'
+                },
+                {
+                    'name': 'istioctl-1.26.2-linux-amd64.tar.gz',
+                    'size': 12345678,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-linux-amd64.tar.gz'
+                },
+                {
+                    'name': 'istioctl-1.26.2-linux-arm64.tar.gz',
+                    'size': 12234567,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-linux-arm64.tar.gz'
+                },
+                {
+                    'name': 'istioctl-1.26.2-osx-amd64.tar.gz',
+                    'size': 12456789,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-osx-amd64.tar.gz'
+                },
+                {
+                    'name': 'istioctl-1.26.2-osx-arm64.tar.gz',
+                    'size': 12567890,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-osx-arm64.tar.gz'
+                },
+                {
+                    'name': 'istioctl-1.26.2-win.exe',
+                    'size': 13456789,
+                    'browser_download_url': 'https://github.com/istio/istio/releases/download/1.26.2/istioctl-1.26.2-win.exe'
+                }
+            ]
+        }
+    
+    def filter_istio_assets(self, release, target_asset_name):
+        """
+        Filter Istio release assets to only include the specified asset.
+        
+        Args:
+            release: Release dictionary with assets
+            target_asset_name: Name of the asset to keep
+            
+        Returns:
+            Modified release with filtered assets
+        """
+        filtered_release = release.copy()
+        
+        # Filter assets to only include the target asset
+        filtered_assets = [
+            asset for asset in release.get('assets', [])
+            if asset.get('name') == target_asset_name
+        ]
+        
+        filtered_release['assets'] = filtered_assets
+        return filtered_release
+    
+    def test_filter_istio_linux_amd64_only(self):
+        """Test filtering Istio 1.26.2 assets to keep only linux-amd64 package"""
+        target_asset = 'istio-1.26.2-linux-amd64.tar.gz'
+        
+        # Filter the release
+        filtered_release = self.filter_istio_assets(self.istio_release, target_asset)
+        
+        # Verify only one asset remains
+        self.assertEqual(len(filtered_release['assets']), 1)
+        
+        # Verify it's the correct asset
+        remaining_asset = filtered_release['assets'][0]
+        self.assertEqual(remaining_asset['name'], target_asset)
+        self.assertEqual(remaining_asset['size'], 23456789)
+        self.assertIn('linux-amd64', remaining_asset['browser_download_url'])
+        
+        # Verify other release metadata is preserved
+        self.assertEqual(filtered_release['repository'], 'istio/istio')
+        self.assertEqual(filtered_release['tag_name'], '1.26.2')
+        self.assertEqual(filtered_release['name'], 'Istio 1.26.2')
+    
+    def test_filter_nonexistent_asset(self):
+        """Test filtering for an asset that doesn't exist"""
+        target_asset = 'istio-1.26.2-nonexistent.tar.gz'
+        
+        # Filter the release
+        filtered_release = self.filter_istio_assets(self.istio_release, target_asset)
+        
+        # Verify no assets remain
+        self.assertEqual(len(filtered_release['assets']), 0)
+        
+        # Verify other release metadata is preserved
+        self.assertEqual(filtered_release['repository'], 'istio/istio')
+        self.assertEqual(filtered_release['tag_name'], '1.26.2')
+    
+    def test_email_generation_with_filtered_istio_assets(self):
+        """Test email generation with filtered Istio assets"""
+        from generate_email import format_release_details
+        
+        # Filter to only include linux-amd64 asset
+        filtered_release = self.filter_istio_assets(
+            self.istio_release, 
+            'istio-1.26.2-linux-amd64.tar.gz'
+        )
+        
+        # Generate email content
+        with patch.dict(os.environ, {'INCLUDE_ASSET_DETAILS': 'true'}):
+            email_content = format_release_details(filtered_release)
+        
+        # Verify the email contains the filtered asset
+        self.assertIn('istio-1.26.2-linux-amd64.tar.gz', email_content)
+        self.assertIn('22.4 MB', email_content)  # Size in MB
+        
+        # Verify other assets are not mentioned
+        self.assertNotIn('linux-arm64', email_content)
+        self.assertNotIn('osx-amd64', email_content)
+        self.assertNotIn('osx-arm64', email_content)
+        self.assertNotIn('win.zip', email_content)
+        self.assertNotIn('istioctl', email_content)
+        
+        # Verify release metadata is present
+        self.assertIn('Repository: istio/istio', email_content)
+        self.assertIn('Tag: 1.26.2', email_content)
+        self.assertIn('Release: Istio 1.26.2', email_content)
+    
+    def test_practical_istio_filtering_scenario(self):
+        """Test a practical scenario for filtering Istio releases in email notifications"""
+        # Simulate what might happen in the email notification pipeline
+        releases_data = {
+            'timestamp': '2024-11-14T21:00:00Z',
+            'total_repositories_checked': 1,
+            'new_releases_found': 1,
+            'releases': [self.istio_release]
+        }
+        
+        # Apply filtering logic that might be used for specific deployment needs
+        # For example, only notify about Linux AMD64 releases for CI/CD systems
+        def filter_for_linux_amd64_deployment(releases):
+            """Filter releases to only include Linux AMD64 assets for deployment"""
+            filtered_releases = []
+            
+            for release in releases:
+                filtered_release = release.copy()
+                
+                # Keep only Linux AMD64 main package (not istioctl)
+                filtered_assets = [
+                    asset for asset in release.get('assets', [])
+                    if (asset.get('name', '').endswith('-linux-amd64.tar.gz') and
+                        not asset.get('name', '').startswith('istioctl-'))
+                ]
+                
+                if filtered_assets:
+                    filtered_release['assets'] = filtered_assets
+                    filtered_releases.append(filtered_release)
+            
+            return filtered_releases
+        
+        # Apply the filtering
+        filtered_releases = filter_for_linux_amd64_deployment(releases_data['releases'])
+        
+        # Verify results
+        self.assertEqual(len(filtered_releases), 1)
+        self.assertEqual(len(filtered_releases[0]['assets']), 1)
+        self.assertEqual(
+            filtered_releases[0]['assets'][0]['name'], 
+            'istio-1.26.2-linux-amd64.tar.gz'
+        )
+        
+        # Update the releases data
+        filtered_releases_data = releases_data.copy()
+        filtered_releases_data['releases'] = filtered_releases
+        
+        # Generate email content
+        from generate_email import generate_email_content
+        with patch.dict(os.environ, {'EMAIL_SUBJECT_PREFIX': '[Istio Deploy]'}):
+            subject, body = generate_email_content(filtered_releases_data)
+        
+        # Verify email content
+        self.assertEqual(subject, '[Istio Deploy] New release: istio/istio 1.26.2')
+        self.assertIn('Total new releases: 1', body)
+        self.assertIn('istio/istio', body)
+        self.assertIn('1.26.2', body)
+
+
 class TestHTMLGeneration(unittest.TestCase):
     """Test HTML email generation"""
     
