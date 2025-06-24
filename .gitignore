@@ -174,7 +174,7 @@ local-*
 
 # Feature prompts and planning (internal documentation)
 .prompts/
-CLAUDE.md
+CLAUDE.local.md
 
 # Cache directories
 .cache/
