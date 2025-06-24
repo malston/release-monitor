@@ -23,17 +23,17 @@ def get_version_database():
     if os.getenv('DISABLE_S3_VERSION_DB', '').lower() == 'true':
         print("Version database disabled, will not filter releases")
         return None
-    
+
     # Check if we should use S3 version database
     if not os.getenv('USE_S3_VERSION_DB', '').lower() == 'true':
         print("S3 version database not enabled, will not filter releases")
         return None
-    
+
     # Try to import and initialize S3 version database
     try:
         # Check if we should use MinIO client
         use_mc_s3 = os.getenv('S3_USE_MC', '').lower() == 'true'
-        
+
         if use_mc_s3:
             try:
                 from github_version_s3_mc import S3VersionDatabase
@@ -41,24 +41,24 @@ def get_version_database():
             except ImportError:
                 print("MinIO client version not available, falling back to boto3")
                 use_mc_s3 = False
-        
+
         if not use_mc_s3:
             from github_version_s3 import S3VersionStorage as S3VersionDatabase
             print("Using boto3 for version database")
-        
+
         # Get S3 configuration
         bucket = os.getenv('VERSION_DB_S3_BUCKET', os.getenv('S3_BUCKET'))
         prefix = os.getenv('VERSION_DB_S3_PREFIX', 'version-db/')
-        
+
         if not bucket:
             print("No S3 bucket configured for version database")
             return None
-        
+
         # Initialize version database
         version_db = S3VersionDatabase(bucket=bucket, key_prefix=prefix)
         print(f"Initialized version database with bucket: {bucket}, prefix: {prefix}")
         return version_db
-        
+
     except ImportError as e:
         print(f"Version database modules not available: {e}")
         return None
@@ -70,28 +70,28 @@ def get_version_database():
 def filter_undownloaded_releases(releases: List[Dict[str, Any]], version_db) -> List[Dict[str, Any]]:
     """
     Filter releases to only include those not already in the version database.
-    
+
     Args:
         releases: List of release information dictionaries
         version_db: Version database instance (can be None)
-    
+
     Returns:
         List of releases that are not yet in the version database
     """
     if not version_db:
         print("No version database available, including all releases")
         return releases
-    
+
     filtered_releases = []
-    
+
     for release in releases:
         repo_name = release.get('repository', '')
         tag_name = release.get('tag_name', '')
-        
+
         if not repo_name or not tag_name:
             print(f"Skipping release with missing repository or tag: {release}")
             continue
-        
+
         try:
             # Parse owner/repo from repository name
             if '/' in repo_name:
@@ -99,10 +99,10 @@ def filter_undownloaded_releases(releases: List[Dict[str, Any]], version_db) -> 
             else:
                 print(f"Invalid repository format: {repo_name}")
                 continue
-            
+
             # Check if this version is already in the database
             current_version = version_db.get_current_version(owner, repo)
-            
+
             if current_version == tag_name:
                 print(f"Release {repo_name} {tag_name} already downloaded, skipping email notification")
                 continue
@@ -110,14 +110,14 @@ def filter_undownloaded_releases(releases: List[Dict[str, Any]], version_db) -> 
                 print(f"Release {repo_name} {tag_name} is new (current: {current_version}), including in email")
             else:
                 print(f"Release {repo_name} {tag_name} is first release, including in email")
-            
+
             filtered_releases.append(release)
-            
+
         except Exception as e:
             print(f"Error checking version database for {repo_name}: {e}")
             # Include the release if we can't check the database
             filtered_releases.append(release)
-    
+
     return filtered_releases
 
 
@@ -129,7 +129,7 @@ def format_release_details(release):
     author = release.get('author', {}).get('login', 'Unknown')
     published_at = release.get('published_at', 'Unknown')
     html_url = release.get('html_url', '#')
-    
+
     # Format published date
     if published_at != 'Unknown':
         try:
@@ -137,7 +137,7 @@ def format_release_details(release):
             published_at = dt.strftime('%Y-%m-%d %H:%M UTC')
         except:
             pass
-    
+
     # Format assets if requested
     assets_text = ""
     if os.getenv('INCLUDE_ASSET_DETAILS', 'true').lower() == 'true':
@@ -151,7 +151,7 @@ def format_release_details(release):
                 assets_text += f"      - {asset_name} ({size_mb:.1f} MB)\n"
             if len(assets) > 5:
                 assets_text += f"      ... and {len(assets) - 5} more\n"
-    
+
     return f"""
   Repository: {repo_name}
   Release: {release_name}
@@ -165,10 +165,10 @@ def format_release_details(release):
 def generate_email_content(releases_data):
     """Generate email body and subject from releases data"""
     new_releases = releases_data.get('releases', [])
-    
+
     if not new_releases:
         return None, None
-    
+
     # Generate subject
     subject_prefix = os.getenv('EMAIL_SUBJECT_PREFIX', '[GitHub Release Monitor]')
     if len(new_releases) == 1:
@@ -176,7 +176,7 @@ def generate_email_content(releases_data):
         subject = f"{subject_prefix} New release: {release.get('repository', 'Unknown')} {release.get('tag_name', 'Unknown')}"
     else:
         subject = f"{subject_prefix} {len(new_releases)} new releases detected"
-    
+
     # Generate body
     body = f"""New GitHub releases have been detected by the release monitor.
 
@@ -188,15 +188,15 @@ Timestamp: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 Release Details:
 ================
 """
-    
+
     for release in new_releases:
         body += format_release_details(release)
         body += "\n" + "-" * 60 + "\n"
-    
+
     body += """
 This is an automated notification from the GitHub Release Monitor pipeline.
 """
-    
+
     return subject, body
 
 
@@ -206,59 +206,122 @@ def main():
     # Concourse mounts inputs at the same level as the working directory
     releases_file = Path('../release-output/releases.json')
     if not releases_file.exists():
-        print("No releases.json file found, skipping email notification")
+        print("No releases.json file found, creating empty email notification")
+        # Create empty email files so the S3 resource doesn't fail
+        email_dir = Path('../email')
+        email_dir.mkdir(exist_ok=True)
+
+        # Write empty body file
+        with open(email_dir / 'body', 'w') as f:
+            f.write('')
+
+        # Write empty subject file
+        with open(email_dir / 'subject', 'w') as f:
+            f.write('')
+
+        # Write empty HTML body file
+        with open(email_dir / 'body.html', 'w') as f:
+            f.write('')
+
+        # Write empty headers file
+        with open(email_dir / 'headers', 'w') as f:
+            f.write('')
+
+        print("Empty email files created for Concourse resource")
         sys.exit(0)
-    
+
     try:
         with open(releases_file, 'r') as f:
             releases_data = json.load(f)
     except json.JSONDecodeError as e:
         print(f"Error parsing releases.json: {e}")
         sys.exit(1)
-    
+
     # Get all releases from the data
     all_releases = releases_data.get('releases', [])
     if not all_releases:
-        print("No releases found in releases.json, skipping email notification")
+        print("No releases found in releases.json, creating empty email notification")
+        # Create empty email files so the S3 resource doesn't fail
+        email_dir = Path('../email')
+        email_dir.mkdir(exist_ok=True)
+
+        # Write empty body file
+        with open(email_dir / 'body', 'w') as f:
+            f.write('')
+
+        # Write empty subject file
+        with open(email_dir / 'subject', 'w') as f:
+            f.write('')
+
+        # Write empty HTML body file
+        with open(email_dir / 'body.html', 'w') as f:
+            f.write('')
+
+        # Write empty headers file
+        with open(email_dir / 'headers', 'w') as f:
+            f.write('')
+
+        print("Empty email files created for Concourse resource")
         sys.exit(0)
-    
+
     # Initialize version database for filtering
     version_db = get_version_database()
-    
+
     # Filter to only include releases not already downloaded
     new_releases = filter_undownloaded_releases(all_releases, version_db)
-    
+
     if not new_releases:
-        print("All releases have already been downloaded, skipping email notification")
+        print("All releases have already been downloaded, creating empty email notification")
+        # Create empty email files so the S3 resource doesn't fail
+        email_dir = Path('../email')
+        email_dir.mkdir(exist_ok=True)
+
+        # Write empty body file
+        with open(email_dir / 'body', 'w') as f:
+            f.write('')
+
+        # Write empty subject file
+        with open(email_dir / 'subject', 'w') as f:
+            f.write('')
+
+        # Write empty HTML body file
+        with open(email_dir / 'body.html', 'w') as f:
+            f.write('')
+
+        # Write empty headers file
+        with open(email_dir / 'headers', 'w') as f:
+            f.write('')
+
+        print("Empty email files created for Concourse resource")
         sys.exit(0)
-    
+
     print(f"Found {len(new_releases)} releases that need email notification (out of {len(all_releases)} total)")
-    
+
     # Create filtered releases data for email generation
     filtered_releases_data = releases_data.copy()
     filtered_releases_data['releases'] = new_releases
     filtered_releases_data['new_releases_found'] = len(new_releases)
-    
+
     # Generate email content
     subject, body = generate_email_content(filtered_releases_data)
-    
+
     if not subject or not body:
         print("Failed to generate email content")
         sys.exit(1)
-    
+
     # Write email content for Concourse email resource
     # Concourse expects outputs at the same level as inputs
     email_dir = Path('../email')
     email_dir.mkdir(exist_ok=True)
-    
+
     # Write subject
     with open(email_dir / 'subject', 'w') as f:
         f.write(subject)
-    
+
     # Write body
     with open(email_dir / 'body', 'w') as f:
         f.write(body)
-    
+
     # Also write HTML version (email resource supports both)
     html_body = f"""<html>
 <body>
@@ -273,7 +336,7 @@ def main():
 
 <h3>Release Details</h3>
 """
-    
+
     for release in new_releases:
         repo_name = release.get('repository', 'Unknown')
         tag_name = release.get('tag_name', 'Unknown')
@@ -281,7 +344,7 @@ def main():
         html_url = release.get('html_url', '#')
         author = release.get('author', {}).get('login', 'Unknown')
         published_at = release.get('published_at', 'Unknown')
-        
+
         html_body += f"""
 <hr>
 <h4><a href="{html_url}">{repo_name} - {release_name}</a></h4>
@@ -290,7 +353,7 @@ def main():
 <li><strong>Author:</strong> {author}</li>
 <li><strong>Published:</strong> {published_at}</li>
 """
-        
+
         if os.getenv('INCLUDE_ASSET_DETAILS', 'true').lower() == 'true':
             assets = release.get('assets', [])
             if assets:
@@ -304,26 +367,26 @@ def main():
                 if len(assets) > 5:
                     html_body += f"<li>... and {len(assets) - 5} more</li>"
                 html_body += "</ul></li>"
-        
+
         html_body += "</ul>"
-    
+
     html_body += """
 <hr>
 <p><em>This is an automated notification from the GitHub Release Monitor pipeline.</em></p>
 </body>
 </html>"""
-    
+
     with open(email_dir / 'body.html', 'w') as f:
         f.write(html_body)
-    
+
     # Write headers file for proper content type
     headers = 'MIME-Version: 1.0\nContent-Type: text/html; charset="UTF-8"'
     with open(email_dir / 'headers', 'w') as f:
         f.write(headers)
-    
+
     print(f"Email notification prepared for {len(new_releases)} new releases")
     print(f"Subject: {subject}")
-    
+
     sys.exit(0)
 
 
