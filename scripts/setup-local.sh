@@ -39,10 +39,12 @@ if [[ ! -d "${PROJECT_ROOT}/venv" ]]; then
     echo "✓ Created Python virtual environment"
 else
     echo "✓ Python virtual environment already exists"
+    # rm -rf "${PROJECT_ROOT}/venv" && python3 -m venv "${PROJECT_ROOT}/venv"
 fi
 
 # Install dependencies
 echo "Installing Python dependencies..."
+# shellcheck disable=SC1091
 source "${PROJECT_ROOT}/venv/bin/activate"
 "${PROJECT_ROOT}/venv/bin/pip" install -r "${PROJECT_ROOT}/requirements.txt"
 echo "✓ Dependencies installed"
