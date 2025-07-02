@@ -88,8 +88,8 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Install requirements if pip is available
-if command -v pip3 &> /dev/null && [[ -f "${APP_DIR}/requirements.txt" ]]; then
+# Install requirements if pip is available and not in virtual env
+if [[ -z "${VIRTUAL_ENV}" ]] && command -v pip3 &> /dev/null && [[ -f "${APP_DIR}/requirements.txt" ]]; then
     echo "Installing Python dependencies..."
     pip3 install -r "${APP_DIR}/requirements.txt" --quiet
 fi

@@ -65,6 +65,30 @@ install: venv ## Install Python dependencies
 	@$(PIP) install -r requirements.txt
 	@printf "$(GREEN)✓ Dependencies installed$(NC)\n"
 
+.PHONY: install-dev
+install-dev: install ## Install development tools (pylint, black, shellcheck)
+	@printf "$(GREEN)Installing Python development tools...$(NC)\n"
+	@$(PIP) install pylint black
+	@printf "$(GREEN)✓ Python tools installed (pylint, black)$(NC)\n"
+	@if command -v shellcheck &> /dev/null; then \
+		printf "$(GREEN)✓ shellcheck is already installed$(NC)\n"; \
+	elif command -v brew &> /dev/null; then \
+		printf "$(GREEN)Installing shellcheck via Homebrew...$(NC)\n"; \
+		brew install shellcheck || printf "$(YELLOW)shellcheck installation failed$(NC)\n"; \
+	elif command -v apt-get &> /dev/null; then \
+		printf "$(GREEN)Installing shellcheck via apt...$(NC)\n"; \
+		printf "$(YELLOW)Note: This may require sudo privileges$(NC)\n"; \
+		sudo apt-get update && sudo apt-get install -y shellcheck; \
+	elif command -v yum &> /dev/null; then \
+		printf "$(GREEN)Installing shellcheck via yum...$(NC)\n"; \
+		printf "$(YELLOW)Note: This may require sudo privileges$(NC)\n"; \
+		sudo yum install -y ShellCheck; \
+	else \
+		printf "$(YELLOW)Cannot install shellcheck automatically.$(NC)\n"; \
+		printf "$(YELLOW)Please install manually from: https://github.com/koalaman/shellcheck$(NC)\n"; \
+	fi
+	@printf "$(GREEN)✓ Development tools installation complete$(NC)\n"
+
 .PHONY: venv
 venv: ## Create Python virtual environment
 	@if [ ! -d "$(VENV)" ]; then \
