@@ -423,7 +423,7 @@ watch: venv ## Run monitoring continuously (every 5 minutes)
 .PHONY: debug
 debug: venv ## Run monitoring with debug output
 	@printf "$(GREEN)Running with debug output...$(NC)\n"
-	@source .env && DEBUG=true ./scripts/monitor.sh --config $(CONFIG) --force-check
+	@source .env && LOG_LEVEL=DEBUG ./scripts/monitor.sh --config $(CONFIG) --force-check
 
 ##@ Cleanup
 

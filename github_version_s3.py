@@ -521,7 +521,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Configure logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Create storage instance
     storage = S3VersionStorage(
