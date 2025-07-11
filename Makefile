@@ -170,12 +170,12 @@ format: venv ## Format Python code with black
 .PHONY: validate
 validate: ## Validate Concourse pipeline and configurations
 	@printf "$(GREEN)Validating pipeline configuration...$(NC)\n"
-	@./ci/validate.sh
+	@source .env && ./ci/validate.sh
 
 .PHONY: validate-simple
 validate-simple: ## Validate simplified Concourse pipeline (no S3 required)
 	@printf "$(GREEN)Validating simplified pipeline configuration...$(NC)\n"
-	@./ci/validate-simple.sh
+	@source .env && ./ci/validate-simple.sh
 
 .PHONY: pipeline-set-test
 pipeline-set-test: ## Deploy pipeline to test environment (public repos only, requires S3)
@@ -189,6 +189,7 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only, re
 	fi
 	@fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor \
+		-v git_private_key="$$(< ~/.ssh/id_ed25519)" \
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
