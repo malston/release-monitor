@@ -3,7 +3,7 @@
 
 # Git repository configuration
 git_repo_uri: git@github.com:malston/release-monitor.git
-git_branch: bugfixes
+git_branch: main
 git_private_key: ((git_private_key))
 
 # GitHub API configuration
@@ -80,7 +80,7 @@ smtp_login_auth: true
 
 # Email addresses
 email_from: release-monitor@example.com
-email_to: 
+email_to:
   - devops-team@example.com
   - platform-team@example.com
 

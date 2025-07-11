@@ -2,7 +2,7 @@
 # Override common parameters for test/development environment
 
 # Test-specific Git configuration
-git_branch: develop
+git_branch: main
 
 # Test S3 buckets
 s3_bucket: test-monitor-bucket
