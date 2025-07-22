@@ -1,0 +1,245 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # MINIO S3-Compatible Storage
+  # ==========================================================================
+  
+  minio:
+    image: minio/minio:latest
+    container_name: release-monitor-minio
+    ports:
+      - "9000:9000"     # API port
+      - "9001:9001"     # Console port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_CONSOLE_ADDRESS: ":9001"
+    command: server /data
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - release-monitor-net
+    restart: unless-stopped
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: release-monitor-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set local http://minio:9000 minioadmin minioadmin;
+      mc mb local/release-monitor-output --ignore-existing;
+      mc mb local/release-monitor-artifacts --ignore-existing;
+      mc version enable local/release-monitor-output;
+      echo 'MinIO setup completed!';
+      echo 'Access: http://localhost:9001 (minioadmin/minioadmin)';
+      "
+    networks:
+      - release-monitor-net
+
+  # ==========================================================================
+  # JFROG ARTIFACTORY OSS
+  # ==========================================================================
+
+  artifactory:
+    image: releases-docker.jfrog.io/jfrog/artifactory-oss:latest
+    container_name: release-monitor-artifactory
+    ports:
+      - "8081:8081"     # Artifactory UI and API
+      - "8082:8082"     # Artifactory access port
+    environment:
+      JF_SHARED_JAVAHEAPDUMPPATH: /var/opt/jfrog/artifactory
+      JF_SHARED_DATABASE_TYPE: derby
+      ARTIFACTORY_HOME: /var/opt/jfrog/artifactory
+      JF_ROUTER_LOGGING_LEVEL: INFO
+      # Reduce memory for local development
+      JF_SHARED_JAVA_XMX: 1g
+    volumes:
+      - artifactory-data:/var/opt/jfrog/artifactory
+      - artifactory-logs:/var/opt/jfrog/artifactory/logs
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/artifactory/api/system/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s  # Artifactory takes time to start
+    networks:
+      - release-monitor-net
+    restart: unless-stopped
+
+  # ==========================================================================
+  # POSTGRESQL (Optional, for production Artifactory)
+  # ==========================================================================
+
+  postgres:
+    image: postgres:13
+    container_name: release-monitor-postgres
+    environment:
+      POSTGRES_DB: release_monitor
+      POSTGRES_USER: release_monitor
+      POSTGRES_PASSWORD: release_monitor_pass
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U release_monitor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - release-monitor-net
+    restart: unless-stopped
+
+  # ==========================================================================
+  # SETUP AND STATUS CHECKER
+  # ==========================================================================
+
+  setup-checker:
+    image: curlimages/curl:latest
+    container_name: release-monitor-setup-checker
+    depends_on:
+      minio:
+        condition: service_healthy
+      artifactory:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c '
+      echo "=== Release Monitor Infrastructure Status ===";
+      echo "";
+      
+      # Check MinIO
+      echo "🗄️  MinIO S3-Compatible Storage:";
+      if curl -s -f http://minio:9000/minio/health/live > /dev/null; then
+        echo "   ✅ Status: Running";
+        echo "   📋 Console: http://localhost:9001";
+        echo "   🔑 Login: minioadmin / minioadmin";
+        echo "   🪣 Buckets: release-monitor-output, release-monitor-artifacts";
+        echo "   🔗 API: http://localhost:9000";
+      else
+        echo "   ❌ Status: Not ready";
+      fi
+      echo "";
+      
+      # Check Artifactory
+      echo "🏺 JFrog Artifactory OSS:";
+      if curl -s -f http://artifactory:8082/artifactory/api/system/ping > /dev/null; then
+        echo "   ✅ Status: Running";
+        echo "   📋 UI: http://localhost:8081";
+        echo "   🔑 Default: admin / password";
+        echo "   📦 Repository: Create \"generic-releases\"";
+        echo "   🔗 API: http://localhost:8081/artifactory";
+      else
+        echo "   ❌ Status: Not ready (may still be starting...)";
+      fi
+      echo "";
+      
+      # Check PostgreSQL
+      echo "🐘 PostgreSQL Database:";
+      if nc -z postgres 5432 2>/dev/null; then
+        echo "   ✅ Status: Running";
+        echo "   🔗 Connection: localhost:5432";
+        echo "   🔑 Login: release_monitor / release_monitor_pass";
+        echo "   📊 Database: release_monitor";
+      else
+        echo "   ❌ Status: Not ready";
+      fi
+      echo "";
+      
+      echo "=== Configuration Examples ===";
+      echo "";
+      echo "For MinIO S3-Compatible:";
+      echo "  export S3_ENDPOINT=http://localhost:9000";
+      echo "  export S3_BUCKET=release-monitor-output";
+      echo "  export VERSION_DB_S3_BUCKET=release-monitor-output";
+      echo "  export AWS_ACCESS_KEY_ID=minioadmin";
+      echo "  export AWS_SECRET_ACCESS_KEY=minioadmin";
+      echo "";
+      echo "For JFrog Artifactory:";
+      echo "  export ARTIFACTORY_URL=http://localhost:8081/artifactory";
+      echo "  export ARTIFACTORY_REPOSITORY=generic-releases";
+      echo "  export ARTIFACTORY_USERNAME=admin";
+      echo "  export ARTIFACTORY_PASSWORD=your-password";
+      echo "";
+      echo "=== Next Steps ===";
+      echo "1. Complete Artifactory setup wizard at http://localhost:8081";
+      echo "2. Create \"generic-releases\" repository in Artifactory";
+      echo "3. Run: python3 github_monitor.py";
+      echo "4. Run: python3 download_releases.py";
+      echo "";
+      '
+    networks:
+      - release-monitor-net
+
+volumes:
+  minio-data:
+    driver: local
+  artifactory-data:
+    driver: local
+  artifactory-logs:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  release-monitor-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+#
+# Quick Start - All Services:
+#   docker-compose -f docker-compose-full.yml up -d
+#   docker-compose -f docker-compose-full.yml logs -f setup-checker
+#
+# Individual Services:
+#   # MinIO only
+#   docker-compose -f docker-compose-full.yml up -d minio minio-setup
+#   
+#   # Artifactory only  
+#   docker-compose -f docker-compose-full.yml up -d artifactory
+#   
+#   # PostgreSQL only
+#   docker-compose -f docker-compose-full.yml up -d postgres
+#
+# Service URLs:
+#   - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
+#   - MinIO API: http://localhost:9000
+#   - Artifactory UI: http://localhost:8081 (admin/password)
+#   - PostgreSQL: localhost:5432 (release_monitor/release_monitor_pass)
+#
+# Testing Connections:
+#   # Test MinIO
+#   aws s3 ls --endpoint-url http://localhost:9000
+#   
+#   # Test Artifactory
+#   curl http://localhost:8081/artifactory/api/system/ping
+#   
+#   # Test PostgreSQL
+#   psql postgresql://release_monitor:release_monitor_pass@localhost:5432/release_monitor
+#
+# Stop Services:
+#   docker-compose -f docker-compose-full.yml down
+#
+# Remove All Data:
+#   docker-compose -f docker-compose-full.yml down -v
+#
+# =============================================================================

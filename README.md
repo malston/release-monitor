@@ -393,6 +393,37 @@ This ensures only new releases are reported on subsequent runs.
 - `AWS_ACCESS_KEY_ID` (Concourse): AWS access key for S3
 - `AWS_SECRET_ACCESS_KEY` (Concourse): AWS secret key for S3
 
+## Local Development with Docker
+
+### Quick Start - All Services
+
+```bash
+# Start MinIO, Artifactory, and PostgreSQL
+docker-compose -f docker-compose-full.yml up -d
+
+# Check service status
+docker-compose -f docker-compose-full.yml logs -f setup-checker
+```
+
+### Individual Services
+
+```bash
+# MinIO S3-compatible storage only
+docker-compose up -d
+
+# JFrog Artifactory OSS only  
+docker-compose -f docker-compose-artifactory.yml up -d
+
+# Automated Artifactory setup
+./scripts/setup-artifactory-local.sh
+```
+
+### Service URLs
+
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
+- **Artifactory UI**: http://localhost:8081 (admin/password)  
+- **PostgreSQL**: localhost:5432 (release_monitor/release_monitor_pass)
+
 ## Examples
 
 ### Basic Monitoring
