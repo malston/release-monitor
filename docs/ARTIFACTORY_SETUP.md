@@ -120,7 +120,7 @@ download:
 
 The integration creates the following structure in your Artifactory repository:
 
-```
+```sh
 /your-artifactory-repository/
 ├── release-monitor/
 │   ├── version_db.json                     # Version database

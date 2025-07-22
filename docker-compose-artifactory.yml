@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # JFrog Artifactory OSS
   artifactory:
@@ -27,11 +25,11 @@ services:
         soft: 32000
         hard: 40000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/artifactory/api/system/ping"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s  # Artifactory takes time to start
+      timeout: 15s
+      retries: 20
+      start_period: 600s  # Artifactory takes 5-10 minutes on first startup
     networks:
       - release-monitor-net
     restart: unless-stopped
