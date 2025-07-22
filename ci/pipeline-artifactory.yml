@@ -1,0 +1,279 @@
+# Concourse Pipeline for GitHub Release Monitor - JFrog Artifactory Version
+# This pipeline uses JFrog Artifactory for storing release artifacts and version database
+
+resources:
+  - name: release-monitor-repo
+    type: git
+    source:
+      uri: ((git_repo_uri))
+      branch: ((git_branch))
+      private_key: ((git_private_key))
+
+  - name: schedule-trigger
+    type: time
+    source:
+      interval: 1h  # Check every hour
+
+  # For Artifactory, we'll use generic resource to upload JSON files
+  - name: monitor-output-artifactory
+    type: artifactory-generic
+    source:
+      endpoint: ((artifactory_url))
+      repository: ((artifactory_repository))
+      username: ((artifactory_username))
+      password: ((artifactory_password))
+      api_key: ((artifactory_api_key))
+      skip_ssl_verification: ((artifactory_skip_ssl_verification))
+
+  - name: email-notification
+    type: email
+    source:
+      smtp:
+        host: ((smtp_host))
+        port: ((smtp_port))
+        username: ((smtp_username))
+        password: ((smtp_password))
+        anonymous: ((smtp_anonymous))
+        skip_ssl_validation: ((smtp_skip_ssl_validation))
+        ca_cert: ((smtp_ca_cert))
+        host_origin: ((smtp_host_origin))
+        login_auth: ((smtp_login_auth))
+      from: ((email_from))
+      to: ((email_to))
+
+
+jobs:
+  - name: monitor-releases
+    plan:
+      - in_parallel:
+          - get: release-monitor-repo
+          - get: schedule-trigger
+            trigger: true
+
+      - task: check-releases
+        file: release-monitor-repo/ci/tasks/check-releases/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
+          # Repository list override
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-monitor-output
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: python, tag: 3.11-slim}
+          inputs:
+            - name: release-monitor-repo
+            - name: release-output
+          run:
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                set -e
+                apt-get update && apt-get install -y curl
+                pip install requests
+                cd release-monitor-repo
+                python scripts/upload-to-artifactory.py --file ../release-output/releases.json --path release-monitor/latest-releases.json
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_USERNAME: ((artifactory_username))
+            ARTIFACTORY_PASSWORD: ((artifactory_password))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: prepare-email-notification
+        file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
+        params:
+          EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
+          INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          
+          # Artifactory version database configuration for filtering
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+        on_success:
+          put: email-notification
+          params:
+            subject: email/subject
+            body: email/body.html
+
+  - name: download-new-releases
+    plan:
+      - in_parallel:
+          - get: release-monitor-repo
+          - get: monitor-output-artifactory
+            trigger: true
+            passed: [monitor-releases]
+
+      - task: download-releases
+        file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
+          
+          # Download configuration
+          ASSET_PATTERNS: ((asset_patterns))
+          INCLUDE_PRERELEASES: ((include_prereleases))
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          REPOSITORY_OVERRIDES: ((repository_overrides))
+          
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-releases-to-artifactory
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: python, tag: 3.11-slim}
+          inputs:
+            - name: release-monitor-repo
+            - name: downloads
+          run:
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                set -e
+                apt-get update && apt-get install -y curl
+                pip install requests
+                cd release-monitor-repo
+                python scripts/upload-to-artifactory.py
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_USERNAME: ((artifactory_username))
+            ARTIFACTORY_PASSWORD: ((artifactory_password))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+            DOWNLOAD_DIR: /tmp/downloads
+
+  # Manual job to check version database status
+  - name: check-version-database
+    plan:
+      - get: release-monitor-repo
+      
+      - task: show-version-database
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: python, tag: 3.11-slim}
+          inputs:
+            - name: release-monitor-repo
+          run:
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                set -e
+                pip install requests pyyaml
+                cd release-monitor-repo
+                python -c "
+                import sys
+                sys.path.insert(0, '.')
+                from github_version_artifactory import ArtifactoryVersionDatabase
+                import json
+                
+                db = ArtifactoryVersionDatabase(
+                    base_url='$ARTIFACTORY_URL',
+                    repository='$ARTIFACTORY_REPOSITORY'
+                )
+                
+                try:
+                    data = db.load_versions()
+                    print('Version Database Contents:')
+                    print(json.dumps(data, indent=2))
+                except Exception as e:
+                    print(f'Error loading version database: {e}')
+                "
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+  # Manual job to reset version database
+  - name: reset-version-database
+    plan:
+      - get: release-monitor-repo
+      
+      - task: reset-version-database
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: python, tag: 3.11-slim}
+          inputs:
+            - name: release-monitor-repo
+          run:
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                set -e
+                pip install requests pyyaml
+                cd release-monitor-repo
+                python -c "
+                import sys
+                sys.path.insert(0, '.')
+                from github_version_artifactory import ArtifactoryVersionDatabase
+                from datetime import datetime, timezone
+                
+                db = ArtifactoryVersionDatabase(
+                    base_url='$ARTIFACTORY_URL',
+                    repository='$ARTIFACTORY_REPOSITORY'
+                )
+                
+                empty_data = {
+                    'repositories': {},
+                    'metadata': {
+                        'created_at': datetime.now(timezone.utc).isoformat(),
+                        'version': '2.0',
+                        'storage': 'artifactory',
+                        'reset_at': datetime.now(timezone.utc).isoformat()
+                    }
+                }
+                
+                success = db.save_versions(empty_data)
+                print(f'Version database reset: {success}')
+                "
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+groups:
+  - name: main-pipeline
+    jobs:
+      - monitor-releases
+      - download-new-releases
+  
+  - name: utilities
+    jobs:
+      - check-version-database
+      - reset-version-database

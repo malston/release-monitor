@@ -1,0 +1,96 @@
+# Global parameters for JFrog Artifactory storage
+# These parameters configure the pipeline to use JFrog Artifactory for artifact storage
+
+# Git repository configuration
+git_repo_uri: git@github.com:malston/release-monitor.git
+git_branch: main
+git_private_key: ((git_private_key))
+
+# GitHub API configuration
+github_token: ((github_token))
+
+# JFrog Artifactory configuration
+artifactory_url: ((artifactory_url))  # e.g., https://artifactory.example.com/artifactory
+artifactory_repository: ((artifactory_repository))  # e.g., generic-releases
+
+# Artifactory authentication (use either API key OR username/password)
+# Option 1: API Key (recommended)
+artifactory_api_key: ((artifactory_api_key))
+
+# Option 2: Username/Password
+artifactory_username: ((artifactory_username))
+artifactory_password: ((artifactory_password))
+
+# SSL configuration for Artifactory
+artifactory_skip_ssl_verification: false
+
+# Download configuration
+download_asset_patterns: '["*.tar.gz", "*.zip", "!*-sources.zip", "!*.sig"]'
+download_include_prereleases: "false"
+download_verify_downloads: "true"
+download_cleanup_old_versions: "true"
+download_keep_versions: "5"
+
+# Repository list override (JSON array of repository objects)
+# Example: '[{"owner": "kubernetes", "repo": "kubernetes", "description": "Kubernetes"}, {"owner": "istio", "repo": "istio", "description": "Istio"}]'
+repositories_override: ""
+
+# Repository-specific download overrides
+download_repository_overrides: |
+  {
+    "kubernetes/kubernetes": {
+      "asset_patterns": ["kubernetes-client-*.tar.gz", "kubernetes-server-*.tar.gz"],
+      "include_prereleases": false
+    },
+    "prometheus/prometheus": {
+      "asset_patterns": ["prometheus-*.tar.gz", "!prometheus-*-rc*.tar.gz"],
+      "include_prereleases": false
+    }
+  }
+
+# Asset patterns (JSON array)
+asset_patterns: '["*.tar.gz", "*.zip", "*.deb", "*.rpm", "*.jar", "*.war"]'
+include_prereleases: false
+
+# Cleanup configuration
+cleanup_days_to_keep: "30"
+
+# Force download testing
+force_download_repo: "etcd-io/etcd" # Default repo for force download testing
+
+# Email notification configuration
+# SMTP settings
+smtp_host: smtp.gmail.com
+smtp_port: "587"
+smtp_username: ((smtp_username))
+smtp_password: ((smtp_password))
+smtp_anonymous: false
+smtp_skip_ssl_validation: false
+smtp_ca_cert: ""
+smtp_host_origin: ""
+smtp_login_auth: true
+
+# Email addresses
+email_from: release-monitor@example.com
+email_to:
+  - devops-team@example.com
+  - platform-team@example.com
+
+# Email notification options
+email_subject_prefix: "[GitHub Release Monitor - Artifactory]"
+email_include_asset_details: true
+
+# Artifactory-specific settings
+# Path prefix for storing artifacts in Artifactory
+artifactory_path_prefix: "release-monitor/"
+
+# Example Artifactory repository structure:
+# /artifactory_repository/
+#   release-monitor/
+#     version_db.json                    # Version database
+#     latest-releases.json               # Latest releases metadata
+#     release-downloads/
+#       kubernetes/
+#         kubernetes-v1.28.0-linux-amd64.tar.gz
+#       prometheus/
+#         prometheus-2.45.0.linux-amd64.tar.gz

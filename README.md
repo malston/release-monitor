@@ -310,12 +310,19 @@ params/
    - Force download and database management utilities
    - Production-ready with automatic cleanup
 
-2. **Simple Pipeline** (`pipeline-simple.yml`) 🏁 **STARTER**:
+2. **Artifactory Pipeline** (`pipeline-artifactory.yml`) 🏢 **ENTERPRISE**:
+   - JFrog Artifactory integration for enterprise environments
+   - Version database and artifact storage in Artifactory
+   - API key and username/password authentication
+   - SSL configuration for self-signed certificates
+   - See [Artifactory Setup Guide](docs/ARTIFACTORY_SETUP.md)
+
+3. **Simple Pipeline** (`pipeline-simple.yml`) 🏁 **STARTER**:
    - Basic monitoring without storage dependencies
    - Easy setup for getting started
    - No downloads, perfect for learning the basics
 
-3. **AWS S3 Pipeline** (`pipeline.yml`) 🏢 **AWS-ONLY**:
+4. **AWS S3 Pipeline** (`pipeline.yml`) 🏢 **AWS-ONLY**:
    - Traditional AWS S3 integration
    - Standard download functionality
    - For pure AWS environments
@@ -341,6 +348,11 @@ params/
    fly -t test set-pipeline -p release-monitor-minio \
      -c ci/pipeline-s3-compatible.yml \
      -l params/global-s3-compatible.yml -l params/minio-local.yml
+
+   # Deploy Artifactory pipeline (enterprise)
+   fly -t test set-pipeline -p release-monitor-artifactory \
+     -c ci/pipeline-artifactory.yml \
+     -l params/global-artifactory.yml -l params/test.yml
    ```
 
 3. Unpause the pipeline:

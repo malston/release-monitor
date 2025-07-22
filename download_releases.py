@@ -54,17 +54,37 @@ class ReleaseDownloadCoordinator:
         # Initialize components
         download_config = config.get('download', {})
 
-        # Check if S3 storage is configured
+        # Check storage backend configuration
         s3_config = download_config.get('s3_storage', {})
+        artifactory_config = download_config.get('artifactory_storage', {})
         use_s3 = s3_config.get('enabled', False)
+        use_artifactory = artifactory_config.get('enabled', False)
         
         # Auto-detect S3 usage if environment variables are present
         if not use_s3 and os.environ.get('VERSION_DB_S3_BUCKET'):
             use_s3 = True
             logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
         
-
-        if use_s3:
+        # Auto-detect Artifactory usage if environment variables are present
+        if not use_artifactory and os.environ.get('ARTIFACTORY_URL') and os.environ.get('ARTIFACTORY_REPOSITORY'):
+            use_artifactory = True
+            logger.info("Auto-detected Artifactory version database from ARTIFACTORY_URL and ARTIFACTORY_REPOSITORY environment variables")
+        
+        # Priority: Artifactory > S3 > local
+        if use_artifactory:
+            # Use Artifactory version storage
+            from github_version_artifactory import ArtifactoryVersionDatabase
+            self.version_db = ArtifactoryVersionDatabase(
+                base_url=artifactory_config.get('base_url') or os.environ.get('ARTIFACTORY_URL'),
+                repository=artifactory_config.get('repository') or os.environ.get('ARTIFACTORY_REPOSITORY'),
+                path_prefix=artifactory_config.get('path_prefix', 'release-monitor/'),
+                username=artifactory_config.get('username') or os.environ.get('ARTIFACTORY_USERNAME'),
+                password=artifactory_config.get('password') or os.environ.get('ARTIFACTORY_PASSWORD'),
+                api_key=artifactory_config.get('api_key') or os.environ.get('ARTIFACTORY_API_KEY'),
+                verify_ssl=artifactory_config.get('verify_ssl', True) and os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
+            )
+            logger.info(f"Using Artifactory version storage: {artifactory_config.get('base_url') or os.environ.get('ARTIFACTORY_URL')}")
+        elif use_s3:
             # Check if we should use mc-based S3 implementation
             use_mc_s3 = os.environ.get('S3_USE_MC', 'true').lower() == 'true'
             
