@@ -9,12 +9,18 @@ services:
     environment:
       # JVM memory settings for local development
       JF_SHARED_JAVAHEAPDUMPPATH: /var/opt/jfrog/artifactory
+      JF_SHARED_JAVA_XMS: 512m
+      JF_SHARED_JAVA_XMX: 2g
       # Database settings (using embedded Derby for OSS)
       JF_SHARED_DATABASE_TYPE: derby
       # Artifactory system settings
       ARTIFACTORY_HOME: /var/opt/jfrog/artifactory
       # Enable access logging
       JF_ROUTER_LOGGING_LEVEL: INFO
+      # Speed up startup
+      JF_SHARED_NODE_HAENABLED: false
+      # Disable features not needed for development
+      JF_ACCESS_JFCONFIG_ENABLED: false
     volumes:
       - artifactory-data:/var/opt/jfrog/artifactory
       - artifactory-logs:/var/opt/jfrog/artifactory/logs

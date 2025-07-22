@@ -5,11 +5,17 @@
 ### 1. Start Artifactory
 
 ```bash
-# Start Artifactory OSS
+# Option A: Fast development setup (recommended for testing)
+docker-compose -f docker-compose-artifactory-dev.yml up -d
+
+# Option B: Full production setup
 docker-compose -f docker-compose-artifactory.yml up -d
 
-# Wait for it to be ready (takes 5-10 minutes)
+# Wait for it to be ready
 ./scripts/wait-for-artifactory.sh
+
+# Check status anytime
+./scripts/artifactory-status.sh
 ```
 
 ### 2. Complete Setup Wizard

@@ -30,10 +30,27 @@ while true; do
             echo "✅ Artifactory API is ready!"
             break
         else
-            echo "⏳ UI ready, waiting for API... (${elapsed}s elapsed)"
+            # Check what stage we're at
+            if curl -s "$ARTIFACTORY_URL/artifactory/webapp/" | grep -q "setup"; then
+                echo "📋 Setup wizard is ready! Visit $ARTIFACTORY_URL to configure"
+                echo "⏳ Waiting for API to fully initialize... (${elapsed}s elapsed)"
+            else
+                echo "⏳ UI ready, waiting for API... (${elapsed}s elapsed)"
+            fi
         fi
     else
-        echo "⏳ Waiting for Artifactory... (${elapsed}s elapsed)"
+        # Show more detailed status
+        container_status=""
+        if command -v docker &> /dev/null; then
+            if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q artifactory; then
+                container_status=$(docker ps --format "{{.Status}}" | grep -E "(artifactory|release-monitor-artifactory)" | head -1)
+                echo "⏳ Container: $container_status (${elapsed}s elapsed)"
+            else
+                echo "❌ Artifactory container not found! (${elapsed}s elapsed)"
+            fi
+        else
+            echo "⏳ Waiting for Artifactory... (${elapsed}s elapsed)"
+        fi
     fi
     
     sleep $WAIT_INTERVAL

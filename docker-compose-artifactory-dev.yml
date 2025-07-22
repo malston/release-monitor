@@ -1,0 +1,99 @@
+services:
+  # JFrog Artifactory OSS - Development/Testing Setup
+  # Optimized for faster startup and lower resource usage
+  artifactory:
+    image: releases-docker.jfrog.io/jfrog/artifactory-oss:latest
+    container_name: release-monitor-artifactory-dev
+    ports:
+      - "8081:8081"     # Artifactory UI and API port
+    environment:
+      # Minimal JVM settings for development
+      JF_SHARED_JAVA_XMS: 256m
+      JF_SHARED_JAVA_XMX: 1g
+      # Use embedded Derby database
+      JF_SHARED_DATABASE_TYPE: derby
+      # Artifactory home directory
+      ARTIFACTORY_HOME: /var/opt/jfrog/artifactory
+      # Disable HA and clustering features
+      JF_SHARED_NODE_HAENABLED: false
+      # Reduce logging for faster startup
+      JF_ROUTER_LOGGING_LEVEL: WARN
+      # Disable unnecessary features for development
+      JF_ACCESS_JFCONFIG_ENABLED: false
+      JF_SHARED_RESTRICTEDMODE_ENABLED: false
+      # Speed up initialization
+      SKIP_WAIT_FOR_EXTERNAL_DB: true
+    volumes:
+      - artifactory-dev-data:/var/opt/jfrog/artifactory
+    ulimits:
+      nproc: 32768
+      nofile:
+        soft: 16384
+        hard: 32768
+    # Simpler health check for development
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/ || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 240s  # Optimized startup should be faster
+    # Memory limit for development
+    mem_limit: 1.5g
+    cpus: 2.0
+    restart: unless-stopped
+
+  # Development setup helper
+  dev-setup:
+    image: curlimages/curl:latest
+    container_name: artifactory-dev-setup
+    depends_on:
+      artifactory:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c '
+      echo "🎉 Artifactory Development Setup Complete!";
+      echo "";
+      echo "📋 Access Artifactory:";
+      echo "   URL: http://localhost:8081";
+      echo "   Login: admin / password";
+      echo "";
+      echo "🚀 Quick Setup Steps:";
+      echo "1. Complete setup wizard";
+      echo "2. Create repository: generic-releases";
+      echo "3. Generate API key";
+      echo "";
+      echo "🔧 Environment Variables:";
+      echo "   export ARTIFACTORY_URL=\"http://localhost:8081/artifactory\"";
+      echo "   export ARTIFACTORY_REPOSITORY=\"generic-releases\"";
+      echo "   export ARTIFACTORY_API_KEY=\"your-key\"";
+      echo "";
+      echo "✅ Ready for release-monitor testing!";
+      '
+
+volumes:
+  artifactory-dev-data:
+    driver: local
+
+# =============================================================================
+# Development Usage Instructions:
+# =============================================================================
+#
+# Quick Start:
+#   docker-compose -f docker-compose-artifactory-dev.yml up -d
+#   
+# This version is optimized for:
+# - Faster startup (2-4 minutes instead of 10+ minutes)
+# - Lower memory usage (1.5GB limit)
+# - Minimal feature set for development/testing
+# - Quick setup and teardown
+#
+# Production Use:
+#   For production deployments, use docker-compose-artifactory.yml instead
+#
+# Clean Up:
+#   docker-compose -f docker-compose-artifactory-dev.yml down -v
+#
+# Monitor Logs:
+#   docker-compose -f docker-compose-artifactory-dev.yml logs -f artifactory
+#
+# =============================================================================
