@@ -71,7 +71,7 @@ download:
     # profile: default   # Optional, uses default profile if not specified
 
   artifactory_storage:
-    enabled: true
+    enabled: false
     base_url: "http://localhost:8081/artifactory"
     repository: "generic-releases"
     path_prefix: "release-monitor/"
