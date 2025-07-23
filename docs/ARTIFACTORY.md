@@ -133,6 +133,24 @@ docker exec -it release-monitor-artifactory bash
 
 ## Configuration
 
+### ⚠️ Important: Configuration Precedence
+
+**Environment variables override config file settings!** The script auto-detects storage backends:
+
+**Configuration Precedence (Highest to Lowest):**
+1. **Environment Variables** (auto-detection) 🥇
+2. **Config File Settings**
+3. **Default Values**
+
+**Auto-Detection Behavior:**
+- If `ARTIFACTORY_URL` and `ARTIFACTORY_REPOSITORY` are set → **Artifactory storage is used**
+- Even if `config.yaml` has `artifactory_storage.enabled: false`
+
+**Avoid Confusion:**
+- Unset Artifactory environment variables to use local storage
+- Or use separate `.env` files for different scenarios
+- See [Troubleshooting Guide](TROUBLESHOOTING.md#environment-variables-override-config-file-settings) for details
+
 ### Environment Variables
 
 #### Required
@@ -339,6 +357,33 @@ The pipeline includes these jobs:
 
 ## Troubleshooting
 
+### Downloads Not Working Despite New Releases
+
+**Issue:** Script finds new releases but downloads 0 files, shows "Skipping X: Version Y is not newer than Y"
+
+**Root Cause:** Version database already contains these versions from previous runs.
+
+**Quick Fix:**
+```bash
+# Clear Artifactory version database
+python -c "
+from github_version_artifactory import ArtifactoryVersionDatabase
+import os
+db = ArtifactoryVersionDatabase(
+    base_url=os.environ['ARTIFACTORY_URL'],
+    repository=os.environ['ARTIFACTORY_REPOSITORY'],
+    api_key=os.environ.get('ARTIFACTORY_API_KEY'),
+    verify_ssl=False
+)
+db.save_versions({'repositories': {}, 'metadata': {'version': '2.0'}})
+print('✅ Version database cleared!')
+"
+
+# Then run downloads
+rm -f release_state.json
+python github_monitor.py --config ./config.yaml --download
+```
+
 ### Artifactory Not Starting
 
 **Symptoms**: Container fails to start or setup wizard doesn't load
@@ -476,10 +521,16 @@ To migrate from S3 to Artifactory:
 
 For issues:
 
-1. Check this troubleshooting section
-2. Enable debug logging: `export LOG_LEVEL="DEBUG"`
-3. Test Artifactory connectivity manually with curl
-4. Verify repository permissions and configuration
-5. Check Artifactory server logs (if you have admin access)
+1. **📖 [Complete Troubleshooting Guide](TROUBLESHOOTING.md)** - Detailed solutions for common issues
+2. Check this troubleshooting section above
+3. Enable debug logging: `export LOG_LEVEL="DEBUG"`
+4. Test Artifactory connectivity manually with curl
+5. Verify repository permissions and configuration
+6. Check Artifactory server logs (if you have admin access)
+
+**Common Issues:**
+- [Downloads not working despite new releases found](TROUBLESHOOTING.md#downloads-not-working)
+- [Environment variables overriding config settings](TROUBLESHOOTING.md#environment-variables-override-config-file-settings)
+- [Connection and authentication errors](TROUBLESHOOTING.md#downloads-fail-with-connection-errors)
 
 For JFrog Artifactory-specific issues, consult the [JFrog Documentation](https://www.jfrog.com/confluence/display/JFROG/JFrog+Artifactory).

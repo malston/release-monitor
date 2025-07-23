@@ -497,19 +497,23 @@ settings:
 
 ## Troubleshooting
 
+**📖 [Complete Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Detailed solutions for common issues
+
 ### Common Issues
 
-1. **Rate Limiting**: Increase `rate_limit_delay` in configuration
-2. **Token Issues**: Ensure `GITHUB_TOKEN` has proper permissions
-3. **Network Errors**: Check connectivity to api.github.com
-4. **State File Errors**: Check write permissions for state file location
+1. **Downloads Not Working**: Version database already contains releases → [Solution](docs/TROUBLESHOOTING.md#downloads-not-working)
+2. **Environment Variables Override Config**: Auto-detection overrides file settings → [Solution](docs/TROUBLESHOOTING.md#environment-variables-override-config-file-settings)
+3. **Rate Limiting**: Increase `rate_limit_delay` in configuration
+4. **Token Issues**: Ensure `GITHUB_TOKEN` has proper permissions
+5. **Network Errors**: Check connectivity to api.github.com
+6. **State File Errors**: Check write permissions for state file location
 
 ### Debug Mode
 
 Enable verbose logging by setting the log level:
 
-```python
-logging.basicConfig(level=logging.DEBUG)
+```bash
+LOG_LEVEL=DEBUG python github_monitor.py --config ./config.yaml --download
 ```
 
 ## Security Considerations
