@@ -139,7 +139,7 @@ services:
         echo "   ✅ Status: Running";
         echo "   📋 UI: http://localhost:8081";
         echo "   🔑 Default: admin / password";
-        echo "   📦 Repository: Create \"generic-releases\"";
+        echo "   📦 Repository: Create \"generic-local\"";
         echo "   🔗 API: http://localhost:8081/artifactory";
       else
         echo "   ❌ Status: Not ready (may still be starting...)";
@@ -169,13 +169,13 @@ services:
       echo "";
       echo "For JFrog Artifactory:";
       echo "  export ARTIFACTORY_URL=http://localhost:8081/artifactory";
-      echo "  export ARTIFACTORY_REPOSITORY=generic-releases";
+      echo "  export ARTIFACTORY_REPOSITORY=generic-local";
       echo "  export ARTIFACTORY_USERNAME=admin";
       echo "  export ARTIFACTORY_PASSWORD=your-password";
       echo "";
       echo "=== Next Steps ===";
       echo "1. Complete Artifactory setup wizard at http://localhost:8081";
-      echo "2. Create \"generic-releases\" repository in Artifactory";
+      echo "2. Create \"generic-local\" repository in Artifactory";
       echo "3. Run: python3 github_monitor.py";
       echo "4. Run: python3 download_releases.py";
       echo "";

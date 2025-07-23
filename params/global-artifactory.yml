@@ -10,8 +10,8 @@ git_private_key: ((git_private_key))
 github_token: ((github_token))
 
 # JFrog Artifactory configuration
-artifactory_url: ((artifactory_url))  # e.g., https://artifactory.example.com/artifactory
-artifactory_repository: ((artifactory_repository))  # e.g., generic-releases
+artifactory_url: ((artifactory_url)) # e.g., https://artifactory.example.com/artifactory
+artifactory_repository: ((artifactory_repository)) # e.g., generic-local
 
 # Artifactory authentication (use either API key OR username/password)
 # Option 1: API Key (recommended)
@@ -83,7 +83,6 @@ email_include_asset_details: true
 # Artifactory-specific settings
 # Path prefix for storing artifacts in Artifactory
 artifactory_path_prefix: "release-monitor/"
-
 # Example Artifactory repository structure:
 # /artifactory_repository/
 #   release-monitor/

@@ -169,7 +169,7 @@ try:
     # Use dummy credentials for connection test
     db = ArtifactoryVersionDatabase(
         base_url=os.environ.get('ARTIFACTORY_URL', 'http://localhost:8081/artifactory'),
-        repository=os.environ.get('ARTIFACTORY_REPOSITORY', 'generic-releases'),
+        repository=os.environ.get('ARTIFACTORY_REPOSITORY', 'generic-local'),
         username='admin',
         password='password',
         verify_ssl=False
@@ -181,7 +181,7 @@ try:
         print("✅ Python integration test successful")
     except Exception as e:
         if "404" in str(e):
-            print("⚠️  Connection works, but repository 'generic-releases' not found")
+            print("⚠️  Connection works, but repository 'generic-local' not found")
             print("   Please create the repository as described above")
         else:
             print(f"❌ Python test failed: {e}")

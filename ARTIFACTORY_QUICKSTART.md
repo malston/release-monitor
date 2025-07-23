@@ -24,7 +24,7 @@ docker-compose -f docker-compose-artifactory.yml up -d
 5. **Proxy**: Skip proxy configuration
 6. **Create Repository**:
    - Go to Administration → Repositories → Repositories
-   - New Repository → Generic → Repository Key: `generic-releases`
+   - New Repository → Generic → Repository Key: `generic-local`
    - Save & Finish
 
 ### 3. Generate API Key
@@ -38,12 +38,12 @@ docker-compose -f docker-compose-artifactory.yml up -d
 ```bash
 # Using API Key (recommended)
 export ARTIFACTORY_URL="http://localhost:8081/artifactory"
-export ARTIFACTORY_REPOSITORY="generic-releases"  
+export ARTIFACTORY_REPOSITORY="generic-local"  
 export ARTIFACTORY_API_KEY="your-generated-api-key"
 
 # OR using username/password
 export ARTIFACTORY_URL="http://localhost:8081/artifactory"
-export ARTIFACTORY_REPOSITORY="generic-releases"
+export ARTIFACTORY_REPOSITORY="generic-local"
 export ARTIFACTORY_USERNAME="admin"
 export ARTIFACTORY_PASSWORD="your-new-password"
 
@@ -89,7 +89,7 @@ python3 download_releases.py
 
 ### Connection Errors
 
-- **Repository exists**: Make sure `generic-releases` repository is created
+- **Repository exists**: Make sure `generic-local` repository is created
 - **Credentials**: Verify API key or username/password
 - **URL format**: Should end with `/artifactory` (no trailing slash)
 
@@ -124,7 +124,7 @@ export REPOSITORIES_OVERRIDE='[{"owner": "etcd-io", "repo": "etcd", "description
 python3 github_monitor.py
 
 # Check Artifactory for version database
-curl -u admin:your-password http://localhost:8081/artifactory/generic-releases/release-monitor/version_db.json
+curl -u admin:your-password http://localhost:8081/artifactory/generic-local/release-monitor/version_db.json
 ```
 
 ## 📋 What's Next?

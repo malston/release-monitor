@@ -45,7 +45,7 @@ export ARTIFACTORY_PASSWORD="your-password"
 export ARTIFACTORY_URL="https://your-company.jfrog.io/artifactory"
 
 # Repository name for storing artifacts
-export ARTIFACTORY_REPOSITORY="generic-releases"
+export ARTIFACTORY_REPOSITORY="generic-local"
 
 # Authentication (use either API key OR username/password)
 export ARTIFACTORY_API_KEY="your-api-key"
@@ -88,7 +88,7 @@ Edit the parameter file with your Artifactory details:
 ```yaml
 # JFrog Artifactory configuration
 artifactory_url: https://your-company.jfrog.io/artifactory
-artifactory_repository: generic-releases
+artifactory_repository: generic-local
 
 # Authentication (set in Concourse secrets)
 artifactory_api_key: ((artifactory_api_key))
@@ -110,7 +110,7 @@ download:
   artifactory_storage:
     enabled: true
     base_url: "https://your-company.jfrog.io/artifactory"
-    repository: "generic-releases"
+    repository: "generic-local"
     path_prefix: "release-monitor/"
     verify_ssl: true
     # Credentials will be read from environment variables
