@@ -71,6 +71,16 @@ VERSION_DB_S3_PREFIX="${VERSION_DB_S3_PREFIX:-release-monitor/}"
 VERSION_DB_S3_REGION="${VERSION_DB_S3_REGION:-}"
 S3_ENDPOINT="${S3_ENDPOINT:-}"
 
+# Artifactory storage configuration (optional)
+USE_ARTIFACTORY_VERSION_DB="${USE_ARTIFACTORY_VERSION_DB:-false}"
+ARTIFACTORY_URL="${ARTIFACTORY_URL:-}"
+ARTIFACTORY_REPOSITORY="${ARTIFACTORY_REPOSITORY:-}"
+ARTIFACTORY_USERNAME="${ARTIFACTORY_USERNAME:-}"
+ARTIFACTORY_PASSWORD="${ARTIFACTORY_PASSWORD:-}"
+ARTIFACTORY_API_KEY="${ARTIFACTORY_API_KEY:-}"
+ARTIFACTORY_PATH_PREFIX="${ARTIFACTORY_PATH_PREFIX:-release-monitor/}"
+ARTIFACTORY_SKIP_SSL_VERIFICATION="${ARTIFACTORY_SKIP_SSL_VERIFICATION:-false}"
+
 # Export S3 endpoint for boto3 to use
 if [[ -n "$S3_ENDPOINT" ]]; then
     export AWS_ENDPOINT_URL="$S3_ENDPOINT"
@@ -81,7 +91,9 @@ fi
 # Log configuration
 log_info "Configuration:"
 log_info "  Download Directory: $DOWNLOAD_DIR"
-if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+if [[ "$USE_ARTIFACTORY_VERSION_DB" == "true" ]]; then
+    log_info "  Version DB: Artifactory ($ARTIFACTORY_URL repository: $ARTIFACTORY_REPOSITORY)"
+elif [[ "$USE_S3_VERSION_DB" == "true" ]]; then
     log_info "  Version DB: S3 (s3://$VERSION_DB_S3_BUCKET/$VERSION_DB_S3_PREFIX)"
 else
     log_info "  Version DB Path: $VERSION_DB_PATH"
@@ -115,6 +127,12 @@ fi
 if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
     log_info "Installing AWS SDK for S3 version database..."
     pip3 install --quiet boto3
+fi
+
+# Install Artifactory dependencies if using Artifactory version database
+if [[ "$USE_ARTIFACTORY_VERSION_DB" == "true" ]]; then
+    log_info "Installing dependencies for Artifactory version database..."
+    pip3 install --quiet requests urllib3
 fi
 
 # Verify input files exist
@@ -181,8 +199,23 @@ download_config['enabled'] = True
 download_config['directory'] = '$DOWNLOAD_DIR'
 download_config['version_db'] = '$VERSION_DB_PATH'
 
-# Configure S3 storage if enabled
-if '${USE_S3_VERSION_DB}' == 'true':
+# Configure Artifactory storage if enabled
+if '${USE_ARTIFACTORY_VERSION_DB}' == 'true':
+    artifactory_config = download_config.setdefault('artifactory_storage', {})
+    artifactory_config['enabled'] = True
+    artifactory_config['base_url'] = '${ARTIFACTORY_URL}'
+    artifactory_config['repository'] = '${ARTIFACTORY_REPOSITORY}'
+    artifactory_config['path_prefix'] = '${ARTIFACTORY_PATH_PREFIX}'
+    if '${ARTIFACTORY_USERNAME}':
+        artifactory_config['username'] = '${ARTIFACTORY_USERNAME}'
+    if '${ARTIFACTORY_PASSWORD}':
+        artifactory_config['password'] = '${ARTIFACTORY_PASSWORD}'
+    if '${ARTIFACTORY_API_KEY}':
+        artifactory_config['api_key'] = '${ARTIFACTORY_API_KEY}'
+    artifactory_config['verify_ssl'] = '${ARTIFACTORY_SKIP_SSL_VERIFICATION}'.lower() != 'true'
+
+# Configure S3 storage if enabled (fallback after Artifactory)
+elif '${USE_S3_VERSION_DB}' == 'true':
     s3_config = download_config.setdefault('s3_storage', {})
     s3_config['enabled'] = True
     s3_config['bucket'] = '${VERSION_DB_S3_BUCKET}'
@@ -246,17 +279,86 @@ log_info "Starting download process..."
 log_info "Command: python3 download_releases.py ${DOWNLOAD_ARGS[*]}"
 
 # Debug environment variables
-log_info "Environment variables for S3:"
-log_info "  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-not set}"
-log_info "  AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-not set}"
-log_info "  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:+set}"
-log_info "  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:+set}"
-log_info "  S3_ENDPOINT: ${S3_ENDPOINT:-not set}"
-log_info "  S3_SKIP_SSL_VERIFICATION: ${S3_SKIP_SSL_VERIFICATION:-false}"
+if [[ "$USE_ARTIFACTORY_VERSION_DB" == "true" ]]; then
+    log_info "Environment variables for Artifactory:"
+    log_info "  ARTIFACTORY_URL: ${ARTIFACTORY_URL:-not set}"
+    log_info "  ARTIFACTORY_REPOSITORY: ${ARTIFACTORY_REPOSITORY:-not set}"
+    log_info "  ARTIFACTORY_PATH_PREFIX: ${ARTIFACTORY_PATH_PREFIX:-release-monitor/}"
+    log_info "  ARTIFACTORY_USERNAME: ${ARTIFACTORY_USERNAME:+set}"
+    log_info "  ARTIFACTORY_PASSWORD: ${ARTIFACTORY_PASSWORD:+set}"
+    log_info "  ARTIFACTORY_API_KEY: ${ARTIFACTORY_API_KEY:+set}"
+    log_info "  ARTIFACTORY_SKIP_SSL_VERIFICATION: ${ARTIFACTORY_SKIP_SSL_VERIFICATION:-false}"
+elif [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+    log_info "Environment variables for S3:"
+    log_info "  AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-not set}"
+    log_info "  AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-not set}"
+    log_info "  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:+set}"
+    log_info "  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:+set}"
+    log_info "  S3_ENDPOINT: ${S3_ENDPOINT:-not set}"
+    log_info "  S3_SKIP_SSL_VERIFICATION: ${S3_SKIP_SSL_VERIFICATION:-false}"
+fi
 
-# Test S3 connection before running full download
-log_info "Testing S3 connection..."
-python3 - << 'EOF' || log_error "S3 connection test failed"
+# Test storage backend connection before running full download
+if [[ "$USE_ARTIFACTORY_VERSION_DB" == "true" ]]; then
+    log_info "Testing Artifactory connection..."
+    python3 - << 'EOF' || log_error "Artifactory connection test failed"
+import requests
+import os
+import sys
+from urllib.parse import urljoin
+
+base_url = os.environ.get('ARTIFACTORY_URL')
+repository = os.environ.get('ARTIFACTORY_REPOSITORY')
+username = os.environ.get('ARTIFACTORY_USERNAME')
+password = os.environ.get('ARTIFACTORY_PASSWORD')
+api_key = os.environ.get('ARTIFACTORY_API_KEY')
+verify_ssl = os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', '').lower() != 'true'
+
+print(f"Testing connection to Artifactory: {base_url}")
+
+try:
+    # Set up authentication
+    auth = None
+    headers = {}
+    if api_key:
+        headers['X-JFrog-Art-Api'] = api_key
+        print("Using API key authentication")
+    elif username and password:
+        auth = (username, password)
+        print("Using username/password authentication")
+    else:
+        print("WARNING: No authentication configured")
+
+    if not verify_ssl:
+        print("WARNING: Skipping SSL verification for Artifactory")
+
+    # Test system ping
+    ping_url = urljoin(base_url, '/api/system/ping')
+    response = requests.get(ping_url, auth=auth, headers=headers, verify=verify_ssl, timeout=10)
+
+    if response.status_code == 200:
+        print("Connection successful! Artifactory is reachable")
+
+        # Test repository access
+        repo_url = urljoin(base_url, f'/api/repositories/{repository}')
+        repo_response = requests.get(repo_url, auth=auth, headers=headers, verify=verify_ssl, timeout=10)
+
+        if repo_response.status_code == 200:
+            print(f"Repository '{repository}' is accessible")
+        else:
+            print(f"WARNING: Repository '{repository}' may not exist or is not accessible (status: {repo_response.status_code})")
+    else:
+        print(f"ERROR: Failed to ping Artifactory (status: {response.status_code})")
+        sys.exit(1)
+
+except Exception as e:
+    print(f"ERROR: Failed to connect to Artifactory: {e}")
+    sys.exit(1)
+EOF
+
+elif [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+    log_info "Testing S3 connection..."
+    python3 - << 'EOF' || log_error "S3 connection test failed"
 import boto3
 import os
 import sys
@@ -283,6 +385,10 @@ except Exception as e:
     print(f"ERROR: Failed to connect to S3: {e}")
     sys.exit(1)
 EOF
+
+else
+    log_info "Using local file storage - no connection test needed"
+fi
 
 START_TIME=$(date +%s)
 
@@ -387,14 +493,16 @@ else
     log_warn "Download directory does not exist: $DOWNLOAD_DIR"
 fi
 
-if [[ "$USE_S3_VERSION_DB" == "true" ]]; then
+if [[ "$USE_ARTIFACTORY_VERSION_DB" == "true" ]]; then
+    log_info "Version database is managed in Artifactory ($ARTIFACTORY_URL repository: $ARTIFACTORY_REPOSITORY)"
+elif [[ "$USE_S3_VERSION_DB" == "true" ]]; then
     log_info "Version database is managed in S3 (s3://$VERSION_DB_S3_BUCKET/$VERSION_DB_S3_PREFIX)"
 elif [[ -f "$VERSION_DB_PATH" ]]; then
     log_info "Version database updated: $VERSION_DB_PATH"
 
     if [[ "${VERBOSE:-false}" == "true" ]]; then
         log_debug "Version database contents:"
-        cat "$VERSION_DB_PATH" | python3 -m json.tool | head -20
+        python3 -m json.tool < "$VERSION_DB_PATH" | head -20
     fi
 else
     log_warn "Version database not found: $VERSION_DB_PATH"

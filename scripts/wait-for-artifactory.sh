@@ -14,17 +14,17 @@ start_time=$(date +%s)
 while true; do
     current_time=$(date +%s)
     elapsed=$((current_time - start_time))
-    
+
     if [ $elapsed -gt $MAX_WAIT ]; then
         echo "❌ Timeout: Artifactory not ready after $MAX_WAIT seconds"
         echo "   Check logs: docker-compose -f docker-compose-artifactory.yml logs artifactory"
         exit 1
     fi
-    
+
     # Try to connect to Artifactory
     if curl -s -f "$ARTIFACTORY_URL/" > /dev/null 2>&1; then
         echo "✅ Artifactory UI is responding!"
-        
+
         # Try the API ping endpoint
         if curl -s -f "$ARTIFACTORY_URL/artifactory/api/system/ping" > /dev/null 2>&1; then
             echo "✅ Artifactory API is ready!"
@@ -52,7 +52,7 @@ while true; do
             echo "⏳ Waiting for Artifactory... (${elapsed}s elapsed)"
         fi
     fi
-    
+
     sleep $WAIT_INTERVAL
 done
 
@@ -63,6 +63,6 @@ echo "Next steps:"
 echo "1. Visit: $ARTIFACTORY_URL"
 echo "2. Login: admin / password"
 echo "3. Complete setup wizard"
-echo "4. Create 'generic-local' repository"
+echo "4. Create 'generic-releases' repository"
 echo "5. Generate API key"
 echo ""

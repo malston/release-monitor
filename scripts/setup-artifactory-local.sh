@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 # Configuration
 COMPOSE_FILE="docker-compose-artifactory.yml"
 ARTIFACTORY_URL="http://localhost:8081"
-REPOSITORY_NAME="generic-local"
+REPOSITORY_NAME="generic-releases"
 
 echo_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
@@ -41,61 +41,61 @@ echo_error() {
 
 check_prerequisites() {
     echo_info "Checking prerequisites..."
-    
+
     if ! command -v docker &> /dev/null; then
         echo_error "Docker is required but not installed."
         exit 1
     fi
-    
+
     if ! command -v docker-compose &> /dev/null; then
         echo_error "Docker Compose is required but not installed."
         exit 1
     fi
-    
+
     if ! docker info &> /dev/null; then
         echo_error "Docker daemon is not running."
         exit 1
     fi
-    
+
     echo_success "Prerequisites check passed"
 }
 
 start_artifactory() {
     echo_info "Starting JFrog Artifactory OSS..."
-    
+
     cd "$PROJECT_ROOT"
-    
+
     if [ ! -f "$COMPOSE_FILE" ]; then
         echo_error "Docker compose file not found: $COMPOSE_FILE"
         exit 1
     fi
-    
+
     # Start Artifactory
     docker-compose -f "$COMPOSE_FILE" up -d artifactory
-    
+
     echo_info "Waiting for Artifactory to start (this may take 2-3 minutes)..."
-    
+
     # Wait for Artifactory to be ready
     max_attempts=60
     attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         if curl -s -f "$ARTIFACTORY_URL/artifactory/api/system/ping" > /dev/null 2>&1; then
             break
         fi
-        
+
         echo -n "."
         sleep 5
         attempt=$((attempt + 1))
     done
     echo ""
-    
+
     if [ $attempt -gt $max_attempts ]; then
         echo_error "Artifactory failed to start within expected time"
         echo_info "Check logs: docker-compose -f $COMPOSE_FILE logs artifactory"
         exit 1
     fi
-    
+
     echo_success "Artifactory is running!"
 }
 
@@ -146,18 +146,18 @@ show_configuration() {
 
 test_connection() {
     echo_info "Testing connection to Artifactory..."
-    
+
     if curl -s -f "$ARTIFACTORY_URL/artifactory/api/system/ping" > /dev/null; then
         echo_success "Artifactory is responding to API calls"
     else
         echo_error "Cannot connect to Artifactory API"
         return 1
     fi
-    
+
     # Test with Python if available
     if command -v python3 &> /dev/null; then
         echo_info "Testing Python integration..."
-        
+
         cat > /tmp/test_artifactory.py << 'EOF'
 import sys
 import os
@@ -165,33 +165,33 @@ sys.path.insert(0, '.')
 
 try:
     from github_version_artifactory import ArtifactoryVersionDatabase
-    
+
     # Use dummy credentials for connection test
     db = ArtifactoryVersionDatabase(
         base_url=os.environ.get('ARTIFACTORY_URL', 'http://localhost:8081/artifactory'),
-        repository=os.environ.get('ARTIFACTORY_REPOSITORY', 'generic-local'),
+        repository=os.environ.get('ARTIFACTORY_REPOSITORY', 'generic-releases'),
         username='admin',
         password='password',
         verify_ssl=False
     )
-    
+
     # This will fail if repository doesn't exist, but connection should work
     try:
         data = db.load_versions()
         print("✅ Python integration test successful")
     except Exception as e:
         if "404" in str(e):
-            print("⚠️  Connection works, but repository 'generic-local' not found")
+            print("⚠️  Connection works, but repository 'generic-releases' not found")
             print("   Please create the repository as described above")
         else:
             print(f"❌ Python test failed: {e}")
-            
+
 except ImportError:
     print("⚠️  Python integration test skipped (github_version_artifactory not available)")
 except Exception as e:
     print(f"❌ Python test failed: {e}")
 EOF
-        
+
         cd "$PROJECT_ROOT"
         python3 /tmp/test_artifactory.py 2>/dev/null || echo_warning "Python test encountered issues"
         rm -f /tmp/test_artifactory.py
@@ -200,10 +200,10 @@ EOF
 
 show_status() {
     echo_info "=== Service Status ==="
-    
+
     cd "$PROJECT_ROOT"
     docker-compose -f "$COMPOSE_FILE" ps
-    
+
     echo ""
     echo_info "=== Useful Commands ==="
     echo ""
@@ -225,14 +225,14 @@ main() {
     echo_info "🏺 JFrog Artifactory OSS Local Setup"
     echo_info "===================================="
     echo ""
-    
+
     check_prerequisites
     start_artifactory
     show_setup_instructions
     show_configuration
     test_connection
     show_status
-    
+
     echo ""
     echo_success "Setup complete! Artifactory is ready for use."
     echo_info "Visit $ARTIFACTORY_URL to complete the initial setup."

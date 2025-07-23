@@ -11,7 +11,7 @@ github_token: ((github_token))
 
 # JFrog Artifactory configuration
 artifactory_url: ((artifactory_url)) # e.g., https://artifactory.example.com/artifactory
-artifactory_repository: ((artifactory_repository)) # e.g., generic-local
+artifactory_repository: ((artifactory_repository)) # e.g., generic-releases
 
 # Artifactory authentication (use either API key OR username/password)
 # Option 1: API Key (recommended)
