@@ -217,6 +217,9 @@ python3 github_monitor.py --config config.yaml --force-check
 
 # Monitor and download new releases automatically
 python3 github_monitor.py --config config.yaml --download
+
+# Force local storage (bypass S3/Artifactory auto-detection)
+python3 github_monitor.py --config config.yaml --force-download
 ```
 
 ### Bash Wrapper

@@ -76,7 +76,13 @@ Environment variables take precedence over config file settings. The script auto
 
 **Solution - Control Auto-Detection:**
 
-**Option 1 - Disable Environment Variables:**
+**Option 1 - Use Force Download Flag (Recommended):**
+```bash
+# Bypass auto-detection with --force-download flag
+python github_monitor.py --config ./config.yaml --force-download
+```
+
+**Option 2 - Disable Environment Variables:**
 ```bash
 # Temporarily unset Artifactory variables
 unset ARTIFACTORY_URL
@@ -89,7 +95,7 @@ unset ARTIFACTORY_API_KEY
 python github_monitor.py --config ./config.yaml --download
 ```
 
-**Option 2 - Use Separate Environment Files:**
+**Option 3 - Use Separate Environment Files:**
 ```bash
 # Create .env.local (no Artifactory variables)
 cat > .env.local << 'EOF'
@@ -101,7 +107,7 @@ source .env.local
 python github_monitor.py --config ./config.yaml --download
 ```
 
-**Option 3 - Explicit Config Override:**
+**Option 4 - Explicit Config Override:**
 ```yaml
 # In config.yaml - be very explicit
 download:

@@ -272,6 +272,11 @@ def main():
         action="store_true",
         help="Download new releases after monitoring (requires download configuration)",
     )
+    parser.add_argument(
+        "--force-download",
+        action="store_true",
+        help="Force local storage for downloads, bypassing S3/Artifactory auto-detection from environment variables",
+    )
 
     args = parser.parse_args()
 
@@ -291,9 +296,13 @@ def main():
 
     # Check download configuration if download is requested
     download_config = config.get("download", {})
-    if args.download and not download_config.get("enabled", False):
+    if (args.download or args.force_download) and not download_config.get("enabled", False):
         logger.error("Download requested but not enabled in configuration")
         sys.exit(1)
+    
+    # --force-download implies --download
+    if args.force_download:
+        args.download = True
 
     # Initialize components
     monitor = GitHubMonitor(github_token)
@@ -374,7 +383,7 @@ def main():
             logger.info(f"Starting downloads for {len(new_releases)} new releases...")
 
             # Initialize download coordinator
-            coordinator = ReleaseDownloadCoordinator(config, github_token)
+            coordinator = ReleaseDownloadCoordinator(config, github_token, force_local=args.force_download)
 
             # Process the releases for download
             download_results = coordinator.process_monitor_output(output_data)

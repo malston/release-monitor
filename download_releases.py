@@ -40,13 +40,14 @@ class ReleaseDownloadCoordinator:
     Coordinates the release download process with version tracking.
     """
 
-    def __init__(self, config: Dict[str, Any], github_token: str):
+    def __init__(self, config: Dict[str, Any], github_token: str, force_local: bool = False):
         """
         Initialize download coordinator.
 
         Args:
             config: Download configuration
             github_token: GitHub API token
+            force_local: Force local storage, bypassing S3/Artifactory auto-detection
         """
         self.config = config
         self.github_token = github_token
@@ -60,15 +61,20 @@ class ReleaseDownloadCoordinator:
         use_s3 = s3_config.get('enabled', False)
         use_artifactory = artifactory_config.get('enabled', False)
         
-        # Auto-detect S3 usage if environment variables are present
-        if not use_s3 and os.environ.get('VERSION_DB_S3_BUCKET'):
-            use_s3 = True
-            logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
-        
-        # Auto-detect Artifactory usage if environment variables are present
-        if not use_artifactory and os.environ.get('ARTIFACTORY_URL') and os.environ.get('ARTIFACTORY_REPOSITORY'):
-            use_artifactory = True
-            logger.info("Auto-detected Artifactory version database from ARTIFACTORY_URL and ARTIFACTORY_REPOSITORY environment variables")
+        if force_local:
+            logger.info("Forcing local storage for downloads (--force-download flag)")
+            use_s3 = False
+            use_artifactory = False
+        else:
+            # Auto-detect S3 usage if environment variables are present
+            if not use_s3 and os.environ.get('VERSION_DB_S3_BUCKET'):
+                use_s3 = True
+                logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
+            
+            # Auto-detect Artifactory usage if environment variables are present
+            if not use_artifactory and os.environ.get('ARTIFACTORY_URL') and os.environ.get('ARTIFACTORY_REPOSITORY'):
+                use_artifactory = True
+                logger.info("Auto-detected Artifactory version database from ARTIFACTORY_URL and ARTIFACTORY_REPOSITORY environment variables")
         
         # Priority: Artifactory > S3 > local
         if use_artifactory:
