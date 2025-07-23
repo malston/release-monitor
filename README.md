@@ -21,6 +21,7 @@
 - **⚡ Lightweight**: Simple Python script with minimal dependencies
 
 Perfect for teams who need to:
+
 - Track when Kubernetes, Gatekeeper, Istio, or other tools release updates
 - Automate dependency updates in their CI/CD pipelines  
 - Monitor security tools for latest versions
@@ -76,12 +77,15 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### 🎯 Where to Start Contributing
 
 #### Good First Issues
+
 Perfect for newcomers to the project:
+
 - [🏷️ Good First Issues](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Beginner-friendly tasks
 - [🤝 Help Wanted](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) - Issues where we need help
 - [✨ Enhancements](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) - New features and improvements
 
 #### Types of Contributions We're Looking For
+
 - 🐛 **Bug Fixes** - Help us squash bugs
 - 📚 **Documentation** - Improve docs, add examples, fix typos
 - ✨ **New Features** - Add support for new CI/CD tools (GitHub Actions, GitLab CI, etc.)
@@ -90,6 +94,7 @@ Perfect for newcomers to the project:
 - 🌍 **Examples** - Add more use cases and integration examples
 
 #### Quick Start for Contributors
+
 1. **Find an Issue**: Browse [open issues](https://github.com/malston/release-monitor/issues) or create a new one
 2. **Comment**: Let us know you're working on it
 3. **Fork & Clone**: See our [Contributing Guide](CONTRIBUTING.md#fork-and-clone)
@@ -97,6 +102,7 @@ Perfect for newcomers to the project:
 5. **Submit PR**: We'll review and provide feedback
 
 ### Quick Links
+
 - [🍴 Fork the repository](https://github.com/malston/release-monitor/fork)
 - [🐛 Report a bug](https://github.com/malston/release-monitor/issues/new?template=bug_report.md)
 - [💡 Request a feature](https://github.com/malston/release-monitor/issues/new?template=feature_request.md)
@@ -411,7 +417,7 @@ docker-compose -f docker-compose-full.yml logs -f setup-checker
 # MinIO S3-compatible storage only
 docker-compose up -d
 
-# JFrog Artifactory OSS only  
+# JFrog Artifactory OSS only
 docker-compose -f docker-compose-artifactory.yml up -d
 
 # Automated Artifactory setup
@@ -420,8 +426,8 @@ docker-compose -f docker-compose-artifactory.yml up -d
 
 ### Service URLs
 
-- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
-- **Artifactory UI**: http://localhost:8081 (admin/password)  
+- **MinIO Console**: <http://localhost:9001> (minioadmin/minioadmin)
+- **Artifactory UI**: <http://localhost:8081> (admin/password)  
 - **PostgreSQL**: localhost:5432 (release_monitor/release_monitor_pass)
 
 ## Examples

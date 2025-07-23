@@ -1,217 +1,190 @@
 services:
-  # JFrog Artifactory OSS
+  # PostgreSQL database for Artifactory
+  postgres:
+    image: postgres:13
+    container_name: artifactory-postgres
+    environment:
+      POSTGRES_DB: artifactory
+      POSTGRES_USER: artifactory
+      POSTGRES_PASSWORD: artifactory
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # Expose for debugging if needed      
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artifactory -d artifactory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # Pre-setup service to generate master key before Artifactory starts
+  artifactory-setup:
+    image: alpine:latest
+    container_name: artifactory-postgres-setup
+    volumes:
+      - artifactory-postgres-data:/opt/jfrog/artifactory
+    command:
+      - sh
+      - -c
+      - |
+        echo '🔑 Setting up Artifactory master keys for PostgreSQL version...'
+
+        # Install required packages
+        apk add --no-cache openssl
+
+        # Wait a moment for container to start
+        sleep 20
+
+        # Create complete directory structure
+        mkdir -p /opt/jfrog/artifactory/var/etc/security
+        mkdir -p /opt/jfrog/artifactory/var/data
+        mkdir -p /opt/jfrog/artifactory/var/log
+        mkdir -p /opt/jfrog/artifactory/var/work/run
+
+        # Generate master key
+        if [ ! -f /opt/jfrog/artifactory/var/etc/security/master.key ]; then
+          echo '📝 Generating master key...'
+          openssl rand -hex 16 > /opt/jfrog/artifactory/var/etc/security/master.key
+          echo '✅ Master key generated'
+        fi
+
+        # Generate join key  
+        if [ ! -f /opt/jfrog/artifactory/var/etc/security/join.key ]; then
+          echo '📝 Generating join key...'
+          openssl rand -hex 32 > /opt/jfrog/artifactory/var/etc/security/join.key
+          echo '✅ Join key generated'
+        fi
+
+        # Set ownership to artifactory user (UID 1030) for all directories
+        chown -R 1030:1030 /opt/jfrog/artifactory/var
+
+        # Set permissions
+        chmod 750 /opt/jfrog/artifactory/var/etc/security
+        chmod 640 /opt/jfrog/artifactory/var/etc/security/master.key
+        chmod 640 /opt/jfrog/artifactory/var/etc/security/join.key
+
+        echo '🎉 Setup complete!'
+
+  # JFrog Artifactory OSS with PostgreSQL and pre-generated master keys
   artifactory:
     image: releases-docker.jfrog.io/jfrog/artifactory-oss:latest
-    container_name: release-monitor-artifactory
+    container_name: release-monitor-artifactory-postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artifactory-setup:
+        condition: service_completed_successfully
     ports:
-      - "8081:8081"     # Artifactory UI and API port
-      - "8082:8082"     # Artifactory access port (if needed)
+      - "8081:8081"      # Artifactory main API and legacy UI
+      - "8082:8082"      # Artifactory modern UI router
     environment:
-      # JVM memory settings for local development
-      JF_SHARED_JAVAHEAPDUMPPATH: /var/opt/jfrog/artifactory
+      # JVM settings
       JF_SHARED_JAVA_XMS: 512m
       JF_SHARED_JAVA_XMX: 2g
-      # Database settings (using embedded Derby for OSS)
-      JF_SHARED_DATABASE_TYPE: derby
-      # Artifactory system settings
-      ARTIFACTORY_HOME: /var/opt/jfrog/artifactory
-      # Enable access logging
-      JF_ROUTER_LOGGING_LEVEL: INFO
-      # Speed up startup
+      # PostgreSQL database configuration
+      JF_SHARED_DATABASE_TYPE: postgresql
+      JF_SHARED_DATABASE_URL: jdbc:postgresql://postgres:5432/artifactory
+      JF_SHARED_DATABASE_USERNAME: artifactory
+      JF_SHARED_DATABASE_PASSWORD: artifactory
+      JF_SHARED_DATABASE_DRIVER: org.postgresql.Driver
+      # Disable HA features for single instance
       JF_SHARED_NODE_HAENABLED: false
-      # Disable features not needed for development
-      JF_ACCESS_JFCONFIG_ENABLED: false
+      # Reduce logging
+      JF_ROUTER_LOGGING_LEVEL: WARN
+      JF_ACCESS_LOGGING_LEVEL: WARN
+      # Set home directory
+      JFROG_HOME: /opt/jfrog/artifactory
+      # Database connection settings
+      JF_SHARED_DATABASE_MAXOPENCONNECTIONS: 80
+      JF_SHARED_DATABASE_MAXIDLECONNECTIONS: 20
+      # Wait for database to be ready
+      SKIP_WAIT_FOR_EXTERNAL_DB: false
+      
     volumes:
-      - artifactory-data:/var/opt/jfrog/artifactory
-      - artifactory-logs:/var/opt/jfrog/artifactory/logs
-      - artifactory-etc:/var/opt/jfrog/artifactory/etc
+      - artifactory-postgres-data:/opt/jfrog/artifactory
     ulimits:
-      nproc: 65535
+      nproc: 16384
       nofile:
-        soft: 32000
-        hard: 40000
+        soft: 8192
+        hard: 16384
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
       interval: 30s
       timeout: 15s
       retries: 20
-      start_period: 600s  # Artifactory takes 5-10 minutes on first startup
-    networks:
-      - release-monitor-net
+      start_period: 480s  # Longer start period for database initialization
+    mem_limit: 4g  # More memory for PostgreSQL setup
+    cpus: 2.0
     restart: unless-stopped
 
-  # Optional: Initialize Artifactory with repositories and user
-  artifactory-setup:
+  # Status checker that runs when Artifactory is healthy
+  status-checker:
     image: curlimages/curl:latest
-    container_name: release-monitor-artifactory-setup
+    container_name: artifactory-postgres-status
     depends_on:
       artifactory:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c '
-      echo "Waiting for Artifactory to be ready...";
-      sleep 30;
-      
-      # Check Artifactory status
-      echo "Checking Artifactory status...";
-      curl -f http://artifactory:8081/artifactory/api/system/ping || exit 1;
-      
-      echo "Artifactory is ready!";
-      echo "";
-      echo "=== JFrog Artifactory OSS Setup Complete ===";
-      echo "";
-      echo "Access Artifactory:";
-      echo "  URL: http://localhost:8081";
-      echo "  Default credentials: admin / password";
-      echo "";
-      echo "Setup Instructions:";
-      echo "1. Login to Artifactory UI at http://localhost:8081";
-      echo "2. Complete the setup wizard";
-      echo "3. Create a Generic repository called \"generic-releases\"";
-      echo "4. Create an API key or user for release-monitor";
-      echo "";
-      echo "Configuration for release-monitor:";
-      echo "  ARTIFACTORY_URL=http://localhost:8081/artifactory";
-      echo "  ARTIFACTORY_REPOSITORY=generic-releases";
-      echo "  ARTIFACTORY_USERNAME=admin";
-      echo "  ARTIFACTORY_PASSWORD=password";
-      echo "";
-      echo "Or create an API key (recommended):";
-      echo "  ARTIFACTORY_URL=http://localhost:8081/artifactory";
-      echo "  ARTIFACTORY_REPOSITORY=generic-releases"; 
-      echo "  ARTIFACTORY_API_KEY=your-generated-api-key";
-      echo "";
-      '
-    networks:
-      - release-monitor-net
-
-  # Optional: PostgreSQL for production Artifactory setup
-  # Uncomment if you want to use PostgreSQL instead of Derby
-  # artifactory-postgres:
-  #   image: postgres:13
-  #   container_name: release-monitor-artifactory-db
-  #   environment:
-  #     POSTGRES_DB: artifactory
-  #     POSTGRES_USER: artifactory
-  #     POSTGRES_PASSWORD: artifactory_password
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #   networks:
-  #     - release-monitor-net
-  #   restart: unless-stopped
-
-  # Optional: Nginx reverse proxy for SSL termination
-  # Uncomment if you want to access Artifactory via HTTPS
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: release-monitor-nginx
-  #   ports:
-  #     - "443:443"
-  #     - "80:80"
-  #   depends_on:
-  #     - artifactory
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./nginx/ssl:/etc/nginx/ssl:ro
-  #   networks:
-  #     - release-monitor-net
-  #   restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - |
+        echo ""
+        echo "🎉 Artifactory with PostgreSQL is ready!"
+        echo ""
+        echo "✅ Status: Healthy and ready for setup"
+        echo "🌐 Modern UI: http://localhost:8082/ui/"
+        echo "🌐 Classic UI: http://localhost:8081/artifactory/"
+        echo "🔑 Default Login: admin / password"
+        echo "💾 Database: PostgreSQL"
+        echo ""
+        echo "📋 Next Steps:"
+        echo "1. Visit http://localhost:8082/ui/ (recommended)"
+        echo "2. Complete the setup wizard"
+        echo "3. Create a repository named: generic-releases"
+        echo "4. Generate an API key for automation"
+        echo ""
+        echo "🔧 For Release Monitor, set these environment variables:"
+        echo "  export ARTIFACTORY_URL=\"http://localhost:8081/artifactory\""
+        echo "  export ARTIFACTORY_REPOSITORY=\"generic-releases\""
+        echo "  export ARTIFACTORY_API_KEY=\"your-generated-api-key\""
+        echo ""
+        echo "🐘 PostgreSQL database is running and connected!"
+        echo ""
 
 volumes:
-  artifactory-data:
+  artifactory-postgres-data:
     driver: local
-  artifactory-logs:
+  postgres-data:
     driver: local
-  artifactory-etc:
-    driver: local
-  # postgres-data:
-  #   driver: local
-
-networks:
-  release-monitor-net:
-    driver: bridge
 
 # =============================================================================
-# Usage Instructions:
+# Artifactory with PostgreSQL and Pre-Generated Master Key
 # =============================================================================
 #
-# 1. Start JFrog Artifactory OSS:
-#    docker-compose -f docker-compose-artifactory.yml up -d
+# This version provides a complete Artifactory setup with:
+# - PostgreSQL database (resolves the database requirement errors)
+# - Pre-generated master key (resolves the startup issues)
+# - Proper dependency ordering
+# - Health checks for reliable startup
 #
-# 2. Wait for Artifactory to start (takes 1-2 minutes):
-#    docker-compose -f docker-compose-artifactory.yml logs -f artifactory
+# Usage:
+#   docker-compose -f docker-compose-artifactory.yml up -d
 #
-# 3. Access Artifactory Web UI:
-#    http://localhost:8081
-#    Default login: admin / password
+# This should resolve both the master key issues AND the database issues
+# that were preventing full Artifactory functionality.
 #
-# 4. Complete Initial Setup:
-#    - Follow the setup wizard
-#    - Set admin password
-#    - Configure base URL: http://localhost:8081/artifactory
-#    - Skip proxy settings for local development
+# Expected startup time: 3-5 minutes for full initialization
 #
-# 5. Create Generic Repository:
-#    - Administration > Repositories > Repositories
-#    - New > Generic > Repository Key: "generic-releases"
-#    - Save & Finish
+# Clean up:
+#   docker-compose -f docker-compose-artifactory.yml down -v
 #
-# 6. Create API Key (Recommended):
-#    - User Profile > Generate API Key
-#    - Copy the generated key
-#
-# 7. Configure release-monitor:
-#    export ARTIFACTORY_URL="http://localhost:8081/artifactory"
-#    export ARTIFACTORY_REPOSITORY="generic-releases"
-#    export ARTIFACTORY_API_KEY="your-generated-api-key"
-#    
-#    # OR use username/password:
-#    export ARTIFACTORY_USERNAME="admin"
-#    export ARTIFACTORY_PASSWORD="your-password"
-#
-# 8. Test connection:
-#    python3 -c "
-#    import os
-#    from github_version_artifactory import ArtifactoryVersionDatabase
-#    db = ArtifactoryVersionDatabase(
-#        base_url=os.environ['ARTIFACTORY_URL'],
-#        repository=os.environ['ARTIFACTORY_REPOSITORY']
-#    )
-#    print('Connection successful:', db.load_versions())
-#    "
-#
-# 9. Run release-monitor with Artifactory:
-#    python3 download_releases.py
-#
-# 10. Stop services:
-#     docker-compose -f docker-compose-artifactory.yml down
-#
-# 11. Remove data (WARNING: This deletes all data):
-#     docker-compose -f docker-compose-artifactory.yml down -v
-#
-# =============================================================================
-# Troubleshooting:
-# =============================================================================
-#
-# If Artifactory fails to start:
-# - Check logs: docker-compose -f docker-compose-artifactory.yml logs artifactory
-# - Increase memory: Add JF_SHARED_JAVA_XMX=2g to environment
-# - Wait longer: Artifactory can take 2-5 minutes to fully start
-#
-# If setup wizard doesn't appear:
-# - Clear browser cache
-# - Try: http://localhost:8081/ui/
-# - Check Artifactory logs for errors
-#
-# For production use:
-# - Use PostgreSQL instead of Derby (uncomment postgres section)
-# - Set up proper SSL certificates (uncomment nginx section)
-# - Configure proper JVM memory settings
-# - Set up backup strategies
-#
-# Memory requirements:
-# - Minimum: 2GB RAM
-# - Recommended: 4GB+ RAM for production
-# - Adjust JF_SHARED_JAVA_XMX environment variable as needed
+# Database Info:
+#   - Database: artifactory
+#   - User: artifactory  
+#   - Password: artifactory
+#   - Port: 5432 (accessible for debugging)
 #
 # =============================================================================

@@ -5,10 +5,7 @@
 ### 1. Start Artifactory
 
 ```bash
-# Option A: Fast development setup (recommended for testing)
-docker-compose -f docker-compose-artifactory-dev.yml up -d
-
-# Option B: Full production setup
+# Fast development setup (recommended for testing)
 docker-compose -f docker-compose-artifactory.yml up -d
 
 # Wait for it to be ready
@@ -20,12 +17,12 @@ docker-compose -f docker-compose-artifactory.yml up -d
 
 ### 2. Complete Setup Wizard
 
-1. **Open Artifactory**: http://localhost:8081
+1. **Open Artifactory**: <http://localhost:8081>
 2. **Login**: `admin` / `password`  
 3. **Set New Password**: Choose a secure password
 4. **Base URL**: Set to `http://localhost:8081/artifactory`
 5. **Proxy**: Skip proxy configuration
-6. **Create Repository**: 
+6. **Create Repository**:
    - Go to Administration → Repositories → Repositories
    - New Repository → Generic → Repository Key: `generic-releases`
    - Save & Finish
@@ -79,16 +76,19 @@ python3 download_releases.py
 ## 🛠 Troubleshooting
 
 ### Artifactory Not Starting
+
 - **Check logs**: `docker-compose -f docker-compose-artifactory.yml logs artifactory`
 - **Wait longer**: First startup takes 5-10 minutes
 - **Check memory**: Artifactory needs at least 2GB RAM
 
 ### Setup Wizard Not Loading
+
 - **Clear browser cache** and try again
-- **Try**: http://localhost:8081/ui/
+- **Try**: <http://localhost:8081/ui/>
 - **Wait**: API might still be initializing
 
 ### Connection Errors
+
 - **Repository exists**: Make sure `generic-releases` repository is created
 - **Credentials**: Verify API key or username/password
 - **URL format**: Should end with `/artifactory` (no trailing slash)

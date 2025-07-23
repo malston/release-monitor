@@ -1,6 +1,17 @@
 # Concourse Pipeline for GitHub Release Monitor - JFrog Artifactory Version
 # This pipeline uses JFrog Artifactory for storing release artifacts and version database
 
+groups:
+  - name: main-pipeline
+    jobs:
+      - monitor-releases
+      - download-new-releases
+  
+  - name: utilities
+    jobs:
+      - check-version-database
+      - reset-version-database
+
 resources:
   - name: release-monitor-repo
     type: git
@@ -14,16 +25,15 @@ resources:
     source:
       interval: 1h  # Check every hour
 
-  # For Artifactory, we'll use generic resource to upload JSON files
-  - name: monitor-output-artifactory
-    type: artifactory-generic
-    source:
-      endpoint: ((artifactory_url))
-      repository: ((artifactory_repository))
-      username: ((artifactory_username))
-      password: ((artifactory_password))
-      api_key: ((artifactory_api_key))
-      skip_ssl_verification: ((artifactory_skip_ssl_verification))
+#   - name: monitor-output-artifactory
+#     type: artifactory
+#     source:
+#       endpoint: ((artifactory_url))
+#       repository: ((artifactory_repository))
+#       username: ((artifactory_username))
+#       password: ((artifactory_password))
+#       api_key: ((artifactory_api_key))
+#       skip_ssl_verification: ((artifactory_skip_ssl_verification))
 
   - name: email-notification
     type: email
@@ -116,9 +126,9 @@ jobs:
     plan:
       - in_parallel:
           - get: release-monitor-repo
-          - get: monitor-output-artifactory
             trigger: true
             passed: [monitor-releases]
+        #   - get: monitor-output-artifactory
 
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
@@ -267,13 +277,33 @@ jobs:
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
-groups:
-  - name: main-pipeline
-    jobs:
-      - monitor-releases
-      - download-new-releases
+# Resource types (if not available in your Concourse deployment)
+resource_types:
+#   - name: artifactory
+#     type: s3
+#     source:
+#       access_key_id: ((concourse_sgs3_access_key_id))
+#       bucket: ((concourse-sgs3-bucket))
+#       endpoint: ((concourse-sgs3-endpoint))
+#       regexp: artifactory-resource/artifactory-resource-(.*)-(.*).tgz
+#       secret_access_key: ((concourse_sgs3_secret_access_key))
+#     params:
+#       unpack: true
+
+#   - name: artifactory
+#     type: registry-image
+#     source:
+#       repository: orangeopensource/artifactory-resource
+#       tag: latest
+
+  - name: s3
+    type: registry-image
+    source:
+      repository: concourse/s3-resource
+      tag: 1.2.1  # Use specific version that supports endpoints
   
-  - name: utilities
-    jobs:
-      - check-version-database
-      - reset-version-database
+  - name: email
+    type: registry-image
+    source:
+      repository: pcfseceng/email-resource
+      tag: 1.0.19

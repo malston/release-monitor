@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 # Configuration
 COMPOSE_FILE="docker-compose-artifactory.yml"
 ARTIFACTORY_URL="http://localhost:8081"
-REPOSITORY_NAME="generic-releases"
+REPOSITORY_NAME="generic-local"
 
 echo_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"

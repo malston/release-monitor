@@ -143,7 +143,7 @@ The integration creates the following structure in your Artifactory repository:
 ```bash
 # Set environment variables
 export ARTIFACTORY_URL="https://your-company.jfrog.io/artifactory"
-export ARTIFACTORY_REPOSITORY="generic-releases"
+export ARTIFACTORY_REPOSITORY="generic-local"
 export ARTIFACTORY_API_KEY="your-api-key"
 export GITHUB_TOKEN="your-github-token"
 
@@ -257,6 +257,7 @@ fly -t your-target trigger-job -j release-monitor-artifactory/reset-version-data
 **Problem**: HTTP 401 errors when accessing Artifactory
 
 **Solutions**:
+
 - Verify API key or username/password are correct
 - Check that credentials have proper permissions for the repository
 - Ensure the API key hasn't expired
@@ -272,6 +273,7 @@ curl -H "X-JFrog-Art-Api: your-api-key" \
 **Problem**: SSL verification failures with self-signed certificates
 
 **Solutions**:
+
 - Set `ARTIFACTORY_SKIP_SSL_VERIFICATION=true` for testing
 - For production, add your CA certificate to the system trust store
 - Use proper SSL certificates
@@ -281,6 +283,7 @@ curl -H "X-JFrog-Art-Api: your-api-key" \
 **Problem**: HTTP 403 errors when uploading or downloading
 
 **Solutions**:
+
 - Verify the user/API key has deploy permissions on the repository
 - Check repository exists and is accessible
 - Ensure repository is of type "Generic"
@@ -290,6 +293,7 @@ curl -H "X-JFrog-Art-Api: your-api-key" \
 **Problem**: Pipeline fails to load version database
 
 **Solutions**:
+
 - The database is created automatically on first run
 - Check Artifactory repository permissions
 - Verify repository name and path prefix configuration
@@ -345,6 +349,7 @@ db.save_versions(empty_data)
 To migrate from S3 to Artifactory:
 
 1. Export existing version database from S3:
+
    ```python
    from github_version_s3 import S3VersionDatabase
    s3_db = S3VersionDatabase('your-s3-bucket')
@@ -352,6 +357,7 @@ To migrate from S3 to Artifactory:
    ```
 
 2. Import to Artifactory:
+
    ```python
    from github_version_artifactory import ArtifactoryVersionDatabase
    art_db = ArtifactoryVersionDatabase('https://artifactory.example.com/artifactory', 'repo')

@@ -5,35 +5,35 @@ repositories:
   - owner: kubernetes
     repo: kubernetes
     description: "Kubernetes container orchestration platform"
-  
+
   - owner: istio
     repo: istio
     description: "Istio service mesh"
-  
+
   - owner: helm
     repo: helm
     description: "Kubernetes package manager"
-  
+
   - owner: prometheus
     repo: prometheus
     description: "Monitoring and alerting toolkit"
-  
+
   - owner: grafana
     repo: grafana
     description: "Analytics and monitoring platform"
-  
+
   - owner: istio
     repo: istio
     description: "Service mesh platform"
-  
+
   - owner: open-policy-agent
     repo: gatekeeper
     description: "Policy Controller for Kubernetes"
-  
+
   - owner: docker
     repo: cli
     description: "Docker CLI"
-  
+
   - owner: etcd-io
     repo: etcd
     description: "Distributed key-value store"
@@ -42,10 +42,10 @@ repositories:
 settings:
   # Rate limit delay between API calls (seconds)
   rate_limit_delay: 1.0
-  
+
   # Maximum number of releases to fetch per repository
   max_releases_per_repo: 10
-  
+
   # Include pre-releases in monitoring
   include_prereleases: false
 
@@ -54,13 +54,13 @@ settings:
 download:
   # Enable download functionality
   enabled: false
-  
+
   # Directory to store downloaded files
   directory: ./downloads
-  
+
   # Version database file for tracking downloads (local file)
   version_db: ./version_db.json
-  
+
   # S3 storage for version database (optional)
   # Use this for cloud-native deployments and shared state
   s3_storage:
@@ -69,20 +69,27 @@ download:
     prefix: release-monitor/
     # region: us-west-2  # Optional, uses default region if not specified
     # profile: default   # Optional, uses default profile if not specified
-  
+
+  artifactory_storage:
+    enabled: true
+    base_url: "http://localhost:8081/artifactory"
+    repository: "generic-local"
+    path_prefix: "release-monitor/"
+    verify_ssl: false
+
   # Asset filtering patterns
   asset_patterns:
-    - "*.tar.gz"       # Include .tar.gz files
-    - "*.zip"          # Include .zip files
-    - "*.yaml"         # Include Kubernetes manifests
-    - "*.yml"          # Include YAML configuration files  
-    - "*.json"         # Include JSON configuration files
+    - "*.tar.gz" # Include .tar.gz files
+    - "*.zip" # Include .zip files
+    - "*.yaml" # Include Kubernetes manifests
+    - "*.yml" # Include YAML configuration files
+    - "*.json" # Include JSON configuration files
     - "!*-sources.zip" # Exclude source archives
-    - "!*.sig"         # Exclude signature files
-  
+    - "!*.sig" # Exclude signature files
+
   # Include pre-releases in downloads (overrides global setting)
   include_prereleases: false
-  
+
   # Source code download settings
   source_archives:
     # Enable downloading source code (tarball/zipball) when no matching assets found
@@ -91,17 +98,17 @@ download:
     prefer: "tarball"
     # Only download source if no assets match patterns
     fallback_only: true
-  
+
   # Verification settings
   verify_downloads: true
-  
+
   # Cleanup settings
   cleanup_old_versions: true
-  keep_versions: 5  # Keep last 5 versions per repository
-  
+  keep_versions: 5 # Keep last 5 versions per repository
+
   # Download timeout in seconds
   timeout: 300
-  
+
   # Per-repository download overrides
   repository_overrides:
     # Example: Different settings for specific repositories
@@ -110,16 +117,16 @@ download:
         - "kubernetes-client-*.tar.gz"
         - "kubernetes-server-*.tar.gz"
       include_prereleases: false
-    
+
     # Example: Repository with Kubernetes manifests only
     wavefrontHQ/observability-for-kubernetes:
       asset_patterns:
         - "*.yaml"
         - "*.yml"
       source_archives:
-        fallback_only: false  # Always download source for this repo
+        fallback_only: false # Always download source for this repo
         prefer: "tarball"
-    
+
     # Example: Skip downloads for documentation-only repos
     # some/docs-repo:
     #   enabled: false
