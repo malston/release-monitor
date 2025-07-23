@@ -30,7 +30,7 @@ export ARTIFACTORY_PASSWORD="your-password"
 
 ```bash
 # Using the convenience script
-./scripts/download-from-artifactory-local.sh
+./scripts/download-from-artifactory.sh
 
 # Or using Python directly
 python3 scripts/download-from-artifactory.py
@@ -40,10 +40,10 @@ python3 scripts/download-from-artifactory.py
 
 ```bash
 # Download only Kubernetes releases
-./scripts/download-from-artifactory-local.sh --repo kubernetes/kubernetes
+./scripts/download-from-artifactory.sh --repo kubernetes/kubernetes
 
 # Download only Prometheus releases
-./scripts/download-from-artifactory-local.sh --repo prometheus/prometheus
+./scripts/download-from-artifactory.sh --repo prometheus/prometheus
 ```
 
 ## Usage Examples
@@ -53,7 +53,7 @@ python3 scripts/download-from-artifactory.py
 See what repositories have releases available in Artifactory:
 
 ```bash
-./scripts/download-from-artifactory-local.sh --list
+./scripts/download-from-artifactory.sh --list
 ```
 
 ### Download with Pattern Matching
@@ -62,23 +62,23 @@ Download only specific file types:
 
 ```bash
 # Download only tar.gz files
-./scripts/download-from-artifactory-local.sh --pattern "*.tar.gz"
+./scripts/download-from-artifactory.sh --pattern "*.tar.gz"
 
 # Download only Linux AMD64 binaries
-./scripts/download-from-artifactory-local.sh --pattern "*linux-amd64*"
+./scripts/download-from-artifactory.sh --pattern "*linux-amd64*"
 ```
 
 ### Specify Output Directory
 
 ```bash
-./scripts/download-from-artifactory-local.sh --output-dir ~/my-releases
+./scripts/download-from-artifactory.sh --output-dir ~/my-releases
 ```
 
 ### Download Specific Repository with Pattern
 
 ```bash
 # Download only Kubernetes server binaries
-./scripts/download-from-artifactory-local.sh \
+./scripts/download-from-artifactory.sh \
   --repo kubernetes/kubernetes \
   --pattern "kubernetes-server-*.tar.gz"
 ```
@@ -105,7 +105,7 @@ python3 scripts/download-from-artifactory.py \
 For self-signed certificates:
 
 ```bash
-./scripts/download-from-artifactory-local.sh --no-verify-ssl
+./scripts/download-from-artifactory.sh --no-verify-ssl
 ```
 
 ## Directory Structure
