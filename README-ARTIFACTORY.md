@@ -45,5 +45,6 @@ python github_monitor.py --config ./config.yaml --download
 ## 🔗 Alternative Storage
 
 This project also supports:
+
 - **AWS S3** - See main README.md
 - **S3-Compatible** - MinIO, etc. (see S3 documentation)

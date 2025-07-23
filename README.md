@@ -110,6 +110,27 @@ Perfect for newcomers to the project:
 - [👥 Contributors](CONTRIBUTORS.md)
 - [💬 Discussions](https://github.com/malston/release-monitor/discussions) (coming soon)
 
+## Storage Backends
+
+The GitHub Release Monitor supports multiple storage backends for artifacts and version tracking:
+
+### 📦 AWS S3 & S3-Compatible Storage (Default)
+- **MinIO**, **AWS S3**, **Google Cloud Storage**, and other S3-compatible services
+- Built-in support with automatic failover between boto3 and MinIO client
+- Perfect for cloud-native and self-hosted environments
+
+### 🏢 JFrog Artifactory (Enterprise)
+- Full JFrog Artifactory OSS and Enterprise support
+- **Complete Documentation**: [📖 Artifactory Integration Guide](README-ARTIFACTORY.md)
+- Version database and artifact storage in Artifactory repositories
+- API key and username/password authentication
+- SSL configuration for self-signed certificates
+
+Choose the storage backend that best fits your infrastructure:
+- **Getting Started**: Use the default S3-compatible setup with MinIO
+- **Enterprise**: Use Artifactory if you already have JFrog infrastructure
+- **Cloud**: Use AWS S3, Google Cloud Storage, or Azure Blob Storage
+
 ## Requirements
 
 - Python 3.8+ (tested on 3.8, 3.9, 3.10, 3.11)
