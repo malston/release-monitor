@@ -70,8 +70,6 @@ jobs:
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_USERNAME: ((artifactory_username))
-          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
@@ -97,8 +95,6 @@ jobs:
           params:
             ARTIFACTORY_URL: ((artifactory_url))
             ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_USERNAME: ((artifactory_username))
-            ARTIFACTORY_PASSWORD: ((artifactory_password))
             ARTIFACTORY_API_KEY: ((artifactory_api_key))
             ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
@@ -112,8 +108,6 @@ jobs:
           # Artifactory version database configuration for filtering
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_USERNAME: ((artifactory_username))
-          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
         on_success:
@@ -144,8 +138,6 @@ jobs:
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_USERNAME: ((artifactory_username))
-          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
@@ -171,8 +163,6 @@ jobs:
           params:
             ARTIFACTORY_URL: ((artifactory_url))
             ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_USERNAME: ((artifactory_username))
-            ARTIFACTORY_PASSWORD: ((artifactory_password))
             ARTIFACTORY_API_KEY: ((artifactory_api_key))
             ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
             DOWNLOAD_DIR: /tmp/downloads
@@ -219,8 +209,6 @@ jobs:
         params:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_USERNAME: ((artifactory_username))
-          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
@@ -272,8 +260,6 @@ jobs:
         params:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_USERNAME: ((artifactory_username))
-          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
