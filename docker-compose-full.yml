@@ -5,7 +5,7 @@ services:
 
   postgres:
     image: postgres:13
-    container_name: artifactory-postgres
+    container_name: release-monitor-artifactory-postgres
     environment:
       POSTGRES_DB: artifactory
       POSTGRES_USER: artifactory
@@ -45,8 +45,8 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
-    networks:
-      - release-monitor-net
+    # networks:
+    #   - release-monitor-net
     restart: unless-stopped
 
   minio-setup:
@@ -117,8 +117,8 @@ services:
       echo '  - Username: release-monitor-user';
       echo '  - Password: release-monitor-pass';
       "
-    networks:
-      - release-monitor-net
+    # networks:
+    #   - release-monitor-net
 
 # Usage Instructions:
 #
@@ -153,7 +153,7 @@ services:
   # Pre-setup service to generate master key before Artifactory starts
   artifactory-setup:
     image: alpine:latest
-    container_name: artifactory-setup
+    container_name: release-monitor-artifactory-setup
     volumes:
       - artifactory-data:/opt/jfrog/artifactory
     command:
@@ -236,18 +236,18 @@ services:
       - artifactory-data:/var/opt/jfrog/artifactory
       - artifactory-logs:/var/opt/jfrog/artifactory/logs
     ulimits:
-      nproc: 65535
+      nproc: 16384
       nofile:
-        soft: 32000
-        hard: 40000
+        soft: 8192
+        hard: 16384
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/artifactory/api/system/ping"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 180s  # Artifactory takes time to start
-    networks:
-      - release-monitor-net
+      timeout: 15s
+      retries: 20
+      start_period: 480s  # Longer start period for database initialization
+    mem_limit: 4g  # More memory for PostgreSQL setup
+    cpus: 2.0
     restart: unless-stopped
 
   # ==========================================================================
@@ -342,8 +342,8 @@ services:
       echo "4. Run: python3 download_releases.py";
       echo "";
       '
-    networks:
-      - release-monitor-net
+    # networks:
+    #   - release-monitor-net
 
 volumes:
   minio-data:
@@ -355,12 +355,12 @@ volumes:
   postgres-data:
     driver: local
 
-networks:
-  release-monitor-net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
+# networks:
+#   release-monitor-net:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.20.0.0/24
 
 # =============================================================================
 # USAGE INSTRUCTIONS
