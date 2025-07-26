@@ -115,11 +115,13 @@ Perfect for newcomers to the project:
 The GitHub Release Monitor supports multiple storage backends for artifacts and version tracking:
 
 ### 📦 AWS S3 & S3-Compatible Storage (Default)
+
 - **MinIO**, **AWS S3**, **Google Cloud Storage**, and other S3-compatible services
 - Built-in support with automatic failover between boto3 and MinIO client
 - Perfect for cloud-native and self-hosted environments
 
 ### 🏢 JFrog Artifactory (Enterprise)
+
 - Full JFrog Artifactory OSS and Enterprise support
 - **Complete Documentation**: [📖 Artifactory Integration Guide](README-ARTIFACTORY.md)
 - Version database and artifact storage in Artifactory repositories
@@ -127,6 +129,7 @@ The GitHub Release Monitor supports multiple storage backends for artifacts and 
 - SSL configuration for self-signed certificates
 
 Choose the storage backend that best fits your infrastructure:
+
 - **Getting Started**: Use the default S3-compatible setup with MinIO
 - **Enterprise**: Use Artifactory if you already have JFrog infrastructure
 - **Cloud**: Use AWS S3, Google Cloud Storage, or Azure Blob Storage
@@ -429,10 +432,10 @@ This ensures only new releases are reported on subsequent runs.
 
 ```bash
 # Start MinIO, Artifactory, and PostgreSQL
-docker-compose -f docker-compose-full.yml up -d
+docker-compose -f docker-compose.yml up -d
 
 # Check service status
-docker-compose -f docker-compose-full.yml logs -f setup-checker
+docker-compose -f docker-compose.yml logs -f setup-checker
 ```
 
 ### Individual Services
