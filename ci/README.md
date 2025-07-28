@@ -36,9 +36,10 @@ ci/
 ## Pipeline Details
 
 ### pipeline-s3-compatible.yml ⭐ **PRIMARY PIPELINE**
+
 - **Purpose**: Full-featured production pipeline supporting both MinIO and AWS S3
 - **Jobs**: `monitor-releases`, `download-new-releases`, `clear-version-database`, `force-download-repo`
-- **Features**: 
+- **Features**:
   - S3-compatible storage (MinIO, AWS S3, etc.)
   - Advanced version tracking and duplicate prevention
   - Automatic cleanup of old versions
@@ -48,9 +49,10 @@ ci/
 - **Deploy**: `make pipeline-set-test-minio`
 
 ### pipeline-simple.yml 🏁 **STARTER PIPELINE**
+
 - **Purpose**: Basic monitoring without downloads or storage dependencies
-- **Jobs**: `monitor-releases`, `check-repositories` 
-- **Features**: 
+- **Jobs**: `monitor-releases`, `check-repositories`
+- **Features**:
   - GitHub API monitoring only
   - No storage dependencies
   - Easy setup and testing
@@ -59,9 +61,10 @@ ci/
 - **Deploy**: `make pipeline-set-test-simple`
 
 ### pipeline.yml 🏢 **AWS-ONLY PIPELINE**
+
 - **Purpose**: Traditional AWS S3 pipeline for pure AWS environments
 - **Jobs**: `monitor-releases`, `download-new-releases`
-- **Features**: 
+- **Features**:
   - Native AWS S3 integration
   - Standard download and storage
   - AWS-optimized configuration
@@ -79,23 +82,27 @@ pipeline-simple.yml → pipeline-s3-compatible.yml  OR  pipeline.yml
 ## Tasks
 
 ### check-releases
+
 - **Purpose**: Full GitHub monitoring with S3 integration
 - **Image**: `python:3.11-slim`
 - **Used by**: pipeline.yml, pipeline-s3-compatible.yml
 
 ### check-releases-simple  
+
 - **Purpose**: Basic GitHub monitoring without S3
 - **Image**: `python:3.11-slim`
 - **Used by**: pipeline-simple.yml
 
 ### download-releases
+
 - **Purpose**: Advanced downloads with S3 version tracking
-- **Image**: `python:3.9-slim` 
+- **Image**: `python:3.11-slim`
 - **Used by**: pipeline.yml, pipeline-s3-compatible.yml
 
 ## Quick Start
 
 ### For MinIO/S3-Compatible Storage (Recommended)
+
 ```bash
 # Deploy S3-compatible pipeline
 make pipeline-set-test-minio
@@ -105,12 +112,14 @@ make force-download REPO=etcd-io/etcd
 ```
 
 ### For Basic Monitoring Only  
+
 ```bash
 # Deploy simple monitoring pipeline
 make pipeline-set-test-simple
 ```
 
 ### For AWS S3 Only
+
 ```bash
 # Deploy traditional S3 pipeline  
 make pipeline-set-test
@@ -144,6 +153,7 @@ Pipeline parameters are in `../params/`:
 ## Pipeline Flows
 
 ### S3-Compatible Pipeline (Recommended)
+
 ```
 Schedule → Monitor Releases → Download New Releases → Upload to S3
     ↓           ↓                      ↓                    ↓
@@ -151,11 +161,13 @@ Clear DB ← Force Download ←  Version Tracking ←  Automatic Cleanup
 ```
 
 ### Simple Pipeline  
+
 ```
 Schedule → Monitor Releases → Output JSON (no downloads)
 ```
 
 ### Traditional S3 Pipeline
+
 ```
 Schedule → Monitor Releases → Download → Upload to AWS S3
 ```

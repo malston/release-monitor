@@ -89,9 +89,9 @@ def main():
     
     # Find downloads directory
     possible_paths = [
-        Path('/tmp/downloads'),           # Absolute path used by pipeline
-        Path('../downloads'),             # Relative path from scripts/
+        Path('../downloads'),             # Concourse input directory (relative from release-monitor-repo)
         Path('downloads'),                # Current directory
+        Path('/tmp/downloads'),           # Absolute path used by pipeline
         Path(os.environ.get('DOWNLOAD_DIR', '/tmp/downloads'))  # Environment variable
     ]
     

@@ -141,7 +141,7 @@ jobs:
             type: registry-image
             source:
               repository: python
-              tag: 3.9-slim
+              tag: 3.11-slim
           inputs:
             - name: downloads
             - name: release-monitor-repo
@@ -177,7 +177,7 @@ jobs:
             type: registry-image
             source:
               repository: python
-              tag: 3.9-slim
+              tag: 3.11-slim
           inputs:
             - name: release-monitor-repo
           params:
@@ -211,7 +211,7 @@ jobs:
             type: registry-image
             source:
               repository: python
-              tag: 3.9-slim
+              tag: 3.11-slim
           inputs:
             - name: release-monitor-repo
           params:
@@ -301,7 +301,7 @@ jobs:
             type: registry-image
             source:
               repository: python
-              tag: 3.9-slim
+              tag: 3.11-slim
           inputs:
             - name: downloads
             - name: release-monitor-repo

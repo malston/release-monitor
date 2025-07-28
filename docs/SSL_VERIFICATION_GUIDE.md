@@ -16,11 +16,13 @@ S3_SKIP_SSL_VERIFICATION=false # Enable SSL verification (default)
 ### 1. **Core S3 Storage Classes**
 
 #### `github_version_s3_compatible.py`
+
 - Main S3-compatible storage class
 - Automatically configures SSL verification based on environment
 - Used for version database operations
 
 #### `github_version_s3.py`
+
 - Original AWS S3 storage class
 - Now supports SSL verification settings
 - Backward compatible
@@ -30,28 +32,34 @@ S3_SKIP_SSL_VERIFICATION=false # Enable SSL verification (default)
 All scripts in the `scripts/` directory now support SSL verification:
 
 #### `scripts/upload-to-s3.py`
+
 - Uploads release files to S3 storage
 - Respects `S3_SKIP_SSL_VERIFICATION` setting
 
 #### `scripts/clear-version-db.py`
+
 - Clears entire version database
 - SSL verification configurable
 
 #### `scripts/clear-version-entry.py`
+
 - Clears specific repository from database
 - SSL verification configurable
 
 #### `scripts/view-version-db.py`
+
 - Views version database contents
 - SSL verification configurable
 
 ### 3. **Concourse Pipeline Tasks**
 
 #### `ci/tasks/download-releases/task.yml` and `task.sh`
+
 - Download task supports SSL verification
 - Environment variable passed through pipeline
 
 #### `ci/pipeline-s3-compatible.yml`
+
 - All inline boto3 tasks updated
 - SSL verification passed to all S3 operations
 
@@ -117,7 +125,7 @@ if skip_ssl_verification:
 s3 = boto3.client('s3', config=client_config, ...)
 ```
 
-### Key Points:
+### Key Points
 
 1. **Still uses HTTPS**: SSL verification is disabled, but HTTPS is still used
 2. **Certificate validation bypassed**: Self-signed certificates are accepted
@@ -126,7 +134,7 @@ s3 = boto3.client('s3', config=client_config, ...)
 
 ## Troubleshooting
 
-### Common SSL Errors Before Fix:
+### Common SSL Errors Before Fix
 
 ```
 SSLError: HTTPSConnectionPool(host='minio.local', port=9000): 
@@ -134,14 +142,14 @@ Max retries exceeded with url: /
 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED]')))
 ```
 
-### After SSL Verification Fix:
+### After SSL Verification Fix
 
 ```
 WARNING: Skipping SSL verification for S3 endpoint
 Connection successful! Found 2 buckets
 ```
 
-### Testing SSL Configuration:
+### Testing SSL Configuration
 
 Use the provided test script to verify SSL settings:
 
@@ -149,7 +157,7 @@ Use the provided test script to verify SSL settings:
 S3_SKIP_SSL_VERIFICATION=true python3 scripts/view-version-db.py
 ```
 
-### Pipeline Testing:
+### Pipeline Testing
 
 Run the authentication test in your pipeline:
 
@@ -158,7 +166,7 @@ fly -t your-target execute -c - <<EOF
 platform: linux
 image_resource:
   type: registry-image
-  source: {repository: python, tag: 3.9-slim}
+  source: {repository: python, tag: 3.11-slim}
 params:
   S3_ENDPOINT: https://your-minio:9000
   S3_SKIP_SSL_VERIFICATION: "true"
@@ -189,11 +197,13 @@ EOF
 ⚠️ **Warning**: Disabling SSL verification reduces security by accepting invalid certificates.
 
 **Only use `S3_SKIP_SSL_VERIFICATION=true` when:**
+
 - Using development/testing environments
 - Using MinIO with self-signed certificates
 - Working in secure internal networks
 
 **Never use for:**
+
 - Production AWS S3
 - Public internet endpoints
 - Environments with sensitive data
@@ -205,6 +215,7 @@ EOF
 If you were previously experiencing SSL errors:
 
 1. **Add to your pipeline parameters**:
+
    ```yaml
    s3_skip_ssl_verification: true
    ```

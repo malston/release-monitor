@@ -11,6 +11,7 @@ groups:
     jobs:
       - check-version-database
       - reset-version-database
+      - force-download-repo
 
 resources:
   - name: release-monitor-repo
@@ -24,16 +25,6 @@ resources:
     type: time
     source:
       interval: 1h  # Check every hour
-
-#   - name: monitor-output-artifactory
-#     type: artifactory
-#     source:
-#       endpoint: ((artifactory_url))
-#       repository: ((artifactory_repository))
-#       username: ((artifactory_username))
-#       password: ((artifactory_password))
-#       api_key: ((artifactory_api_key))
-#       skip_ssl_verification: ((artifactory_skip_ssl_verification))
 
   - name: email-notification
     type: email
@@ -122,7 +113,6 @@ jobs:
           - get: release-monitor-repo
             trigger: true
             passed: [monitor-releases]
-        #   - get: monitor-output-artifactory
 
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
@@ -130,10 +120,12 @@ jobs:
           GITHUB_TOKEN: ((github_token))
           
           # Download configuration
-          ASSET_PATTERNS: ((asset_patterns))
-          INCLUDE_PRERELEASES: ((include_prereleases))
-          REPOSITORIES_OVERRIDE: ((repositories_override))
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          ASSET_PATTERNS: ((download_asset_patterns))
+          INCLUDE_PRERELEASES: ((download_include_prereleases))
+          VERIFY_DOWNLOADS: ((download_verify_downloads))
+          CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
+          KEEP_VERSIONS: ((download_keep_versions))
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
           
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
@@ -141,153 +133,201 @@ jobs:
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
-      - task: upload-releases-to-artifactory
+          # Force re-download for testing (comment out in production)
+          # FORCE_DOWNLOAD: "true"
+
+      # Upload downloaded files to Artifactory storage
+      - task: upload-to-artifactory
         config:
           platform: linux
           image_resource:
             type: registry-image
-            source: {repository: python, tag: 3.11-slim}
+            source:
+              repository: python
+              tag: 3.11-slim
           inputs:
-            - name: release-monitor-repo
             - name: downloads
-          run:
-            path: /bin/bash
-            args:
-              - -c
-              - |
-                set -e
-                apt-get update && apt-get install -y curl
-                pip install requests
-                cd release-monitor-repo
-                python scripts/upload-to-artifactory.py
+            - name: release-monitor-repo
           params:
             ARTIFACTORY_URL: ((artifactory_url))
             ARTIFACTORY_REPOSITORY: ((artifactory_repository))
             ARTIFACTORY_API_KEY: ((artifactory_api_key))
             ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-            DOWNLOAD_DIR: /tmp/downloads
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install requests
+                pip3 install --quiet requests
 
-  # Manual job to check version database status
+                # Run the upload script
+                cd release-monitor-repo
+                python3 scripts/upload-to-artifactory.py
+
+  # Clear version database to force re-downloads
   - name: check-version-database
     plan:
       - get: release-monitor-repo
-      
-      - task: show-version-database
+
+      - task: show-version-db
         config:
           platform: linux
           image_resource:
             type: registry-image
-            source: {repository: python, tag: 3.11-slim}
+            source:
+              repository: python
+              tag: 3.11-slim
           inputs:
             - name: release-monitor-repo
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
           run:
-            path: /bin/bash
+            path: bash
             args:
-              - -c
+              - -exc
               - |
-                set -e
-                pip install requests pyyaml
-                cd release-monitor-repo
-                python -c "
-                import sys
-                sys.path.insert(0, '.')
-                from github_version_artifactory import ArtifactoryVersionDatabase
-                import json
-                
-                db = ArtifactoryVersionDatabase(
-                    base_url='$ARTIFACTORY_URL',
-                    repository='$ARTIFACTORY_REPOSITORY'
-                )
-                
-                try:
-                    data = db.load_versions()
-                    print('Version Database Contents:')
-                    print(json.dumps(data, indent=2))
-                except Exception as e:
-                    print(f'Error loading version database: {e}')
-                "
-        params:
-          ARTIFACTORY_URL: ((artifactory_url))
-          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_API_KEY: ((artifactory_api_key))
-          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+                # Install requests
+                pip3 install --quiet requests
 
-  # Manual job to reset version database
+                # Run the show database script
+                cd release-monitor-repo
+                python3 scripts/show-version-db-artifactory.py
+
   - name: reset-version-database
     plan:
       - get: release-monitor-repo
-      
-      - task: reset-version-database
+
+      - task: clear-version-db
         config:
           platform: linux
           image_resource:
             type: registry-image
-            source: {repository: python, tag: 3.11-slim}
+            source:
+              repository: python
+              tag: 3.11-slim
           inputs:
             - name: release-monitor-repo
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
           run:
-            path: /bin/bash
+            path: bash
             args:
-              - -c
+              - -exc
               - |
-                set -e
-                pip install requests pyyaml
+                # Install requests
+                pip3 install --quiet requests
+
+                # Run the clear database script
                 cd release-monitor-repo
-                python -c "
-                import sys
-                sys.path.insert(0, '.')
-                from github_version_artifactory import ArtifactoryVersionDatabase
-                from datetime import datetime, timezone
-                
-                db = ArtifactoryVersionDatabase(
-                    base_url='$ARTIFACTORY_URL',
-                    repository='$ARTIFACTORY_REPOSITORY'
-                )
-                
-                empty_data = {
-                    'repositories': {},
-                    'metadata': {
-                        'created_at': datetime.now(timezone.utc).isoformat(),
-                        'version': '2.0',
-                        'storage': 'artifactory',
-                        'reset_at': datetime.now(timezone.utc).isoformat()
-                    }
-                }
-                
-                success = db.save_versions(empty_data)
-                print(f'Version database reset: {success}')
-                "
+                python3 scripts/clear-version-db-artifactory.py
+
+  # Parameterized job to force download any repository for testing
+  # Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo="owner/repo"
+  - name: force-download-repo
+    plan:
+      - get: release-monitor-repo
+
+      - task: clear-repo-from-db
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.11-slim
+          inputs:
+            - name: release-monitor-repo
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+            REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                cd release-monitor-repo
+                pip3 install --quiet requests
+
+                # Validate repository parameter
+                if [ -z "$REPO_NAME" ]; then
+                  echo "Error: REPO_NAME parameter is required"
+                  echo "Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo=\"owner/repo\""
+                  exit 1
+                fi
+
+                echo "Clearing $REPO_NAME from version database..."
+                python3 scripts/clear-version-entry-artifactory.py "$REPO_NAME" || echo "Failed to clear, but continuing..."
+
+      - task: check-releases
+        file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
+          GITHUB_TOKEN: ((github_token))
+          # Repository list override
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          
+          # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
+      - task: download-releases
+        file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
+          ASSET_PATTERNS: ((download_asset_patterns))
+          INCLUDE_PRERELEASES: ((download_include_prereleases))
+          VERIFY_DOWNLOADS: ((download_verify_downloads))
+          CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
+          KEEP_VERSIONS: ((download_keep_versions))
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-to-artifactory
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.11-slim
+          inputs:
+            - name: downloads
+            - name: release-monitor-repo
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install requests
+                pip3 install --quiet requests
+
+                # Run the upload script
+                cd release-monitor-repo
+                python3 scripts/upload-to-artifactory.py
+
 # Resource types (if not available in your Concourse deployment)
 resource_types:
-#   - name: artifactory
-#     type: s3
-#     source:
-#       access_key_id: ((concourse_sgs3_access_key_id))
-#       bucket: ((concourse-sgs3-bucket))
-#       endpoint: ((concourse-sgs3-endpoint))
-#       regexp: artifactory-resource/artifactory-resource-(.*)-(.*).tgz
-#       secret_access_key: ((concourse_sgs3_secret_access_key))
-#     params:
-#       unpack: true
-
-#   - name: artifactory
-#     type: registry-image
-#     source:
-#       repository: orangeopensource/artifactory-resource
-#       tag: latest
-
-  - name: s3
-    type: registry-image
-    source:
-      repository: concourse/s3-resource
-      tag: 1.2.1  # Use specific version that supports endpoints
-  
   - name: email
     type: registry-image
     source:

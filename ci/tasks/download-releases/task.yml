@@ -7,7 +7,7 @@ image_resource:
   type: registry-image
   source:
     repository: python
-    tag: 3.9-slim
+    tag: 3.11-slim
 
 inputs:
   - name: release-monitor
@@ -59,7 +59,7 @@ params:
   DOWNLOAD_TIMEOUT: "300"
 
   # Repository overrides (JSON object)
-  REPOSITORY_OVERRIDES: '{}'
+  REPOSITORY_OVERRIDES: "{}"
 
 run:
   path: /opt/release-monitor/ci/tasks/download-releases/task.sh
