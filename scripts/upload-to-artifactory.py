@@ -117,7 +117,7 @@ def main():
     auth = None
 
     if api_key:
-        headers['X-JFrog-Art-Api'] = api_key
+        headers['Authorization'] = f'Bearer {api_key}'
         print("Using API key authentication")
     elif username and password:
         auth = HTTPBasicAuth(username, password)
