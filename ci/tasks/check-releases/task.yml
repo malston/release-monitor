@@ -26,4 +26,13 @@ params:
   STATE_FILE: /tmp/release-state/release_state.json
 
 run:
-  path: /app/ci/tasks/check-releases/task.sh
+  path: /bin/bash
+  args:
+    - -exc
+    - |
+      set -e
+      # Navigate to repo directory
+      cd /app
+      # Install required dependencies
+      apt-get update && apt-get install -y curl
+      ./ci/tasks/check-releases/task.sh
