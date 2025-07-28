@@ -6,7 +6,7 @@ groups:
     jobs:
       - monitor-releases
       - download-new-releases
-  
+
   - name: utilities
     jobs:
       - check-version-database
@@ -42,7 +42,6 @@ resources:
       from: ((email_from))
       to: ((email_to))
 
-
 jobs:
   - name: monitor-releases
     plan:
@@ -57,7 +56,7 @@ jobs:
           GITHUB_TOKEN: ((github_token))
           # Repository list override
           REPOSITORIES_OVERRIDE: ((repositories_override))
-          
+
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -69,25 +68,28 @@ jobs:
           platform: linux
           image_resource:
             type: registry-image
-            source: {repository: python, tag: 3.11-slim}
+            source:
+              repository: python
+              tag: 3.11-slim
           inputs:
             - name: release-monitor-repo
             - name: release-output
-          run:
-            path: /bin/bash
-            args:
-              - -c
-              - |
-                set -e
-                apt-get update && apt-get install -y curl
-                pip install requests
-                cd release-monitor-repo
-                python scripts/upload-to-artifactory.py --file ../release-output/releases.json --path release-monitor/latest-releases.json
           params:
             ARTIFACTORY_URL: ((artifactory_url))
             ARTIFACTORY_REPOSITORY: ((artifactory_repository))
             ARTIFACTORY_API_KEY: ((artifactory_api_key))
             ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install requests
+                pip3 install --quiet requests
+
+                # Upload just the releases.json file to Artifactory
+                cd release-monitor-repo
+                python3 scripts/upload-to-artifactory.py --releases-json
 
       - task: prepare-email-notification
         file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
@@ -95,7 +97,7 @@ jobs:
           EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
           INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
           REPOSITORIES_OVERRIDE: ((repositories_override))
-          
+
           # Artifactory version database configuration for filtering
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -118,7 +120,7 @@ jobs:
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
-          
+
           # Download configuration
           ASSET_PATTERNS: ((download_asset_patterns))
           INCLUDE_PRERELEASES: ((download_include_prereleases))
@@ -126,7 +128,6 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
-          
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -274,7 +275,6 @@ jobs:
           GITHUB_TOKEN: ((github_token))
           # Repository list override
           REPOSITORIES_OVERRIDE: ((repositories_override))
-          
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
