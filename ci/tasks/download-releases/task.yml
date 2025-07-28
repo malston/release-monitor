@@ -30,18 +30,18 @@ params:
   VERSION_DB_PATH: /tmp/version-db/version_db.json
 
   # S3 version database configuration (optional)
-  USE_S3_VERSION_DB: ((use_s3_version_db))
-  VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
-  VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
-  VERSION_DB_S3_REGION: ((version_db_s3_region))
+  USE_S3_VERSION_DB: "false"
+  VERSION_DB_S3_BUCKET:
+  VERSION_DB_S3_PREFIX:
+  VERSION_DB_S3_REGION:
 
   # AWS credentials (required if USE_S3_VERSION_DB is true)
-  AWS_ACCESS_KEY_ID: ((aws_access_key_id))
-  AWS_SECRET_ACCESS_KEY: ((aws_secret_access_key))
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
 
   # S3 endpoint configuration for S3-compatible storage
-  S3_ENDPOINT: ((s3_endpoint))
-  S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
+  S3_ENDPOINT:
+  S3_SKIP_SSL_VERIFICATION:
 
   # Optional parameters
   CONFIG_FILE: config.yaml
