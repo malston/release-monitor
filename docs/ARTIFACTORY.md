@@ -138,15 +138,18 @@ docker exec -it release-monitor-artifactory bash
 **Environment variables override config file settings!** The script auto-detects storage backends:
 
 **Configuration Precedence (Highest to Lowest):**
+
 1. **Environment Variables** (auto-detection) 🥇
 2. **Config File Settings**
 3. **Default Values**
 
 **Auto-Detection Behavior:**
+
 - If `ARTIFACTORY_URL` and `ARTIFACTORY_REPOSITORY` are set → **Artifactory storage is used**
 - Even if `config.yaml` has `artifactory_storage.enabled: false`
 
 **Avoid Confusion:**
+
 - Unset Artifactory environment variables to use local storage
 - Or use separate `.env` files for different scenarios
 - See [Troubleshooting Guide](TROUBLESHOOTING.md#environment-variables-override-config-file-settings) for details
@@ -333,12 +336,14 @@ artifactory_skip_ssl_verification: false
 Store credentials securely:
 
 #### Using Vault
+
 ```bash
 vault kv put concourse/main/release-monitor-artifactory \
   artifactory_api_key="your-api-key"
 ```
 
 #### Using CredHub
+
 ```bash
 credhub set -n /concourse/main/release-monitor-artifactory/artifactory_api_key \
   -t value -v "your-api-key"
@@ -364,6 +369,7 @@ The pipeline includes these jobs:
 **Root Cause:** Version database already contains these versions from previous runs.
 
 **Quick Fix:**
+
 ```bash
 # Clear Artifactory version database
 python -c "
@@ -389,6 +395,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: Container fails to start or setup wizard doesn't load
 
 **Solutions**:
+
 - Check logs: `docker-compose -f docker-compose-artifactory.yml logs -f artifactory`
 - Wait longer: First startup takes 5-10 minutes
 - Check memory: Artifactory needs at least 2GB RAM
@@ -399,6 +406,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: HTTP 401 Unauthorized or 403 Forbidden errors
 
 **Solutions**:
+
 - Verify API key or username/password are correct
 - Check user has proper permissions for the repository
 - Test manually: `curl -H "X-JFrog-Art-Api: your-key" "http://localhost:8081/artifactory/api/repositories"`
@@ -408,6 +416,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: SSL verification failures
 
 **Solutions**:
+
 - For testing: Set `ARTIFACTORY_SKIP_SSL_VERIFICATION=true`
 - For production: Add CA certificate to system trust store
 - Use `--no-verify-ssl` flag with download scripts
@@ -417,6 +426,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: Cannot connect to Artifactory
 
 **Solutions**:
+
 - Check URL format: should end with `/artifactory` (no trailing slash)
 - For Docker: Ensure port 8081 is accessible
 - Check firewall and proxy settings
@@ -427,6 +437,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: Download scripts find no repositories or files
 
 **Solutions**:
+
 - Verify releases have been uploaded by the pipeline
 - Check repository name matches pipeline configuration
 - Use `--list` to see what's available
@@ -437,6 +448,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: Repository doesn't exist errors
 
 **Solutions**:
+
 - Create the repository in Artifactory UI:
   - Administration → Repositories → Repositories
   - New Repository → Generic → Repository Key: `generic-releases`
@@ -448,6 +460,7 @@ python github_monitor.py --config ./config.yaml --download
 **Symptoms**: Slow uploads/downloads or timeouts
 
 **Solutions**:
+
 - Use Artifactory instances close to your network
 - Check available bandwidth and storage space
 - Monitor repository size and consider cleanup policies
@@ -498,6 +511,7 @@ db.save_versions(empty_data)
 To migrate from S3 to Artifactory:
 
 1. **Export S3 version database**:
+
    ```python
    from github_version_s3 import S3VersionDatabase
    s3_db = S3VersionDatabase('your-s3-bucket')
@@ -505,6 +519,7 @@ To migrate from S3 to Artifactory:
    ```
 
 2. **Import to Artifactory**:
+
    ```python
    from github_version_artifactory import ArtifactoryVersionDatabase
    art_db = ArtifactoryVersionDatabase('https://artifactory.example.com/artifactory', 'repo')
@@ -529,6 +544,7 @@ For issues:
 6. Check Artifactory server logs (if you have admin access)
 
 **Common Issues:**
+
 - [Downloads not working despite new releases found](TROUBLESHOOTING.md#downloads-not-working)
 - [Environment variables overriding config settings](TROUBLESHOOTING.md#environment-variables-override-config-file-settings)
 - [Connection and authentication errors](TROUBLESHOOTING.md#downloads-fail-with-connection-errors)

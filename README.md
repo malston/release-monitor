@@ -453,8 +453,8 @@ docker-compose -f docker-compose-artifactory.yml up -d
 
 ### Service URLs
 
-- **MinIO Console**: <http://localhost:9001> (minioadmin/minioadmin)
-- **Artifactory UI**: <http://localhost:8081> (admin/password)  
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
+- **Artifactory UI**: http://localhost:8081 (admin/password)
 - **PostgreSQL**: localhost:5432 (release_monitor/release_monitor_pass)
 
 ## Examples

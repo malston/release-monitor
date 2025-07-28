@@ -28,8 +28,16 @@ export ARTIFACTORY_REPOSITORY="generic-releases"
 export ARTIFACTORY_API_KEY="your-api-key"
 export GITHUB_TOKEN="your-github-token"
 
-# 4. Test the integration
-python github_monitor.py --config ./config.yaml --download
+# 4. Make sure to setup your virtual environment
+source venv/bin/activate
+
+# 5. Force download the artifacts from Github
+python github_monitor.py --config ./config.yaml --download --force-download --force-check
+
+# 6. Upload the downloaded artifacts from Github to Artifactory
+python scripts/upload-to-artifactory.py --file releases.json --path latest-releases.json
+
+# 7. List the artifacts just uploaded to Artifactory
 ./scripts/download-from-artifactory.sh --list
 ```
 

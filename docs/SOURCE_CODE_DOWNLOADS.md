@@ -5,6 +5,7 @@ This guide explains how to configure the GitHub Release Monitor to download repo
 ## Overview
 
 Many repositories don't release traditional binary artifacts. Instead, they provide:
+
 - **Kubernetes manifests** (`.yaml`, `.yml` files)
 - **Configuration files** (`.json`, `.toml`, `.xml` files)  
 - **Source code archives** (tarball/zipball from GitHub)
@@ -120,18 +121,21 @@ download:
 ### With Assets Present
 
 When a release has matching assets:
+
 1. Downloads matching assets (e.g., `*.yaml` files)
 2. Downloads source archives only if `fallback_only: false`
 
 ### Without Matching Assets
 
 When no assets match the patterns:
+
 1. Downloads source archives (tarball/zipball) if `source_archives.enabled: true`
 2. Respects `prefer` setting for archive type
 
 ### Example: Wavefront Repository
 
 For `wavefrontHQ/observability-for-kubernetes`:
+
 - **Assets found**: `wavefront-operator.yaml` (56KB)
 - **Configuration**: `fallback_only: false`
 - **Downloads**:
@@ -206,7 +210,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: docker-image
+        type: registry-image
         source: {repository: python, tag: "3.11"}
       inputs:
       - name: release-monitor-repo
@@ -225,6 +229,7 @@ jobs:
 ### No Downloads Despite New Releases
 
 Check if:
+
 1. Asset patterns match the available files
 2. Source archives are enabled if no assets match
 3. Repository-specific overrides are configured correctly
@@ -232,6 +237,7 @@ Check if:
 ### Large Source Downloads
 
 Source archives can be large. Consider:
+
 1. Setting `fallback_only: true` to avoid unnecessary downloads
 2. Adjusting timeout settings for large repositories
 3. Using cleanup settings to manage disk space
@@ -239,6 +245,7 @@ Source archives can be large. Consider:
 ### Missing Manifests
 
 Some repositories put manifests in assets, others in source code:
+
 1. Enable source downloads as fallback
 2. Use both asset patterns and source downloads
 3. Check the actual release structure on GitHub
