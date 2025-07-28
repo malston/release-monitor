@@ -42,6 +42,9 @@ def upload_releases_json(artifactory_url, repository, headers, auth, verify_ssl)
     artifactory_path = 'release-monitor/latest-releases.json'
     url = f"{artifactory_url.rstrip('/')}/{repository}/{artifactory_path}"
 
+    print(f'Debug - artifactory_url: {artifactory_url}')
+    print(f'Debug - repository: {repository}')
+    print(f'Debug - artifactory_path: {artifactory_path}')
     print(f'Uploading releases.json to {url}')
 
     try:
