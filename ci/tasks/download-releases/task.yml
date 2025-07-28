@@ -30,23 +30,23 @@ params:
   VERSION_DB_PATH: /tmp/version-db/version_db.json
 
   # S3 version database configuration (optional)
-  USE_S3_VERSION_DB: "false"
-  VERSION_DB_S3_BUCKET:
-  VERSION_DB_S3_PREFIX:
-  VERSION_DB_S3_REGION:
+  USE_S3_VERSION_DB: false
+  VERSION_DB_S3_BUCKET: ""
+  VERSION_DB_S3_PREFIX: ""
+  VERSION_DB_S3_REGION: ""
 
   # AWS credentials (required if USE_S3_VERSION_DB is true)
-  AWS_ACCESS_KEY_ID:
-  AWS_SECRET_ACCESS_KEY:
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
 
   # S3 endpoint configuration for S3-compatible storage
-  S3_ENDPOINT:
-  S3_SKIP_SSL_VERIFICATION:
+  S3_ENDPOINT: ""
+  S3_SKIP_SSL_VERIFICATION: false
 
   # Optional parameters
   CONFIG_FILE: config.yaml
-  VERBOSE: "false"
-  DRY_RUN: "false"
+  VERBOSE: false
+  DRY_RUN: false
 
   # Asset filtering patterns (JSON array)
   ASSET_PATTERNS: '["*.tar.gz", "*.zip", "!*-sources.zip"]'
