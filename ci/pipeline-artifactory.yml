@@ -26,21 +26,21 @@ resources:
     source:
       interval: 1h  # Check every hour
 
-  - name: email-notification
-    type: email
-    source:
-      smtp:
-        host: ((smtp_host))
-        port: ((smtp_port))
-        username: ((smtp_username))
-        password: ((smtp_password))
-        anonymous: ((smtp_anonymous))
-        skip_ssl_validation: ((smtp_skip_ssl_validation))
-        ca_cert: ((smtp_ca_cert))
-        host_origin: ((smtp_host_origin))
-        login_auth: ((smtp_login_auth))
-      from: ((email_from))
-      to: ((email_to))
+#   - name: email-notification
+#     type: email
+#     source:
+#       smtp:
+#         host: ((smtp_host))
+#         port: ((smtp_port))
+#         username: ((smtp_username))
+#         password: ((smtp_password))
+#         anonymous: ((smtp_anonymous))
+#         skip_ssl_validation: ((smtp_skip_ssl_validation))
+#         ca_cert: ((smtp_ca_cert))
+#         host_origin: ((smtp_host_origin))
+#         login_auth: ((smtp_login_auth))
+#       from: ((email_from))
+#       to: ((email_to))
 
 jobs:
   - name: monitor-releases
@@ -91,23 +91,23 @@ jobs:
                 cd release-monitor-repo
                 python3 scripts/upload-to-artifactory.py --releases-json
 
-      - task: prepare-email-notification
-        file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
-        params:
-          EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
-          INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
-          REPOSITORIES_OVERRIDE: ((repositories_override))
+    #   - task: prepare-email-notification
+    #     file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
+    #     params:
+    #       EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
+    #       INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
+    #       REPOSITORIES_OVERRIDE: ((repositories_override))
 
-          # Artifactory version database configuration for filtering
-          ARTIFACTORY_URL: ((artifactory_url))
-          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-          ARTIFACTORY_API_KEY: ((artifactory_api_key))
-          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-        on_success:
-          put: email-notification
-          params:
-            subject: email/subject
-            body: email/body.html
+    #       # Artifactory version database configuration for filtering
+    #       ARTIFACTORY_URL: ((artifactory_url))
+    #       ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+    #       ARTIFACTORY_API_KEY: ((artifactory_api_key))
+    #       ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+    #     on_success:
+    #       put: email-notification
+    #       params:
+    #         subject: email/subject
+    #         body: email/body.html
 
   - name: download-new-releases
     plan:
@@ -116,8 +116,84 @@ jobs:
             trigger: true
             passed: [monitor-releases]
 
+      - task: fetch-monitor-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.11-slim
+          inputs:
+            - name: release-monitor-repo
+          outputs:
+            - name: monitor-output
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install requests
+                pip3 install --quiet requests
+
+                # Download latest-releases.json from Artifactory
+                cd release-monitor-repo
+                python3 -c "
+                import os
+                import requests
+                import sys
+
+                artifactory_url = os.environ['ARTIFACTORY_URL']
+                repository = os.environ['ARTIFACTORY_REPOSITORY']
+                api_key = os.environ['ARTIFACTORY_API_KEY']
+                verify_ssl = os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
+
+                if not verify_ssl:
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+                url = f'{artifactory_url.rstrip(\"/\")}/{repository}/release-monitor/latest-releases.json'
+                headers = {'Authorization': f'Bearer {api_key}'}
+
+                print(f'Fetching monitor output from: {url}')
+                response = requests.get(url, headers=headers, verify=verify_ssl)
+                response.raise_for_status()
+
+                with open('../monitor-output/latest-releases.json', 'w') as f:
+                    f.write(response.text)
+                print('Successfully downloaded latest-releases.json')
+                "
+
+      - task: debug-env
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: busybox
+          run:
+            path: sh
+            args:
+              - -c
+              - |
+                echo "=== DEBUG ENVIRONMENT VARIABLES ==="
+                echo "ARTIFACTORY_URL: $ARTIFACTORY_URL"
+                echo "ARTIFACTORY_REPOSITORY: $ARTIFACTORY_REPOSITORY"
+                echo "==================================="
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        input_mapping:
+          release-monitor: release-monitor-repo
+          monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
 
@@ -128,6 +204,7 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -281,8 +358,64 @@ jobs:
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
+      - task: fetch-monitor-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.11-slim
+          inputs:
+            - name: release-monitor-repo
+          outputs:
+            - name: monitor-output
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install requests
+                pip3 install --quiet requests
+
+                # Download latest-releases.json from Artifactory
+                cd release-monitor-repo
+                python3 -c "
+                import os
+                import requests
+                import sys
+
+                artifactory_url = os.environ['ARTIFACTORY_URL']
+                repository = os.environ['ARTIFACTORY_REPOSITORY']
+                api_key = os.environ['ARTIFACTORY_API_KEY']
+                verify_ssl = os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
+
+                if not verify_ssl:
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+                url = f'{artifactory_url.rstrip(\"/\")}/{repository}/release-monitor/latest-releases.json'
+                headers = {'Authorization': f'Bearer {api_key}'}
+
+                print(f'Fetching monitor output from: {url}')
+                response = requests.get(url, headers=headers, verify=verify_ssl)
+                response.raise_for_status()
+
+                with open('../monitor-output/latest-releases.json', 'w') as f:
+                    f.write(response.text)
+                print('Successfully downloaded latest-releases.json')
+                "
+
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        input_mapping:
+          release-monitor: release-monitor-repo
+          monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
           ASSET_PATTERNS: ((download_asset_patterns))
