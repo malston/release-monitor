@@ -781,6 +781,7 @@ graph TD
 **Format:** JSON array of repository objects
 
 **Use Cases:**
+
 - **Production:** Override the default config.yaml repository list
 - **Testing:** Monitor only specific repositories
 - **Debugging:** Focus on a single problematic repository
@@ -805,6 +806,7 @@ repositories_override: |
 ```
 
 **Environment Variable Usage:**
+
 ```bash
 export REPOSITORIES_OVERRIDE='[{"owner":"etcd-io","repo":"etcd","asset_patterns":["etcd-*.linux-amd64.tar.gz"]}]'
 ```
@@ -816,6 +818,7 @@ export REPOSITORIES_OVERRIDE='[{"owner":"etcd-io","repo":"etcd","asset_patterns"
 **Format:** JSON object with repository-specific download settings
 
 **Use Cases:**
+
 - **Per-repo patterns:** Different asset patterns for different repositories
 - **Conditional downloads:** Some repos download source, others don't
 - **Version limits:** Different keep_versions settings per repository
@@ -893,21 +896,25 @@ download_repository_overrides: |
 ### Pipeline Job Usage
 
 **Monitor Jobs:** Use `repositories_override`
+
 - `monitor-releases`
 - `check-releases` (in force-download-repo)
 
 **Download Jobs:** Use `download_repository_overrides`
+
 - `download-new-releases`
 - `download-releases` (in force-download-repo)
 
 ### Parameter Validation
 
 **repositories_override must be:**
+
 - Valid JSON array
 - Each item has `owner` and `repo` fields
 - Optional fields: `asset_patterns`, `include_prereleases`, etc.
 
 **download_repository_overrides must be:**
+
 - Valid JSON object
 - Keys are in format `owner/repo`
 - Values are objects with download settings
@@ -915,14 +922,17 @@ download_repository_overrides: |
 ### Troubleshooting
 
 **Issue:** "Repository not found in override"
+
 - Check that `repositories_override` includes the repository
 - Verify JSON syntax is valid
 
 **Issue:** "Downloads not using custom settings"
+
 - Ensure `download_repository_overrides` key matches exactly: `owner/repo`
 - Check that the repository was processed in monitor phase first
 
 **Issue:** "Pipeline ignoring parameters"
+
 - Verify parameter interpolation: `((parameter_name))`
 - Check parameter file includes the parameter
 - Confirm pipeline deployment used correct parameter file
