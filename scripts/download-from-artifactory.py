@@ -198,7 +198,7 @@ def main():
     
     parser.add_argument(
         '--url',
-        default=os.environ.get('ARTIFACTORY_URL', 'http://host.docker.internal:8081/artifactory'),
+        default=os.environ.get('ARTIFACTORY_URL', 'http://localhost:8081/artifactory'),
         help='Artifactory base URL'
     )
     

@@ -3,7 +3,7 @@
 
 set -e
 
-ARTIFACTORY_URL="${1:-http://host.docker.internal:8081}"
+ARTIFACTORY_URL="${1:-http://localhost:8081}"
 MAX_WAIT="${2:-600}"  # 10 minutes
 WAIT_INTERVAL=10
 

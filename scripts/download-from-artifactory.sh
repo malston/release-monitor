@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Default configuration
-DEFAULT_ARTIFACTORY_URL="http://host.docker.internal:8081/artifactory"
+DEFAULT_ARTIFACTORY_URL="http://localhost:8081/artifactory"
 DEFAULT_REPOSITORY="generic-releases"
 DEFAULT_OUTPUT_DIR="./artifactory-downloads"
 
