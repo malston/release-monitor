@@ -296,7 +296,7 @@ pipeline-set-test-artifactory: ## Deploy pipeline with Artifactory support
 		exit 1; \
 	fi; \
 	fly -t $(FLY_TARGET) set-pipeline \
-		-p release-monitor-artifactory \
+		-p github-release-monitor-artifactory \
 		-c ci/pipeline-artifactory.yml \
 		-l params/global-artifactory.yml \
 		-l params/artifactory-local.yml \
