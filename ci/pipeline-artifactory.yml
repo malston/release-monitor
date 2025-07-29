@@ -169,25 +169,6 @@ jobs:
                 print('Successfully downloaded latest-releases.json')
                 "
 
-      - task: debug-env
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: busybox
-          run:
-            path: sh
-            args:
-              - -c
-              - |
-                echo "=== DEBUG ENVIRONMENT VARIABLES ==="
-                echo "ARTIFACTORY_URL: $ARTIFACTORY_URL"
-                echo "ARTIFACTORY_REPOSITORY: $ARTIFACTORY_REPOSITORY"
-                echo "==================================="
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
 
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
