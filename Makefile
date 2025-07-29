@@ -274,6 +274,37 @@ pipeline-set-test-minio: ## Deploy pipeline with Minio support (local developmen
 		--var git_private_key="$$(cat $$SSH_KEY)" \
 		--non-interactive
 
+.PHONY: pipeline-set-test-artifactory
+pipeline-set-test-artifactory: ## Deploy pipeline with Artifactory support
+	@printf "$(GREEN)Deploying pipeline with Artifactory support...$(NC)\n"
+	@SSH_KEY=""; \
+	if [ -f ~/.ssh/id_ed25519 ]; then \
+		SSH_KEY=~/.ssh/id_ed25519; \
+		printf "$(GREEN)Using Ed25519 SSH key: ~/.ssh/id_ed25519$(NC)\n"; \
+	elif [ -f ~/.ssh/id_rsa ]; then \
+		SSH_KEY=~/.ssh/id_rsa; \
+		printf "$(YELLOW)Using RSA SSH key: ~/.ssh/id_rsa$(NC)\n"; \
+	else \
+		printf "$(RED)Error: No SSH key found$(NC)\n"; \
+		printf "$(YELLOW)Looked for: ~/.ssh/id_ed25519 (preferred) or ~/.ssh/id_rsa$(NC)\n"; \
+		printf "$(YELLOW)Either create an SSH key or use 'make pipeline-set-test' for public repos$(NC)\n"; \
+		exit 1; \
+	fi; \
+	if [ -z "$$GITHUB_TOKEN" ]; then \
+		printf "$(RED)Error: GITHUB_TOKEN environment variable not set$(NC)\n"; \
+		printf "$(YELLOW)Please set: export GITHUB_TOKEN=\"your_github_token\"$(NC)\n"; \
+		exit 1; \
+	fi; \
+	fly -t $(FLY_TARGET) set-pipeline \
+		-p release-monitor-artifactory \
+		-c ci/pipeline-artifactory.yml \
+		-l params/global-artifactory.yml \
+		-l params/artifactory-local.yml \
+		-l params/artifactory-credentials.yml \
+		--var github_token="$$GITHUB_TOKEN" \
+		--var git_private_key="$$(cat $$SSH_KEY)" \
+		--non-interactive
+
 .PHONY: force-download
 force-download: ## Force download for specific repository (REPO=owner/repo, defaults to etcd-io/etcd)
 	@if [ -z "$(REPO)" ]; then \

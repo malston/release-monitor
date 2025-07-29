@@ -63,32 +63,12 @@ jobs:
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: upload-monitor-output
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-            - name: release-output
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Upload just the releases.json file to Artifactory
-                cd release-monitor-repo
-                python3 scripts/upload-to-artifactory.py --releases-json
+        file: release-monitor-repo/ci/tasks/upload-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
     #   - task: prepare-email-notification
     #     file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
@@ -116,58 +96,12 @@ jobs:
             passed: [monitor-releases]
 
       - task: fetch-monitor-output
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-          outputs:
-            - name: monitor-output
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Download latest-releases.json from Artifactory
-                cd release-monitor-repo
-                python3 -c "
-                import os
-                import requests
-                import sys
-
-                artifactory_url = os.environ['ARTIFACTORY_URL']
-                repository = os.environ['ARTIFACTORY_REPOSITORY']
-                api_key = os.environ['ARTIFACTORY_API_KEY']
-                verify_ssl = os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
-
-                if not verify_ssl:
-                    import urllib3
-                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-                url = f'{artifactory_url.rstrip(\"/\")}/{repository}/release-monitor/latest-releases.json'
-                headers = {'Authorization': f'Bearer {api_key}'}
-
-                print(f'Fetching monitor output from: {url}')
-                response = requests.get(url, headers=headers, verify=verify_ssl)
-                response.raise_for_status()
-
-                with open('../monitor-output/latest-releases.json', 'w') as f:
-                    f.write(response.text)
-                print('Successfully downloaded latest-releases.json')
-                "
-
+        file: release-monitor-repo/ci/tasks/fetch-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
@@ -196,32 +130,12 @@ jobs:
 
       # Upload downloaded files to Artifactory storage
       - task: upload-to-artifactory
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: downloads
-            - name: release-monitor-repo
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Run the upload script
-                cd release-monitor-repo
-                python3 scripts/upload-to-artifactory.py
+        file: release-monitor-repo/ci/tasks/upload-to-artifactory/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
   # Clear version database to force re-downloads
   - name: check-version-database
@@ -229,62 +143,24 @@ jobs:
       - get: release-monitor-repo
 
       - task: show-version-db
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Run the show database script
-                cd release-monitor-repo
-                python3 scripts/show-version-db-artifactory.py
+        file: release-monitor-repo/ci/tasks/show-version-db/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
   - name: reset-version-database
     plan:
       - get: release-monitor-repo
 
       - task: clear-version-db
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Run the clear database script
-                cd release-monitor-repo
-                python3 scripts/clear-version-db-artifactory.py
+        file: release-monitor-repo/ci/tasks/clear-version-db/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
   # Parameterized job to force download any repository for testing
   # Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo="owner/repo"
@@ -293,38 +169,13 @@ jobs:
       - get: release-monitor-repo
 
       - task: clear-repo-from-db
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-            REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                cd release-monitor-repo
-                pip3 install --quiet requests
-
-                # Validate repository parameter
-                if [ -z "$REPO_NAME" ]; then
-                  echo "Error: REPO_NAME parameter is required"
-                  echo "Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo=\"owner/repo\""
-                  exit 1
-                fi
-
-                echo "Clearing $REPO_NAME from version database..."
-                python3 scripts/clear-version-entry-artifactory.py "$REPO_NAME" || echo "Failed to clear, but continuing..."
+        file: release-monitor-repo/ci/tasks/clear-repo-from-db/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
 
       - task: check-releases
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
@@ -339,85 +190,20 @@ jobs:
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: upload-monitor-output
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-            - name: release-output
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Upload just the releases.json file to Artifactory
-                cd release-monitor-repo
-                python3 scripts/upload-to-artifactory.py --releases-json
+        file: release-monitor-repo/ci/tasks/upload-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: fetch-monitor-output
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: release-monitor-repo
-          outputs:
-            - name: monitor-output
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Download latest-releases.json from Artifactory
-                cd release-monitor-repo
-                python3 -c "
-                import os
-                import requests
-                import sys
-
-                artifactory_url = os.environ['ARTIFACTORY_URL']
-                repository = os.environ['ARTIFACTORY_REPOSITORY']
-                api_key = os.environ['ARTIFACTORY_API_KEY']
-                verify_ssl = os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
-
-                if not verify_ssl:
-                    import urllib3
-                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-                url = f'{artifactory_url.rstrip(\"/\")}/{repository}/release-monitor/latest-releases.json'
-                headers = {'Authorization': f'Bearer {api_key}'}
-
-                print(f'Fetching monitor output from: {url}')
-                response = requests.get(url, headers=headers, verify=verify_ssl)
-                response.raise_for_status()
-
-                with open('../monitor-output/latest-releases.json', 'w') as f:
-                    f.write(response.text)
-                print('Successfully downloaded latest-releases.json')
-                "
+        file: release-monitor-repo/ci/tasks/fetch-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
@@ -440,32 +226,12 @@ jobs:
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: upload-to-artifactory
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: python
-              tag: 3.11-slim
-          inputs:
-            - name: downloads
-            - name: release-monitor-repo
-          params:
-            ARTIFACTORY_URL: ((artifactory_url))
-            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-            ARTIFACTORY_API_KEY: ((artifactory_api_key))
-            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          run:
-            path: bash
-            args:
-              - -exc
-              - |
-                # Install requests
-                pip3 install --quiet requests
-
-                # Run the upload script
-                cd release-monitor-repo
-                python3 scripts/upload-to-artifactory.py
+        file: release-monitor-repo/ci/tasks/upload-to-artifactory/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:
