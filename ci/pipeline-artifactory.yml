@@ -56,7 +56,6 @@ jobs:
           GITHUB_TOKEN: ((github_token))
           # Repository list override
           REPOSITORIES_OVERRIDE: ((repositories_override))
-
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -338,6 +337,34 @@ jobs:
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-monitor-output
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.11-slim
+          inputs:
+            - name: release-monitor-repo
+            - name: release-output
+          params:
+            ARTIFACTORY_URL: ((artifactory_url))
+            ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+            ARTIFACTORY_API_KEY: ((artifactory_api_key))
+            ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install requests
+                pip3 install --quiet requests
+
+                # Upload just the releases.json file to Artifactory
+                cd release-monitor-repo
+                python3 scripts/upload-to-artifactory.py --releases-json
 
       - task: fetch-monitor-output
         config:

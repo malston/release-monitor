@@ -8,8 +8,9 @@ Complete guide for setting up and using GitHub Release Monitor with JFrog Artifa
 2. [Docker Setup](#docker-setup) - Local development with Docker
 3. [Configuration](#configuration) - Production and pipeline setup
 4. [Downloading Releases](#downloading-releases) - Using the download scripts
-5. [Pipeline Integration](#pipeline-integration) - Concourse CI/CD setup
-6. [Troubleshooting](#troubleshooting) - Common issues and solutions
+5. [Management Scripts](#management-scripts) - Version database and repository cleanup
+6. [Pipeline Integration](#pipeline-integration) - Concourse CI/CD setup
+7. [Troubleshooting](#troubleshooting) - Common issues and solutions
 
 ---
 
@@ -33,7 +34,7 @@ docker-compose -f docker-compose-artifactory.yml up -d
 
 ### 2. Complete Setup Wizard
 
-1. **Open Artifactory**: http://localhost:8081
+1. **Open Artifactory**: <http://localhost:8081>
 2. **Login**: `admin` / `password`  
 3. **Set New Password**: Choose a secure password
 4. **Base URL**: Set to `http://localhost:8081/artifactory`
@@ -203,7 +204,7 @@ download:
 
 Artifacts are stored in this structure:
 
-```
+```sh
 <repository>/
 ├── release-monitor/
 │   ├── version_db.json                    # Version tracking database
@@ -271,9 +272,9 @@ python3 scripts/download-from-artifactory.py \
 
 ### Script Options
 
-```
---url URL                 Artifactory base URL
---repository REPO         Repository name (default: generic-releases)
+```sh
+--url URL                Artifactory base URL
+--repository REPO        Repository name (default: generic-releases)
 --username USER          Username for authentication
 --password PASS          Password for authentication
 --api-key KEY            API key for authentication
@@ -283,6 +284,224 @@ python3 scripts/download-from-artifactory.py \
 --list                   List available repositories without downloading
 --no-verify-ssl          Skip SSL certificate verification
 ```
+
+---
+
+## Management Scripts
+
+The repository includes several utility scripts for managing Artifactory storage and version database.
+
+### Environment Setup
+
+All scripts require these environment variables:
+
+```bash
+# Required for all scripts
+export ARTIFACTORY_URL="http://localhost:8081/artifactory"
+export ARTIFACTORY_REPOSITORY="generic-releases"
+export ARTIFACTORY_API_KEY="your-api-key"
+
+# Optional
+export ARTIFACTORY_SKIP_SSL_VERIFICATION="true"  # For local/testing
+```
+
+### Version Database Management
+
+#### View Version Database Contents
+
+```bash
+# Show current version database
+python3 scripts/show-version-db-artifactory.py
+```
+
+**Example output:**
+
+```sh
+Version database from Artifactory
+==================================================
+Version: 2.0
+Storage: artifactory
+Created: 2025-01-15T14:30:00Z
+Last updated: 2025-01-15T16:45:00Z
+
+Tracked repositories:
+--------------------------------------------------
+
+  kubernetes/kubernetes:
+    Current version: v1.29.1
+    Created: 2025-01-15T14:30:00Z
+    Last updated: 2025-01-15T16:45:00Z
+    Download history (3 entries):
+      - v1.29.1 at 2025-01-15T16:45:00Z
+      - v1.29.0 at 2025-01-15T15:30:00Z
+      - v1.28.6 at 2025-01-15T14:30:00Z
+
+Total repositories: 1
+```
+
+#### Clear Entire Version Database
+
+```bash
+# Clear all version tracking (forces re-download of everything)
+python3 scripts/clear-version-db-artifactory.py
+```
+
+**⚠️ Warning:** This will force the next pipeline run to download ALL releases as if they were new.
+
+#### Clear Specific Repository
+
+```bash
+# Force re-download of a specific repository
+python3 scripts/clear-version-entry-artifactory.py prometheus/prometheus
+```
+
+**Example output:**
+
+```sh
+Connecting to Artifactory at http://localhost:8081/artifactory...
+Downloading version database from: http://localhost:8081/artifactory/generic-releases/release-monitor/version_db.json
+Downloaded version database from Artifactory
+Successfully removed prometheus/prometheus (was at version v2.48.1)
+Updated version database uploaded to Artifactory
+
+Next pipeline run will re-download releases for prometheus/prometheus
+```
+
+### Repository Cleanup
+
+#### Clean Up Downloaded Artifacts
+
+```bash
+# Show what would be deleted (safe preview)
+python3 scripts/clean-artifactory-repository.py --releases-only --dry-run
+
+# Delete only downloaded release files (keep database)
+python3 scripts/clean-artifactory-repository.py --releases-only
+
+# Delete everything including version database
+python3 scripts/clean-artifactory-repository.py --all --dry-run
+python3 scripts/clean-artifactory-repository.py --all
+```
+
+**Example output:**
+
+```sh
+Connecting to Artifactory: http://localhost:8081/artifactory
+Repository: generic-releases
+
+Scanning repository for artifacts...
+
+Found 156 total artifacts:
+  Version database: 1 files
+  Monitor output: 1 files
+  Release downloads: 154 files
+  Other files: 0 files
+
+Total repository size: 2.3 GB
+Release downloads size: 2.3 GB
+
+Plan: Delete 154 release download files (2.3 GB)
+  Keeping version database files
+  Keeping monitor output files
+
+Files to delete:
+  - release-downloads/kubernetes/kubernetes/v1.29.1/kubernetes-client-linux-amd64.tar.gz (28.4 MB)
+  - release-downloads/kubernetes/kubernetes/v1.29.1/kubernetes-server-linux-amd64.tar.gz (428.7 MB)
+  - release-downloads/prometheus/prometheus/v2.48.1/prometheus-2.48.1.linux-amd64.tar.gz (89.2 MB)
+  [... more files ...]
+
+This will permanently delete 154 files (2.3 GB)!
+Are you sure? Type 'yes' to continue: yes
+
+Deleting 154 artifacts...
+Deleting: release-downloads/kubernetes/kubernetes/v1.29.1/kubernetes-client-linux-amd64.tar.gz (28.4 MB)
+[... deletion progress ...]
+
+Cleaning up empty folders...
+Deleted empty folder: release-downloads/kubernetes/kubernetes/v1.29.1/
+Deleted empty folder: release-downloads/kubernetes/kubernetes/
+Deleted empty folder: release-downloads/kubernetes/
+Deleted empty folder: release-downloads/prometheus/prometheus/v2.48.1/
+Deleted empty folder: release-downloads/prometheus/prometheus/
+Deleted empty folder: release-downloads/prometheus/
+
+Cleanup complete:
+  Successfully deleted: 154 files (2.3 GB)
+  Cleaned up: 6 empty folders
+
+Next pipeline run will re-download all releases
+```
+
+### Script Options
+
+#### clean-artifactory-repository.py
+
+```
+--releases-only    Delete only downloaded release artifacts, keep database and monitor output
+--all             Delete everything including version database and monitor output
+--dry-run         Show what would be deleted without actually deleting
+--help            Show help message
+```
+
+#### clear-version-entry-artifactory.py
+
+```
+Usage: python3 scripts/clear-version-entry-artifactory.py <owner/repo>
+
+Arguments:
+  owner/repo        Repository in format 'owner/repo' (e.g., 'kubernetes/kubernetes')
+```
+
+### Common Use Cases
+
+#### Free Up Storage Space
+
+```bash
+# Preview cleanup
+python3 scripts/clean-artifactory-repository.py --releases-only --dry-run
+
+# Clean up old downloads but keep version tracking
+python3 scripts/clean-artifactory-repository.py --releases-only
+```
+
+#### Force Re-download Everything
+
+```bash
+# Option 1: Clear version database only
+python3 scripts/clear-version-db-artifactory.py
+
+# Option 2: Full cleanup (database + artifacts)
+python3 scripts/clean-artifactory-repository.py --all
+```
+
+#### Test Single Repository
+
+```bash
+# Clear one repository from tracking
+python3 scripts/clear-version-entry-artifactory.py prometheus/prometheus
+
+# Then trigger download job manually in Concourse
+fly -t your-target trigger-job -j pipeline-name/force-download-repo \
+  -v force_download_repo="prometheus/prometheus"
+```
+
+#### Pipeline Troubleshooting
+
+```bash
+# Check what's tracked
+python3 scripts/show-version-db-artifactory.py
+
+# See total repository usage
+python3 scripts/clean-artifactory-repository.py --all --dry-run
+```
+
+### Script Safety Features
+
+- **Dry run mode**: Preview operations without making changes
+- **Confirmation prompts**: Require typing 'yes' for destructive operations
+- **Empty folder cleanup**: Automatically removes empty directories
+- **Progress reporting**: Shows detailed progress and statistics
+- **Error handling**: Graceful failure handling with detailed error messages
 
 ---
 
@@ -399,7 +618,7 @@ python github_monitor.py --config ./config.yaml --download
 - Check logs: `docker-compose -f docker-compose-artifactory.yml logs -f artifactory`
 - Wait longer: First startup takes 5-10 minutes
 - Check memory: Artifactory needs at least 2GB RAM
-- Clear browser cache and try http://localhost:8081/ui/
+- Clear browser cache and try <http://localhost:8081/ui/>
 
 ### Authentication Errors (401/403)
 
