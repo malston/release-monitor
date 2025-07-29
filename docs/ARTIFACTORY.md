@@ -35,7 +35,7 @@ docker-compose -f docker-compose-artifactory.yml up -d
 ### 2. Complete Setup Wizard
 
 1. **Open Artifactory**: <http://localhost:8081>
-2. **Login**: `admin` / `password`  
+2. **Login**: `admin` / `password`
 3. **Set New Password**: Choose a secure password
 4. **Base URL**: Set to `http://localhost:8081/artifactory`
 5. **Proxy**: Skip proxy configuration
@@ -55,7 +55,7 @@ docker-compose -f docker-compose-artifactory.yml up -d
 ```bash
 # Artifactory configuration
 export ARTIFACTORY_URL="http://localhost:8081/artifactory"
-export ARTIFACTORY_REPOSITORY="generic-releases"  
+export ARTIFACTORY_REPOSITORY="generic-releases"
 export ARTIFACTORY_API_KEY="your-generated-api-key"
 
 # GitHub token (required)
@@ -189,7 +189,7 @@ Edit `config.yaml`:
 download:
   enabled: true
   directory: ./downloads
-  
+
   # Use Artifactory for version database and storage
   artifactory_storage:
     enabled: true
@@ -748,6 +748,184 @@ To migrate from S3 to Artifactory:
 3. **Update pipeline configuration** to use Artifactory parameters
 
 4. **Optionally migrate artifacts** from S3 to Artifactory
+
+---
+
+## Configuration Parameters
+
+Understanding the difference between `repositories_override` and `download_repository_overrides` is crucial for pipeline configuration.
+
+### Parameter Overview
+
+| Parameter | Pipeline Phase | Purpose | When to Use |
+|-----------|----------------|---------|-------------|
+| `repositories_override` | Monitor Phase | Controls **which repositories** to monitor | Change the list of repositories to track |
+| `download_repository_overrides` | Download Phase | Controls **how to download** assets | Customize download settings per repository |
+
+### Pipeline Flow
+
+```mermaid
+graph TD
+    A[Monitor Phase] --> B[Download Phase]
+    A --> |uses| C[repositories_override]
+    B --> |uses| D[download_repository_overrides]
+
+    C --> E[Which repos to check?]
+    D --> F[How to download from each repo?]
+```
+
+### repositories_override
+
+**Controls:** Which repositories the monitor phase checks for new releases.
+
+**Format:** JSON array of repository objects
+
+**Use Cases:**
+- **Production:** Override the default config.yaml repository list
+- **Testing:** Monitor only specific repositories
+- **Debugging:** Focus on a single problematic repository
+
+**Examples:**
+
+```yaml
+# Pipeline parameter
+repositories_override: |
+  [
+    {
+      "owner": "kubernetes",
+      "repo": "kubernetes",
+      "asset_patterns": ["kubernetes-server-*.tar.gz"]
+    },
+    {
+      "owner": "prometheus",
+      "repo": "prometheus",
+      "asset_patterns": ["prometheus-*.linux-amd64.tar.gz"]
+    }
+  ]
+```
+
+**Environment Variable Usage:**
+```bash
+export REPOSITORIES_OVERRIDE='[{"owner":"etcd-io","repo":"etcd","asset_patterns":["etcd-*.linux-amd64.tar.gz"]}]'
+```
+
+### download_repository_overrides
+
+**Controls:** How to download assets from specific repositories during the download phase.
+
+**Format:** JSON object with repository-specific download settings
+
+**Use Cases:**
+- **Per-repo patterns:** Different asset patterns for different repositories
+- **Conditional downloads:** Some repos download source, others don't
+- **Version limits:** Different keep_versions settings per repository
+
+**Examples:**
+
+```yaml
+# Pipeline parameter
+download_repository_overrides: |
+  {
+    "kubernetes/kubernetes": {
+      "asset_patterns": ["kubernetes-server-*.tar.gz", "kubernetes-client-*.tar.gz"],
+      "include_prereleases": false,
+      "keep_versions": 3
+    },
+    "istio/istio": {
+      "asset_patterns": ["istio-*-linux-amd64.tar.gz"],
+      "download_source": true,
+      "fallback_only": true
+    }
+  }
+```
+
+### Common Scenarios
+
+#### 1. Test Single Repository
+
+```yaml
+# Monitor only one repo
+repositories_override: |
+  [{"owner": "prometheus", "repo": "prometheus"}]
+
+# No download overrides needed - uses default settings
+download_repository_overrides: "{}"
+```
+
+#### 2. Production with Custom Download Settings
+
+```yaml
+# Monitor standard list from config.yaml
+repositories_override: ""  # Empty = use config.yaml
+
+# Customize download behavior per repo
+download_repository_overrides: |
+  {
+    "kubernetes/kubernetes": {
+      "asset_patterns": ["kubernetes-server-*.tar.gz"],
+      "keep_versions": 5
+    },
+    "etcd-io/etcd": {
+      "asset_patterns": ["etcd-*.linux-amd64.tar.gz"],
+      "include_prereleases": true
+    }
+  }
+```
+
+#### 3. Development Testing
+
+```yaml
+# Test with subset of repos
+repositories_override: |
+  [
+    {"owner": "etcd-io", "repo": "etcd"},
+    {"owner": "prometheus", "repo": "prometheus"}
+  ]
+
+# Force re-download everything
+download_repository_overrides: |
+  {
+    "etcd-io/etcd": {"force_download": true},
+    "prometheus/prometheus": {"force_download": true}
+  }
+```
+
+### Pipeline Job Usage
+
+**Monitor Jobs:** Use `repositories_override`
+- `monitor-releases`
+- `check-releases` (in force-download-repo)
+
+**Download Jobs:** Use `download_repository_overrides`
+- `download-new-releases`
+- `download-releases` (in force-download-repo)
+
+### Parameter Validation
+
+**repositories_override must be:**
+- Valid JSON array
+- Each item has `owner` and `repo` fields
+- Optional fields: `asset_patterns`, `include_prereleases`, etc.
+
+**download_repository_overrides must be:**
+- Valid JSON object
+- Keys are in format `owner/repo`
+- Values are objects with download settings
+
+### Troubleshooting
+
+**Issue:** "Repository not found in override"
+- Check that `repositories_override` includes the repository
+- Verify JSON syntax is valid
+
+**Issue:** "Downloads not using custom settings"
+- Ensure `download_repository_overrides` key matches exactly: `owner/repo`
+- Check that the repository was processed in monitor phase first
+
+**Issue:** "Pipeline ignoring parameters"
+- Verify parameter interpolation: `((parameter_name))`
+- Check parameter file includes the parameter
+- Confirm pipeline deployment used correct parameter file
 
 ---
 
