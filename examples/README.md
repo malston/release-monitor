@@ -269,7 +269,7 @@ jobs:
         type: registry-image
         source: 
           repository: python
-          tag: 3.9-slim
+          tag: 3.11-slim
       params:
         GITHUB_TOKEN: ((github_token))
       run:

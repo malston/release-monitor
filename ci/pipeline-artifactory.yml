@@ -1,0 +1,242 @@
+# Concourse Pipeline for GitHub Release Monitor - JFrog Artifactory Version
+# This pipeline uses JFrog Artifactory for storing release artifacts and version database
+
+groups:
+  - name: main-pipeline
+    jobs:
+      - monitor-releases
+      - download-new-releases
+
+  - name: utilities
+    jobs:
+      - check-version-database
+      - reset-version-database
+      - force-download-repo
+
+resources:
+  - name: release-monitor-repo
+    type: git
+    source:
+      uri: ((git_repo_uri))
+      branch: ((git_branch))
+      private_key: ((git_private_key))
+
+  - name: schedule-trigger
+    type: time
+    source:
+      interval: 1h  # Check every hour
+
+#   - name: email-notification
+#     type: email
+#     source:
+#       smtp:
+#         host: ((smtp_host))
+#         port: ((smtp_port))
+#         username: ((smtp_username))
+#         password: ((smtp_password))
+#         anonymous: ((smtp_anonymous))
+#         skip_ssl_validation: ((smtp_skip_ssl_validation))
+#         ca_cert: ((smtp_ca_cert))
+#         host_origin: ((smtp_host_origin))
+#         login_auth: ((smtp_login_auth))
+#       from: ((email_from))
+#       to: ((email_to))
+
+jobs:
+  - name: monitor-releases
+    plan:
+      - in_parallel:
+          - get: release-monitor-repo
+          - get: schedule-trigger
+            trigger: true
+
+      - task: check-releases
+        file: release-monitor-repo/ci/tasks/check-releases/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
+          # Repository list override
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-monitor-output
+        file: release-monitor-repo/ci/tasks/upload-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+    #   - task: prepare-email-notification
+    #     file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
+    #     params:
+    #       EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
+    #       INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
+    #       REPOSITORIES_OVERRIDE: ((repositories_override))
+
+    #       # Artifactory version database configuration for filtering
+    #       ARTIFACTORY_URL: ((artifactory_url))
+    #       ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+    #       ARTIFACTORY_API_KEY: ((artifactory_api_key))
+    #       ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+    #     on_success:
+    #       put: email-notification
+    #       params:
+    #         subject: email/subject
+    #         body: email/body.html
+
+  - name: download-new-releases
+    plan:
+      - in_parallel:
+          - get: release-monitor-repo
+            trigger: true
+            passed: [monitor-releases]
+
+      - task: fetch-monitor-output
+        file: release-monitor-repo/ci/tasks/fetch-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: download-releases
+        file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        input_mapping:
+          release-monitor: release-monitor-repo
+          monitor-output: monitor-output
+        params:
+          GITHUB_TOKEN: ((github_token))
+
+          # Download configuration
+          ASSET_PATTERNS: ((download_asset_patterns))
+          INCLUDE_PRERELEASES: ((download_include_prereleases))
+          VERIFY_DOWNLOADS: ((download_verify_downloads))
+          CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
+          KEEP_VERSIONS: ((download_keep_versions))
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+          # Force re-download for testing (comment out in production)
+          # FORCE_DOWNLOAD: "true"
+
+      # Upload downloaded files to Artifactory storage
+      - task: upload-to-artifactory
+        file: release-monitor-repo/ci/tasks/upload-to-artifactory/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+  # Clear version database to force re-downloads
+  - name: check-version-database
+    plan:
+      - get: release-monitor-repo
+
+      - task: show-version-db
+        file: release-monitor-repo/ci/tasks/show-version-db/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+  - name: reset-version-database
+    plan:
+      - get: release-monitor-repo
+
+      - task: clear-version-db
+        file: release-monitor-repo/ci/tasks/clear-version-db/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+  # Parameterized job to force download any repository for testing
+  # Usage: fly trigger-job -j pipeline-name/force-download-repo -v force_download_repo="owner/repo"
+  - name: force-download-repo
+    plan:
+      - get: release-monitor-repo
+
+      - task: clear-repo-from-db
+        file: release-monitor-repo/ci/tasks/clear-repo-from-db/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
+
+      - task: check-releases
+        file: release-monitor-repo/ci/tasks/check-releases/task.yml
+        params:
+          GITHUB_TOKEN: ((github_token))
+          # Repository list override
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-monitor-output
+        file: release-monitor-repo/ci/tasks/upload-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: fetch-monitor-output
+        file: release-monitor-repo/ci/tasks/fetch-monitor-output/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: download-releases
+        file: release-monitor-repo/ci/tasks/download-releases/task.yml
+        input_mapping:
+          release-monitor: release-monitor-repo
+          monitor-output: monitor-output
+        params:
+          GITHUB_TOKEN: ((github_token))
+          ASSET_PATTERNS: ((download_asset_patterns))
+          INCLUDE_PRERELEASES: ((download_include_prereleases))
+          VERIFY_DOWNLOADS: ((download_verify_downloads))
+          CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
+          KEEP_VERSIONS: ((download_keep_versions))
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+
+          # Artifactory configuration for version database
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+      - task: upload-to-artifactory
+        file: release-monitor-repo/ci/tasks/upload-to-artifactory/task.yml
+        params:
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+
+# Resource types (if not available in your Concourse deployment)
+resource_types:
+  - name: email
+    type: registry-image
+    source:
+      repository: pcfseceng/email-resource
+      tag: 1.0.19

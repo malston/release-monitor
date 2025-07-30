@@ -40,13 +40,14 @@ class ReleaseDownloadCoordinator:
     Coordinates the release download process with version tracking.
     """
 
-    def __init__(self, config: Dict[str, Any], github_token: str):
+    def __init__(self, config: Dict[str, Any], github_token: str, force_local: bool = False):
         """
         Initialize download coordinator.
 
         Args:
             config: Download configuration
             github_token: GitHub API token
+            force_local: Force local storage, bypassing S3/Artifactory auto-detection
         """
         self.config = config
         self.github_token = github_token
@@ -54,20 +55,45 @@ class ReleaseDownloadCoordinator:
         # Initialize components
         download_config = config.get('download', {})
 
-        # Check if S3 storage is configured
+        # Check storage backend configuration
         s3_config = download_config.get('s3_storage', {})
+        artifactory_config = download_config.get('artifactory_storage', {})
         use_s3 = s3_config.get('enabled', False)
-        
-        # Auto-detect S3 usage if environment variables are present
-        if not use_s3 and os.environ.get('VERSION_DB_S3_BUCKET'):
-            use_s3 = True
-            logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
-        
+        use_artifactory = artifactory_config.get('enabled', False)
 
-        if use_s3:
+        if force_local:
+            logger.info("Forcing local storage for downloads (--force-download flag)")
+            use_s3 = False
+            use_artifactory = False
+        else:
+            # Auto-detect S3 usage if environment variables are present
+            if not use_s3 and os.environ.get('VERSION_DB_S3_BUCKET'):
+                use_s3 = True
+                logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
+
+            # Auto-detect Artifactory usage if environment variables are present
+            if not use_artifactory and os.environ.get('ARTIFACTORY_URL') and os.environ.get('ARTIFACTORY_REPOSITORY'):
+                use_artifactory = True
+                logger.info("Auto-detected Artifactory version database from ARTIFACTORY_URL and ARTIFACTORY_REPOSITORY environment variables")
+
+        # Priority: Artifactory > S3 > local
+        if use_artifactory:
+            # Use Artifactory version storage
+            from github_version_artifactory import ArtifactoryVersionDatabase
+            self.version_db = ArtifactoryVersionDatabase(
+                base_url=os.environ.get('ARTIFACTORY_URL') or artifactory_config.get('base_url'),
+                repository=os.environ.get('ARTIFACTORY_REPOSITORY') or artifactory_config.get('repository'),
+                path_prefix=artifactory_config.get('path_prefix', 'release-monitor/'),
+                username=os.environ.get('ARTIFACTORY_USERNAME') or artifactory_config.get('username'),
+                password=os.environ.get('ARTIFACTORY_PASSWORD') or artifactory_config.get('password'),
+                api_key=os.environ.get('ARTIFACTORY_API_KEY') or artifactory_config.get('api_key'),
+                verify_ssl=artifactory_config.get('verify_ssl', True) and os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
+            )
+            logger.info(f"Using Artifactory version storage: {os.environ.get('ARTIFACTORY_URL') or artifactory_config.get('base_url')}")
+        elif use_s3:
             # Check if we should use mc-based S3 implementation
             use_mc_s3 = os.environ.get('S3_USE_MC', 'true').lower() == 'true'
-            
+
             if use_mc_s3:
                 # Try to use mc-based S3 version storage for better compatibility
                 try:
@@ -80,15 +106,15 @@ class ReleaseDownloadCoordinator:
                 except ImportError:
                     logger.warning("mc-based S3 implementation not available, falling back to boto3")
                     use_mc_s3 = False
-            
+
             if not use_mc_s3:
                 # Check if we should use S3-compatible storage (for MinIO, etc.)
                 endpoint_url = s3_config.get('endpoint_url') or os.environ.get('AWS_ENDPOINT_URL')
-                
+
                 # Set endpoint URL for boto3 before importing S3 modules
                 if endpoint_url:
                     os.environ['AWS_ENDPOINT_URL_S3'] = endpoint_url
-                
+
                 # Use boto3-based S3 version storage
                 from github_version_s3 import VersionDatabase as S3VersionDatabase
                 self.version_db = S3VersionDatabase(
@@ -98,7 +124,7 @@ class ReleaseDownloadCoordinator:
                     aws_region=s3_config.get('region'),
                     aws_profile=s3_config.get('profile')
                 )
-                
+
                 endpoint_info = f" via {endpoint_url}" if endpoint_url else ""
                 logger.info(f"Using boto3-based S3 version storage: s3://{s3_config.get('bucket')}/{s3_config.get('prefix', 'release-monitor/')}version_db.json{endpoint_info}")
         else:
@@ -122,7 +148,7 @@ class ReleaseDownloadCoordinator:
         self.verify_downloads = download_config.get('verify_downloads', True)
         self.cleanup_enabled = download_config.get('cleanup_old_versions', False)
         self.keep_versions = download_config.get('keep_versions', 5)
-        
+
         # Source archive settings
         self.source_config = download_config.get('source_archives', {
             'enabled': True,
@@ -132,7 +158,7 @@ class ReleaseDownloadCoordinator:
 
         # Repository overrides
         self.repository_overrides = download_config.get('repository_overrides', {})
-        
+
         logger.info("Release download coordinator initialized")
 
     def process_monitor_output(self, monitor_output: Dict[str, Any]) -> Dict[str, Any]:
@@ -243,7 +269,7 @@ class ReleaseDownloadCoordinator:
         # Check if release has downloadable content (assets or source code)
         has_assets = bool(release.get('assets'))
         has_source = bool(release.get('tarball_url') or release.get('zipball_url'))
-        
+
         if not has_assets and not has_source:
             logger.debug(f"No downloadable content found for {repository}:{tag_name}")
             return {
@@ -256,7 +282,7 @@ class ReleaseDownloadCoordinator:
 
         # Get repository-specific configuration
         repo_config = self._get_repository_config(repository)
-        
+
         # Download the release assets and/or source code
         try:
             download_results = self.downloader.download_release_content(
@@ -313,21 +339,21 @@ class ReleaseDownloadCoordinator:
     def _get_repository_config(self, repository: str) -> Dict[str, Any]:
         """
         Get repository-specific configuration with fallbacks.
-        
+
         Args:
             repository: Repository name in owner/repo format
-            
+
         Returns:
             Repository configuration with merged overrides
         """
         repo_override = self.repository_overrides.get(repository, {})
-        
+
         # Merge with defaults
         config = {
             'asset_patterns': repo_override.get('asset_patterns', self.asset_patterns),
             'source_archives': {**self.source_config, **repo_override.get('source_archives', {})}
         }
-        
+
         return config
 
     def get_status_report(self) -> Dict[str, Any]:

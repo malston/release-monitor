@@ -21,6 +21,7 @@
 - **⚡ Lightweight**: Simple Python script with minimal dependencies
 
 Perfect for teams who need to:
+
 - Track when Kubernetes, Gatekeeper, Istio, or other tools release updates
 - Automate dependency updates in their CI/CD pipelines  
 - Monitor security tools for latest versions
@@ -76,12 +77,15 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### 🎯 Where to Start Contributing
 
 #### Good First Issues
+
 Perfect for newcomers to the project:
+
 - [🏷️ Good First Issues](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Beginner-friendly tasks
 - [🤝 Help Wanted](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) - Issues where we need help
 - [✨ Enhancements](https://github.com/malston/release-monitor/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) - New features and improvements
 
 #### Types of Contributions We're Looking For
+
 - 🐛 **Bug Fixes** - Help us squash bugs
 - 📚 **Documentation** - Improve docs, add examples, fix typos
 - ✨ **New Features** - Add support for new CI/CD tools (GitHub Actions, GitLab CI, etc.)
@@ -90,6 +94,7 @@ Perfect for newcomers to the project:
 - 🌍 **Examples** - Add more use cases and integration examples
 
 #### Quick Start for Contributors
+
 1. **Find an Issue**: Browse [open issues](https://github.com/malston/release-monitor/issues) or create a new one
 2. **Comment**: Let us know you're working on it
 3. **Fork & Clone**: See our [Contributing Guide](CONTRIBUTING.md#fork-and-clone)
@@ -97,12 +102,37 @@ Perfect for newcomers to the project:
 5. **Submit PR**: We'll review and provide feedback
 
 ### Quick Links
+
 - [🍴 Fork the repository](https://github.com/malston/release-monitor/fork)
 - [🐛 Report a bug](https://github.com/malston/release-monitor/issues/new?template=bug_report.md)
 - [💡 Request a feature](https://github.com/malston/release-monitor/issues/new?template=feature_request.md)
 - [📖 Contributing Guide](CONTRIBUTING.md)
 - [👥 Contributors](CONTRIBUTORS.md)
 - [💬 Discussions](https://github.com/malston/release-monitor/discussions) (coming soon)
+
+## Storage Backends
+
+The GitHub Release Monitor supports multiple storage backends for artifacts and version tracking:
+
+### 📦 AWS S3 & S3-Compatible Storage (Default)
+
+- **MinIO**, **AWS S3**, **Google Cloud Storage**, and other S3-compatible services
+- Built-in support with automatic failover between boto3 and MinIO client
+- Perfect for cloud-native and self-hosted environments
+
+### 🏢 JFrog Artifactory (Enterprise)
+
+- Full JFrog Artifactory OSS and Enterprise support
+- **Complete Documentation**: [📖 Artifactory Integration Guide](README-ARTIFACTORY.md)
+- Version database and artifact storage in Artifactory repositories
+- API key and username/password authentication
+- SSL configuration for self-signed certificates
+
+Choose the storage backend that best fits your infrastructure:
+
+- **Getting Started**: Use the default S3-compatible setup with MinIO
+- **Enterprise**: Use Artifactory if you already have JFrog infrastructure
+- **Cloud**: Use AWS S3, Google Cloud Storage, or Azure Blob Storage
 
 ## Requirements
 
@@ -190,6 +220,9 @@ python3 github_monitor.py --config config.yaml --force-check
 
 # Monitor and download new releases automatically
 python3 github_monitor.py --config config.yaml --download
+
+# Force local storage (bypass S3/Artifactory auto-detection)
+python3 github_monitor.py --config config.yaml --force-download
 ```
 
 ### Bash Wrapper
@@ -310,12 +343,19 @@ params/
    - Force download and database management utilities
    - Production-ready with automatic cleanup
 
-2. **Simple Pipeline** (`pipeline-simple.yml`) 🏁 **STARTER**:
+2. **Artifactory Pipeline** (`pipeline-artifactory.yml`) 🏢 **ENTERPRISE**:
+   - JFrog Artifactory integration for enterprise environments
+   - Version database and artifact storage in Artifactory
+   - API key and username/password authentication
+   - SSL configuration for self-signed certificates
+   - See [Artifactory Setup Guide](docs/ARTIFACTORY_SETUP.md)
+
+3. **Simple Pipeline** (`pipeline-simple.yml`) 🏁 **STARTER**:
    - Basic monitoring without storage dependencies
    - Easy setup for getting started
    - No downloads, perfect for learning the basics
 
-3. **AWS S3 Pipeline** (`pipeline.yml`) 🏢 **AWS-ONLY**:
+4. **AWS S3 Pipeline** (`pipeline.yml`) 🏢 **AWS-ONLY**:
    - Traditional AWS S3 integration
    - Standard download functionality
    - For pure AWS environments
@@ -341,6 +381,11 @@ params/
    fly -t test set-pipeline -p release-monitor-minio \
      -c ci/pipeline-s3-compatible.yml \
      -l params/global-s3-compatible.yml -l params/minio-local.yml
+
+   # Deploy Artifactory pipeline (enterprise)
+   fly -t test set-pipeline -p release-monitor-artifactory \
+     -c ci/pipeline-artifactory.yml \
+     -l params/global-artifactory.yml -l params/test.yml
    ```
 
 3. Unpause the pipeline:
@@ -380,6 +425,37 @@ This ensures only new releases are reported on subsequent runs.
 - `GITHUB_TOKEN` (required): GitHub personal access token
 - `AWS_ACCESS_KEY_ID` (Concourse): AWS access key for S3
 - `AWS_SECRET_ACCESS_KEY` (Concourse): AWS secret key for S3
+
+## Local Development with Docker
+
+### Quick Start - All Services
+
+```bash
+# Start MinIO, Artifactory, and PostgreSQL
+docker-compose -f docker-compose.yml up -d
+
+# Check service status
+docker-compose -f docker-compose.yml logs -f setup-checker
+```
+
+### Individual Services
+
+```bash
+# MinIO S3-compatible storage only
+docker-compose up -d
+
+# JFrog Artifactory OSS only
+docker-compose -f docker-compose-artifactory.yml up -d
+
+# Automated Artifactory setup
+./scripts/setup-artifactory-local.sh
+```
+
+### Service URLs
+
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
+- **Artifactory UI**: http://localhost:8081 (admin/password)
+- **PostgreSQL**: localhost:5432 (release_monitor/release_monitor_pass)
 
 ## Examples
 
@@ -427,19 +503,23 @@ settings:
 
 ## Troubleshooting
 
+**📖 [Complete Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Detailed solutions for common issues
+
 ### Common Issues
 
-1. **Rate Limiting**: Increase `rate_limit_delay` in configuration
-2. **Token Issues**: Ensure `GITHUB_TOKEN` has proper permissions
-3. **Network Errors**: Check connectivity to api.github.com
-4. **State File Errors**: Check write permissions for state file location
+1. **Downloads Not Working**: Version database already contains releases → [Solution](docs/TROUBLESHOOTING.md#downloads-not-working)
+2. **Environment Variables Override Config**: Auto-detection overrides file settings → [Solution](docs/TROUBLESHOOTING.md#environment-variables-override-config-file-settings)
+3. **Rate Limiting**: Increase `rate_limit_delay` in configuration
+4. **Token Issues**: Ensure `GITHUB_TOKEN` has proper permissions
+5. **Network Errors**: Check connectivity to api.github.com
+6. **State File Errors**: Check write permissions for state file location
 
 ### Debug Mode
 
 Enable verbose logging by setting the log level:
 
-```python
-logging.basicConfig(level=logging.DEBUG)
+```bash
+LOG_LEVEL=DEBUG python github_monitor.py --config ./config.yaml --download
 ```
 
 ## Security Considerations
