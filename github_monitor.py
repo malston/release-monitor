@@ -245,6 +245,64 @@ def parse_release_date(date_string: str) -> datetime:
     return datetime.fromisoformat(date_string.replace("Z", "+00:00"))
 
 
+def is_prerelease_pattern(version: str) -> bool:
+    """Check if version appears to be a pre-release based on common patterns."""
+    version_lower = version.lower()
+    prerelease_indicators = [
+        'alpha', 'beta', 'rc', 'pre', 'preview', 'snapshot',
+        'dev', 'nightly', 'canary', 'experimental'
+    ]
+    return any(indicator in version_lower for indicator in prerelease_indicators)
+
+
+def find_newest_clean_release(releases: List[Dict[str, Any]], strict_filtering: bool) -> Optional[Dict[str, Any]]:
+    """
+    Find the newest clean (non-prerelease) release from a list of releases.
+
+    Args:
+        releases: List of GitHub release objects
+        strict_filtering: If True, use pattern-based filtering in addition to GitHub's prerelease flag
+
+    Returns:
+        The newest clean release, or None if no clean releases found
+    """
+    clean_releases = []
+
+    for release in releases:
+        # Skip draft releases
+        if release.get('draft', False):
+            continue
+
+        tag_name = release.get('tag_name', '')
+        github_prerelease = release.get('prerelease', False)
+
+        if strict_filtering:
+            # Strict mode: exclude if either GitHub flag OR pattern indicates prerelease
+            pattern_prerelease = is_prerelease_pattern(tag_name)
+            is_prerelease = github_prerelease or pattern_prerelease
+
+            if not is_prerelease:
+                clean_releases.append(release)
+                logger.debug(f"Clean release found: {tag_name} (GitHub: {github_prerelease}, pattern: {pattern_prerelease})")
+            else:
+                logger.debug(f"Filtered prerelease: {tag_name} (GitHub: {github_prerelease}, pattern: {pattern_prerelease})")
+        else:
+            # Standard mode: only exclude based on GitHub's official prerelease flag
+            if not github_prerelease:
+                clean_releases.append(release)
+                logger.debug(f"Clean release found: {tag_name} (GitHub prerelease: {github_prerelease})")
+            else:
+                logger.debug(f"Filtered prerelease: {tag_name} (GitHub prerelease: {github_prerelease})")
+
+    # Return the first (newest) clean release, or None if no clean releases found
+    if clean_releases:
+        newest = clean_releases[0]
+        logger.info(f"Selected newest clean release: {newest.get('tag_name')}")
+        return newest
+    else:
+        return None
+
+
 def main():
     """Main function"""
     parser = argparse.ArgumentParser(
@@ -305,7 +363,8 @@ def main():
         args.download = True
 
     # Initialize components
-    monitor = GitHubMonitor(github_token)
+    settings = config.get("settings", {})
+    monitor = GitHubMonitor(github_token, settings.get("rate_limit_delay", 1.0))
     tracker = ReleaseTracker(args.state_file)
 
     new_releases = []
@@ -320,9 +379,28 @@ def main():
         logger.info(f"Checking {repo_key}...")
 
         try:
-            latest_release = monitor.get_latest_release(owner, repo)
-            if not latest_release:
-                continue
+            # Check if we need to apply prerelease filtering at the monitor level
+            download_config = config.get("download", {})
+            strict_filtering = download_config.get("strict_prerelease_filtering", False)
+            include_prereleases = download_config.get("include_prereleases", False)
+
+            if strict_filtering and not include_prereleases:
+                # Use get_all_releases to find the newest clean release
+                max_releases = settings.get("max_releases_per_repo", 10)
+                all_releases = monitor.get_all_releases(owner, repo, max_releases)
+                if not all_releases:
+                    continue
+
+                # Filter releases to find the newest clean one
+                latest_release = find_newest_clean_release(all_releases, strict_filtering)
+                if not latest_release:
+                    logger.info(f"No clean releases found for {repo_key} with strict filtering")
+                    continue
+            else:
+                # Use the standard latest release endpoint
+                latest_release = monitor.get_latest_release(owner, repo)
+                if not latest_release:
+                    continue
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to check {repo_key}: {e}")
             # Check if we should exit on API errors or continue
