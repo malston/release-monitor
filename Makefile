@@ -25,6 +25,8 @@ ifndef NO_COLOR
     GREEN := \033[0;32m
     YELLOW := \033[0;33m
     RED := \033[0;31m
+    CYAN := \033[36m
+    WHITE := \033[1;37m
     NC := \033[0m
 else
     GREEN :=
@@ -41,15 +43,9 @@ endif
 .PHONY: help
 help: ## Display this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-	@printf "\n\033[1mTesting:\033[0m\n"
-	@printf "  make test                  - Run unit tests only\n"
-	@printf "  make test-integration      - Run integration tests (checks dependencies first)\n"
-	@printf "  make test-all              - Run both unit and integration tests\n"
-	@printf "  make test-integration-deps - Check integration test dependencies\n"
-	@printf "  make test-manifest-downloads - Test manifest/YAML download functionality\n"
-	@printf "\n\033[1mConfiguration:\033[0m\n"
-	@printf "  Set FLY_TARGET in .env file to override Concourse target (default: $(FLY_TARGET))\n"
-	@printf "  Example: echo 'FLY_TARGET=prod' >> .env\n"
+	@printf "\n$(WHITE)Configuration:$(NC)\n"
+	@printf " $(CYAN)Set FLY_TARGET in .env file to override Concourse target (default: $(FLY_TARGET))$(NC)\n"
+	@printf "  $(YELLOW)Example: echo 'FLY_TARGET=prod' >> .env$(NC)\n"
 
 ##@ Setup & Installation
 
