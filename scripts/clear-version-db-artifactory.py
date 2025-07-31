@@ -26,9 +26,24 @@ def main():
         print("ERROR: ARTIFACTORY_REPOSITORY environment variable not set")
         sys.exit(1)
 
+    # Authentication - prefer API key over username/password
     api_key = os.environ.get('ARTIFACTORY_API_KEY')
-    if not api_key:
-        print("ERROR: ARTIFACTORY_API_KEY environment variable not set")
+    username = os.environ.get('ARTIFACTORY_USERNAME')
+    password = os.environ.get('ARTIFACTORY_PASSWORD')
+
+    headers = {}
+    auth = None
+
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+        print("Using API key authentication")
+    elif username and password:
+        from requests.auth import HTTPBasicAuth
+        auth = HTTPBasicAuth(username, password)
+        print(f"Using username/password authentication for user: {username}")
+    else:
+        print("ERROR: No authentication credentials found.")
+        print("Set ARTIFACTORY_API_KEY or ARTIFACTORY_USERNAME/ARTIFACTORY_PASSWORD")
         sys.exit(1)
 
     # SSL verification
@@ -43,11 +58,10 @@ def main():
 
     # Delete the version database
     url = f"{artifactory_url.rstrip('/')}/{repository}/release-monitor/version_db.json"
-    headers = {'Authorization': f'Bearer {api_key}'}
 
     try:
         print(f'Clearing version database at: {url}')
-        response = requests.delete(url, headers=headers, verify=verify_ssl)
+        response = requests.delete(url, headers=headers, auth=auth, verify=verify_ssl)
 
         if response.status_code == 404:
             print('Version database not found - nothing to clear')

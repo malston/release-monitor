@@ -30,9 +30,24 @@ def clear_version_entry(repo_key):
         print("ERROR: ARTIFACTORY_REPOSITORY environment variable not set")
         return False
 
+    # Authentication - prefer API key over username/password
     api_key = os.environ.get('ARTIFACTORY_API_KEY')
-    if not api_key:
-        print("ERROR: ARTIFACTORY_API_KEY environment variable not set")
+    username = os.environ.get('ARTIFACTORY_USERNAME')
+    password = os.environ.get('ARTIFACTORY_PASSWORD')
+
+    headers = {}
+    auth = None
+
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+        print("Using API key authentication")
+    elif username and password:
+        from requests.auth import HTTPBasicAuth
+        auth = HTTPBasicAuth(username, password)
+        print(f"Using username/password authentication for user: {username}")
+    else:
+        print("ERROR: No authentication credentials found.")
+        print("Set ARTIFACTORY_API_KEY or ARTIFACTORY_USERNAME/ARTIFACTORY_PASSWORD")
         return False
 
     # SSL verification
@@ -46,11 +61,10 @@ def clear_version_entry(repo_key):
 
     # Download current version database
     url = f"{artifactory_url.rstrip('/')}/{repository}/release-monitor/version_db.json"
-    headers = {'Authorization': f'Bearer {api_key}'}
 
     try:
         print(f"Downloading version database from: {url}")
-        response = requests.get(url, headers=headers, verify=verify_ssl)
+        response = requests.get(url, headers=headers, auth=auth, verify=verify_ssl)
 
         if response.status_code == 404:
             print("No version database found in Artifactory")
@@ -104,6 +118,7 @@ def clear_version_entry(repo_key):
             url,
             data=json_content,
             headers=upload_headers,
+            auth=auth,
             verify=verify_ssl
         )
 

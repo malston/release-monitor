@@ -60,6 +60,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: upload-monitor-output
@@ -68,6 +70,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
     #   - task: prepare-email-notification
@@ -101,6 +105,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: download-releases
@@ -117,11 +123,13 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
-          
+
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
           # Force re-download for testing (comment out in production)
@@ -134,6 +142,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
   # Clear version database to force re-downloads
@@ -147,6 +157,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
   - name: reset-version-database
@@ -159,6 +171,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
   # Parameterized job to force download any repository for testing
@@ -173,6 +187,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
           REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
 
@@ -186,6 +202,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: upload-monitor-output
@@ -194,6 +212,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: fetch-monitor-output
@@ -202,6 +222,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: download-releases
@@ -221,6 +243,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
       - task: upload-to-artifactory
@@ -229,6 +253,8 @@ jobs:
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
           ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_USERNAME: ((artifactory_username))
+          ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
 # Resource types (if not available in your Concourse deployment)

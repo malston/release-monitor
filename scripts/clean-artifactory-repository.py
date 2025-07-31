@@ -33,7 +33,7 @@ import argparse
 from urllib.parse import quote
 
 
-def get_repository_contents(artifactory_url, repository, api_key, verify_ssl, path=""):
+def get_repository_contents(artifactory_url, repository, auth_headers, auth, verify_ssl, path=""):
     """Get list of files and folders in the Artifactory repository."""
 
     # Use Artifactory REST API to list repository contents
@@ -41,13 +41,11 @@ def get_repository_contents(artifactory_url, repository, api_key, verify_ssl, pa
     if path:
         api_url += f"/{path.strip('/')}"
 
-    headers = {
-        'Authorization': f'Bearer {api_key}',
-        'Accept': 'application/json'
-    }
+    headers = auth_headers.copy()
+    headers['Accept'] = 'application/json'
 
     try:
-        response = requests.get(api_url, headers=headers, verify=verify_ssl)
+        response = requests.get(api_url, headers=headers, auth=auth, verify=verify_ssl)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -58,13 +56,13 @@ def get_repository_contents(artifactory_url, repository, api_key, verify_ssl, pa
         return None
 
 
-def collect_artifacts(artifactory_url, repository, api_key, verify_ssl, path="", files_list=None):
+def collect_artifacts(artifactory_url, repository, auth_headers, auth, verify_ssl, path="", files_list=None):
     """Recursively collect all artifacts in the repository."""
 
     if files_list is None:
         files_list = []
 
-    contents = get_repository_contents(artifactory_url, repository, api_key, verify_ssl, path)
+    contents = get_repository_contents(artifactory_url, repository, auth_headers, auth, verify_ssl, path)
     if not contents:
         return files_list
 
@@ -74,7 +72,7 @@ def collect_artifacts(artifactory_url, repository, api_key, verify_ssl, path="",
 
         if child.get('folder'):
             # Recursively process folder
-            collect_artifacts(artifactory_url, repository, api_key, verify_ssl, child_path, files_list)
+            collect_artifacts(artifactory_url, repository, auth_headers, auth, verify_ssl, child_path, files_list)
         else:
             # Add file to list
             files_list.append({
@@ -86,14 +84,13 @@ def collect_artifacts(artifactory_url, repository, api_key, verify_ssl, path="",
     return files_list
 
 
-def delete_artifact(artifactory_url, repository, api_key, verify_ssl, artifact_path):
+def delete_artifact(artifactory_url, repository, auth_headers, auth, verify_ssl, artifact_path):
     """Delete a specific artifact from Artifactory."""
 
     url = f"{artifactory_url.rstrip('/')}/{repository}/{artifact_path}"
-    headers = {'Authorization': f'Bearer {api_key}'}
 
     try:
-        response = requests.delete(url, headers=headers, verify=verify_ssl)
+        response = requests.delete(url, headers=auth_headers, auth=auth, verify=verify_ssl)
         response.raise_for_status()
         return True
     except requests.exceptions.RequestException as e:
@@ -104,7 +101,7 @@ def delete_artifact(artifactory_url, repository, api_key, verify_ssl, artifact_p
         return False
 
 
-def delete_empty_folders(artifactory_url, repository, api_key, verify_ssl, deleted_files):
+def delete_empty_folders(artifactory_url, repository, auth_headers, auth, verify_ssl, deleted_files):
     """Delete empty folders left behind after file deletion."""
 
     if not deleted_files:
@@ -127,14 +124,13 @@ def delete_empty_folders(artifactory_url, repository, api_key, verify_ssl, delet
 
     for folder_path in sorted_folders:
         # Check if folder is empty
-        contents = get_repository_contents(artifactory_url, repository, api_key, verify_ssl, folder_path)
+        contents = get_repository_contents(artifactory_url, repository, auth_headers, auth, verify_ssl, folder_path)
         if contents and len(contents.get('children', [])) == 0:
             # Folder is empty, delete it
             url = f"{artifactory_url.rstrip('/')}/{repository}/{folder_path}"
-            headers = {'Authorization': f'Bearer {api_key}'}
 
             try:
-                response = requests.delete(url, headers=headers, verify=verify_ssl)
+                response = requests.delete(url, headers=auth_headers, auth=auth, verify=verify_ssl)
                 response.raise_for_status()
                 print(f"Deleted empty folder: {folder_path}/")
                 deleted_folders += 1
@@ -216,9 +212,24 @@ def main():
         print("ERROR: ARTIFACTORY_REPOSITORY environment variable not set")
         sys.exit(1)
 
+    # Authentication - prefer API key over username/password
     api_key = os.environ.get('ARTIFACTORY_API_KEY')
-    if not api_key:
-        print("ERROR: ARTIFACTORY_API_KEY environment variable not set")
+    username = os.environ.get('ARTIFACTORY_USERNAME')
+    password = os.environ.get('ARTIFACTORY_PASSWORD')
+
+    auth_headers = {}
+    auth = None
+
+    if api_key:
+        auth_headers['Authorization'] = f'Bearer {api_key}'
+        print("Using API key authentication")
+    elif username and password:
+        from requests.auth import HTTPBasicAuth
+        auth = HTTPBasicAuth(username, password)
+        print(f"Using username/password authentication for user: {username}")
+    else:
+        print("ERROR: No authentication credentials found.")
+        print("Set ARTIFACTORY_API_KEY or ARTIFACTORY_USERNAME/ARTIFACTORY_PASSWORD")
         sys.exit(1)
 
     # SSL verification
@@ -237,7 +248,7 @@ def main():
     print("\nScanning repository for artifacts...")
 
     # Collect all artifacts
-    artifacts = collect_artifacts(artifactory_url, repository, api_key, verify_ssl)
+    artifacts = collect_artifacts(artifactory_url, repository, auth_headers, auth, verify_ssl)
 
     if not artifacts:
         print("No artifacts found in repository")
@@ -307,7 +318,7 @@ def main():
     for artifact in to_delete:
         print(f"Deleting: {artifact['path']} ({format_size(artifact['size'])})")
 
-        if delete_artifact(artifactory_url, repository, api_key, verify_ssl, artifact['path']):
+        if delete_artifact(artifactory_url, repository, auth_headers, auth, verify_ssl, artifact['path']):
             deleted_count += 1
             deleted_size += artifact['size']
             deleted_file_paths.append(artifact['path'])
@@ -318,7 +329,7 @@ def main():
     deleted_folders = 0
     if deleted_file_paths:
         print(f"\nCleaning up empty folders...")
-        deleted_folders = delete_empty_folders(artifactory_url, repository, api_key, verify_ssl, deleted_file_paths)
+        deleted_folders = delete_empty_folders(artifactory_url, repository, auth_headers, auth, verify_ssl, deleted_file_paths)
 
     print(f"\nCleanup complete:")
     print(f"  Successfully deleted: {deleted_count} files ({format_size(deleted_size)})")

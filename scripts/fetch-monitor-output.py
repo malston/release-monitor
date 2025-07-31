@@ -17,7 +17,9 @@ def fetch_monitor_output():
     # Get configuration from environment
     artifactory_url = os.environ['ARTIFACTORY_URL']
     repository = os.environ['ARTIFACTORY_REPOSITORY']
-    api_key = os.environ['ARTIFACTORY_API_KEY']
+    api_key = os.environ.get('ARTIFACTORY_API_KEY')
+    username = os.environ.get('ARTIFACTORY_USERNAME')
+    password = os.environ.get('ARTIFACTORY_PASSWORD')
     verify_ssl = os.environ.get('ARTIFACTORY_SKIP_SSL_VERIFICATION', 'false').lower() != 'true'
 
     if not verify_ssl:
@@ -25,14 +27,28 @@ def fetch_monitor_output():
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    # Build URL and headers
-    url = f'{artifactory_url.rstrip("/")}/{repository}/release-monitor/latest-releases.json'
-    headers = {'Authorization': f'Bearer {api_key}'}
+    # Setup authentication - prefer API key over username/password
+    headers = {}
+    auth = None
 
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+        print("Using API key authentication")
+    elif username and password:
+        from requests.auth import HTTPBasicAuth
+        auth = HTTPBasicAuth(username, password)
+        print(f"Using username/password authentication for user: {username}")
+    else:
+        print("ERROR: No authentication credentials found.")
+        print("Set ARTIFACTORY_API_KEY or ARTIFACTORY_USERNAME/ARTIFACTORY_PASSWORD")
+        sys.exit(1)
+
+    # Build URL
+    url = f'{artifactory_url.rstrip("/")}/{repository}/release-monitor/latest-releases.json'
     print(f'Fetching monitor output from: {url}')
 
     try:
-        response = requests.get(url, headers=headers, verify=verify_ssl)
+        response = requests.get(url, headers=headers, auth=auth, verify=verify_ssl)
         response.raise_for_status()
 
         # Write to output directory
