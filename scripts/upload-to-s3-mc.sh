@@ -56,9 +56,9 @@ UPLOADED=0
 find ${DOWNLOADS_DIR} -type f \( -name "*.gz" -o -name "*.zip" \) | while read file; do
     # Get relative path from downloads directory
     REL_PATH="${file#${DOWNLOADS_DIR}/}"
-    
+
     echo "Uploading: ${REL_PATH}"
-    
+
     # Upload file preserving directory structure
     if mc cp ${INSECURE} "${file}" "${TARGET_PATH}${REL_PATH}"; then
         ((UPLOADED++)) || true

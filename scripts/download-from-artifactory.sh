@@ -61,7 +61,7 @@ if [ -d "$OUTPUT_DIR" ]; then
     echo ""
     echo "📋 Downloaded files:"
     find "$OUTPUT_DIR" -type f -name "*.tar.gz" -o -name "*.zip" | head -20
-    
+
     TOTAL_FILES=$(find "$OUTPUT_DIR" -type f | wc -l | tr -d ' ')
     if [ "$TOTAL_FILES" -gt 20 ]; then
         echo "... and $((TOTAL_FILES - 20)) more files"

@@ -30,13 +30,13 @@ def clear_version_entry(repo_key):
 
     # Configure SSL verification
     skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
-    
+
     # Configure boto3 client config
     client_config = Config(
         signature_version='s3v4',
         s3={'addressing_style': 'path'}
     )
-    
+
     # Build client arguments
     client_kwargs = {
         'service_name': 's3',
@@ -46,7 +46,7 @@ def clear_version_entry(repo_key):
         'region_name': 'us-east-1',
         'config': client_config
     }
-    
+
     # Configure SSL verification
     if skip_ssl_verification:
         print("WARNING: Skipping SSL verification for S3 endpoint")

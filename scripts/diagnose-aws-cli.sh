@@ -25,7 +25,7 @@ if command_exists aws; then
     AWS_VERSION=$(aws --version 2>&1 || echo "Version detection failed")
     echo -e "${GREEN}✅ AWS CLI found${NC}"
     echo "   Version: $AWS_VERSION"
-    
+
     # Check AWS CLI type (v1 vs v2)
     if echo "$AWS_VERSION" | grep -q "aws-cli/2"; then
         echo "   Type: AWS CLI v2 (recommended)"
@@ -75,7 +75,7 @@ if aws s3 help >/dev/null 2>&1; then
 else
     echo -e "${RED}❌ AWS S3 commands not available${NC}"
     echo "   This might indicate an incomplete installation"
-    
+
     # Try to get more specific error
     echo ""
     echo "Attempting to run aws s3 help for more details:"
@@ -87,7 +87,7 @@ echo ""
 echo -e "${BLUE}4️⃣  Checking Python boto3 Alternative${NC}"
 if command_exists python3; then
     echo -e "${GREEN}✅ Python3 found${NC}"
-    
+
     # Check boto3 availability
     python3 -c "import boto3; print('✅ boto3 available')" 2>/dev/null || {
         echo -e "${YELLOW}⚠️  boto3 not available${NC}"
@@ -168,7 +168,7 @@ if aws --endpoint-url "$MINIO_ENDPOINT" \
     echo -e "${GREEN}✅ AWS CLI can connect to Minio${NC}"
 else
     echo -e "${RED}❌ AWS CLI cannot connect to Minio${NC}"
-    
+
     # Show the actual error
     echo ""
     echo "Full error output:"
@@ -196,12 +196,12 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # Test connection
     response = s3_client.list_buckets()
     print("✅ Python boto3 can connect to Minio")
     print(f"   Found {len(response['Buckets'])} buckets")
-    
+
 except Exception as e:
     print(f"❌ Python boto3 cannot connect to Minio: {e}")
 EOF

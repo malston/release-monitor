@@ -299,7 +299,7 @@ def main():
     if (args.download or args.force_download) and not download_config.get("enabled", False):
         logger.error("Download requested but not enabled in configuration")
         sys.exit(1)
-    
+
     # --force-download implies --download
     if args.force_download:
         args.download = True

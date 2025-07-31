@@ -70,7 +70,7 @@ class S3CompatibleVersionStorage:
             'service_name': 's3',
             'config': client_config
         }
-        
+
         # Add verify parameter if SSL verification is disabled
         if not verify_ssl:
             client_args['verify'] = False

@@ -79,7 +79,7 @@ CONFIGURATION:
 
 INTEGRATION:
     This script is designed to work with the GitHub release monitor:
-    
+
     # Monitor and download in one pipeline
     ./scripts/monitor.sh | ./scripts/download.sh
 

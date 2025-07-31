@@ -59,11 +59,11 @@ for test in test_urls:
         # Test with allow_redirects=False first to see the redirect
         response = session.get(test['url'], allow_redirects=False, timeout=10)
         print(f"  Initial response: {response.status_code}")
-        
+
         if response.status_code in [301, 302, 303, 307, 308]:
             redirect_url = response.headers.get('Location')
             print(f"  Redirect to: {redirect_url}")
-            
+
             # Follow the redirect
             print(f"  Following redirect...")
             final_response = session.get(redirect_url, timeout=10)
@@ -72,7 +72,7 @@ for test in test_urls:
             print(f"  Content length: {final_response.headers.get('content-length', 'Not specified')} bytes")
         else:
             print(f"  Content type: {response.headers.get('content-type', 'Not specified')}")
-            
+
     except requests.exceptions.SSLError as e:
         print(f"  SSL Error: {str(e)}")
         print(f"  This suggests SSL verification is still enabled for this domain")

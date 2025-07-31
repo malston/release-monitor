@@ -61,13 +61,13 @@ aws_minio() {
     if [[ "${DEBUG:-}" == "true" ]]; then
         set -x
     fi
-    
+
     aws --endpoint-url "$MINIO_ENDPOINT" \
         --aws-access-key-id "$MINIO_ACCESS_KEY" \
         --aws-secret-access-key "$MINIO_SECRET_KEY" \
         --region us-east-1 \
         s3 "$@"
-    
+
     local exit_code=$?
     if [[ "${DEBUG:-}" == "true" ]]; then
         set +x
@@ -90,7 +90,7 @@ if aws_minio ls >/dev/null 2>&1; then
 else
     echo -e "${RED}❌ Failed to connect to Minio with AWS CLI${NC}"
     echo "   Trying with Python boto3 as fallback..."
-    
+
     # Try with Python boto3 as fallback
     python3 << EOF
 import boto3
@@ -107,17 +107,17 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # Test connection
     s3_client.list_buckets()
     print("✅ Python boto3 connection successful")
-    
+
 except Exception as e:
     print(f"❌ Both AWS CLI and Python boto3 failed: {e}")
     print("   Make sure Minio is running: docker-compose up -d")
     sys.exit(1)
 EOF
-    
+
     # Simple validation that boto3 works
     if ! python3 -c "
 import boto3
@@ -132,7 +132,7 @@ except:
 " 2>/dev/null; then
         exit 1
     fi
-    
+
     echo -e "${YELLOW}⚠️  AWS CLI connection failed, but Python boto3 works${NC}"
     echo "   Consider fixing AWS CLI installation for full functionality"
 fi
@@ -155,11 +155,11 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # List existing buckets
     response = s3.list_buckets()
     bucket_names = [b['Name'] for b in response['Buckets']]
-    
+
     # Check output bucket
     if '$OUTPUT_BUCKET' in bucket_names:
         print("✅ Output bucket exists: $OUTPUT_BUCKET")
@@ -167,7 +167,7 @@ try:
         print("⚠️  Output bucket not found, creating...")
         s3.create_bucket(Bucket='$OUTPUT_BUCKET')
         print("✅ Created output bucket: $OUTPUT_BUCKET")
-    
+
     # Check artifacts bucket
     if '$ARTIFACTS_BUCKET' in bucket_names:
         print("✅ Artifacts bucket exists: $ARTIFACTS_BUCKET")
@@ -175,7 +175,7 @@ try:
         print("⚠️  Artifacts bucket not found, creating...")
         s3.create_bucket(Bucket='$ARTIFACTS_BUCKET')
         print("✅ Created artifacts bucket: $ARTIFACTS_BUCKET")
-        
+
 except Exception as e:
     print(f"❌ Error managing buckets: {e}")
     exit(1)
@@ -205,11 +205,11 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # Upload test file
     s3.upload_file('$TEST_FILE', '$OUTPUT_BUCKET', 'test/test-file.json')
     print("✅ Successfully uploaded test file")
-    
+
 except Exception as e:
     print(f"❌ Failed to upload test file: {e}")
     exit(1)
@@ -237,16 +237,16 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # Download test file
     s3.download_file('$OUTPUT_BUCKET', 'test/test-file.json', '$DOWNLOAD_FILE')
     print("✅ Successfully downloaded test file")
-    
+
     # Read and display content
     with open('$DOWNLOAD_FILE', 'r') as f:
         content = f.read()
         print(f"   Content: {content.strip()}")
-        
+
 except Exception as e:
     print(f"❌ Failed to download test file: {e}")
     exit(1)
@@ -277,12 +277,12 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # Check if versioning is enabled
     try:
         response = s3.get_bucket_versioning(Bucket='$OUTPUT_BUCKET')
         status = response.get('Status', 'Disabled')
-        
+
         if status == 'Enabled':
             print("✅ Versioning is enabled on output bucket")
         else:
@@ -292,13 +292,13 @@ try:
                 VersioningConfiguration={'Status': 'Enabled'}
             )
             print("✅ Versioning enabled on output bucket")
-            
+
     except ClientError as e:
         if 'NotImplemented' in str(e):
             print("⚠️  Versioning not supported by this Minio version")
         else:
             print(f"❌ Versioning check failed: {e}")
-            
+
 except Exception as e:
     print(f"❌ Error checking versioning: {e}")
     exit(1)
@@ -325,12 +325,12 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # List buckets
     response = s3_client.list_buckets()
     print("✅ Python boto3 connection successful")
     print(f"   Found {len(response['Buckets'])} buckets")
-    
+
 except Exception as e:
     print(f"❌ Python boto3 connection failed: {e}")
     exit(1)
@@ -354,7 +354,7 @@ try:
         config=Config(signature_version='s3v4'),
         region_name='us-east-1'
     )
-    
+
     # Delete test file
     try:
         s3.delete_object(Bucket='$OUTPUT_BUCKET', Key='test/test-file.json')
@@ -364,7 +364,7 @@ try:
             print("ℹ️  Test file already removed")
         else:
             print(f"⚠️  Could not remove test file: {e}")
-            
+
 except Exception as e:
     print(f"⚠️  Cleanup failed: {e}")
 EOF

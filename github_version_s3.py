@@ -51,7 +51,7 @@ class S3VersionStorage:
 
         # Configure SSL verification
         skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
-        
+
         # Suppress SSL warnings if SSL verification is disabled
         if skip_ssl_verification:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -471,8 +471,8 @@ class VersionDatabase(S3VersionStorage):
             use_s3 = bool(os.environ.get('VERSION_DB_S3_BUCKET'))
             if use_s3:
                 logger.info("Auto-detected S3 version database from VERSION_DB_S3_BUCKET environment variable")
-        
-        
+
+
         self.use_s3 = use_s3
 
         if use_s3:

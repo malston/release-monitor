@@ -110,7 +110,6 @@ jobs:
           monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
-
           # Download configuration
           ASSET_PATTERNS: ((download_asset_patterns))
           INCLUDE_PRERELEASES: ((download_include_prereleases))
@@ -218,7 +217,6 @@ jobs:
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((download_repository_overrides))
-
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))

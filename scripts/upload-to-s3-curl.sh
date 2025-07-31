@@ -58,9 +58,9 @@ for file in $(find . -type f \( -name "*.gz" -o -name "*.zip" \) ); do
     # Remove leading ./
     relative_path="${file#./}"
     s3_key="release-downloads/${relative_path}"
-    
+
     echo "Uploading ${relative_path} to s3://${S3_BUCKET}/${s3_key}"
-    
+
     if aws s3 cp "${file}" "s3://${S3_BUCKET}/${s3_key}" ${AWS_OPTS} ${NO_VERIFY}; then
         echo "  Success!"
         ((UPLOAD_COUNT++))

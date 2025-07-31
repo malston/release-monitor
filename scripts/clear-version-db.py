@@ -14,35 +14,35 @@ from botocore.config import Config
 
 def main():
     """Clear the entire version database from S3 storage."""
-    
+
     endpoint_url = os.environ.get('S3_ENDPOINT')
     skip_ssl_verification = os.environ.get('S3_SKIP_SSL_VERIFICATION', 'false').lower() == 'true'
-    
+
     # Configure boto3 client config
     client_config = Config(
         signature_version='s3v4',
         s3={'addressing_style': 'path'}
     )
-    
+
     s3_kwargs = {
         'region_name': 'us-east-1',
         'config': client_config
     }
-    
+
     # Configure SSL verification
     if skip_ssl_verification:
         print("WARNING: Skipping SSL verification for S3 endpoint")
         s3_kwargs['verify'] = False
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
+
     if endpoint_url:
         s3_kwargs['endpoint_url'] = endpoint_url
         print(f'Using S3-compatible endpoint: {endpoint_url}')
-    
+
     s3 = boto3.client('s3', **s3_kwargs)
     bucket = os.environ['S3_BUCKET']
-    
+
     # Delete the version database
     try:
         s3.delete_object(Bucket=bucket, Key='version-db/version_db.json')
