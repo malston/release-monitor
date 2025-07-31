@@ -134,7 +134,8 @@ class ReleaseDownloadCoordinator:
             )
 
         self.version_comparator = VersionComparator(
-            include_prereleases=download_config.get('include_prereleases', False)
+            include_prereleases=download_config.get('include_prereleases', False),
+            strict_prerelease_filtering=download_config.get('strict_prerelease_filtering', False)
         )
 
         self.downloader = GitHubDownloader(
@@ -255,7 +256,8 @@ class ReleaseDownloadCoordinator:
         current_version = self.version_db.get_current_version(owner, repo)
 
         # Check if this version is newer
-        if not self.version_comparator.is_newer(tag_name, current_version):
+        github_prerelease = release.get('prerelease')  # Get GitHub's official prerelease flag
+        if not self.version_comparator.is_newer(tag_name, current_version, github_prerelease):
             reason = f"Version {tag_name} is not newer than {current_version}"
             logger.debug(f"Skipping {repository}: {reason}")
             return {

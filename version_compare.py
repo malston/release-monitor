@@ -38,14 +38,17 @@ class VersionComparator:
         r'(?:\.(?P<build>\d+))?(?:-(?P<suffix>[0-9A-Za-z\-\.]+))?$'
     )
 
-    def __init__(self, include_prereleases: bool = False):
+    def __init__(self, include_prereleases: bool = False, strict_prerelease_filtering: bool = False):
         """
         Initialize version comparator.
 
         Args:
             include_prereleases: Whether to consider pre-releases as valid newer versions
+            strict_prerelease_filtering: If True, enforce pattern-based prerelease detection
+                                       even when GitHub's prerelease flag is False
         """
         self.include_prereleases = include_prereleases
+        self.strict_prerelease_filtering = strict_prerelease_filtering
 
     def compare(self, version1: str, version2: str) -> int:
         """
@@ -78,13 +81,15 @@ class VersionComparator:
         logger.debug(f"Using string comparison for {version1} vs {version2}")
         return self._string_compare(version1, version2)
 
-    def is_newer(self, release_version: str, stored_version: Optional[str]) -> bool:
+    def is_newer(self, release_version: str, stored_version: Optional[str],
+                 github_prerelease: Optional[bool] = None) -> bool:
         """
         Determine if release version is newer than stored version.
 
         Args:
             release_version: Version from GitHub release
             stored_version: Currently stored version (None if first time)
+            github_prerelease: GitHub's official prerelease flag (takes precedence over pattern matching)
 
         Returns:
             True if release_version is newer
@@ -93,9 +98,21 @@ class VersionComparator:
             return False
 
         # Check for pre-release exclusion
-        if not self.include_prereleases and self._is_prerelease(release_version):
-            logger.debug(f"Skipping pre-release: {release_version}")
-            return False
+        if not self.include_prereleases:
+            if self.strict_prerelease_filtering:
+                # Strict mode: Always check patterns, regardless of GitHub flag
+                pattern_prerelease = self._is_prerelease(release_version)
+                github_prerelease = github_prerelease if github_prerelease is not None else False
+                is_prerelease = pattern_prerelease or github_prerelease
+                if is_prerelease:
+                    logger.debug(f"Skipping pre-release: {release_version} (pattern: {pattern_prerelease}, GitHub: {github_prerelease}, strict filtering enabled)")
+                    return False
+            else:
+                # Standard mode: Prefer GitHub's official prerelease flag over pattern matching
+                is_prerelease = github_prerelease if github_prerelease is not None else self._is_prerelease(release_version)
+                if is_prerelease:
+                    logger.debug(f"Skipping pre-release: {release_version} (GitHub prerelease flag: {github_prerelease})")
+                    return False
 
         if not stored_version:
             # First time seeing this repository, accept if not a filtered pre-release
