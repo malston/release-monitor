@@ -19,8 +19,8 @@ if [ -z "$ARTIFACTORY_REPOSITORY" ]; then
     exit 1
 fi
 
-if [ -z "$ARTIFACTORY_API_KEY" ]; then
-    echo "ERROR: ARTIFACTORY_API_KEY environment variable is not set!"
+if [ -z "$ARTIFACTORY_API_KEY" ] && [ -z "$ARTIFACTORY_USERNAME" ]; then
+    echo "ERROR: Either ARTIFACTORY_API_KEY or ARTIFACTORY_USERNAME/ARTIFACTORY_PASSWORD must be set!"
     exit 1
 fi
 
@@ -31,11 +31,12 @@ echo "Repository: $ARTIFACTORY_REPOSITORY"
 echo "Installing Python dependencies..."
 pip3 install --quiet requests
 
-# Create output directory
-mkdir -p /monitor-output
+# Set output directory (allow override via environment variable)
+OUTPUT_DIR="${OUTPUT_DIR:-/monitor-output}"
+echo "Output directory: $OUTPUT_DIR"
 
 # Download latest-releases.json from Artifactory
 echo "Downloading monitor output from Artifactory..."
-python3 scripts/fetch-monitor-output.py
+python3 scripts/fetch-monitor-output.py --output-dir "$OUTPUT_DIR"
 
 echo "Monitor output fetch completed successfully"

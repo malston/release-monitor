@@ -9,9 +9,11 @@ for use in downstream pipeline tasks.
 import os
 import requests
 import sys
+import argparse
+from pathlib import Path
 
 
-def fetch_monitor_output():
+def fetch_monitor_output(output_dir='/monitor-output'):
     """Fetch the latest monitor output from Artifactory."""
 
     # Get configuration from environment
@@ -51,8 +53,12 @@ def fetch_monitor_output():
         response = requests.get(url, headers=headers, auth=auth, verify=verify_ssl)
         response.raise_for_status()
 
+        # Create output directory if it doesn't exist
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
         # Write to output directory
-        output_file = '/monitor-output/latest-releases.json'
+        output_file = output_path / 'latest-releases.json'
         with open(output_file, 'w') as f:
             f.write(response.text)
 
@@ -66,5 +72,40 @@ def fetch_monitor_output():
         sys.exit(1)
 
 
+def main():
+    """Main entry point with argument parsing."""
+    parser = argparse.ArgumentParser(
+        description='Fetch monitor output (latest-releases.json) from Artifactory'
+    )
+    parser.add_argument(
+        '--output-dir', '-o',
+        default=os.environ.get('OUTPUT_DIR', '/monitor-output'),
+        help='Output directory for latest-releases.json (default: /monitor-output, or OUTPUT_DIR env var)'
+    )
+    parser.add_argument(
+        '--output-file',
+        help='Full path to output file (overrides --output-dir if specified)'
+    )
+    
+    args = parser.parse_args()
+    
+    if args.output_file:
+        # If full output file path is specified, use its parent directory
+        output_path = Path(args.output_file)
+        output_dir = str(output_path.parent)
+        
+        # Create directory and fetch
+        fetch_monitor_output(output_dir)
+        
+        # Rename the file if needed (in case filename is different from latest-releases.json)
+        if output_path.name != 'latest-releases.json':
+            default_output = Path(output_dir) / 'latest-releases.json'
+            default_output.rename(output_path)
+            print(f'Renamed output file to {output_path}')
+    else:
+        # Use output directory
+        fetch_monitor_output(args.output_dir)
+
+
 if __name__ == '__main__':
-    fetch_monitor_output()
+    main()

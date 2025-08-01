@@ -137,6 +137,38 @@ class ArtifactoryDownloader:
 
         return sorted(releases)
 
+    def list_repository_versions(self, repo_name: str) -> List[str]:
+        """List all versions for a specific repository."""
+        versions = []
+        
+        # Convert slash to underscore for folder name
+        folder_name = repo_name.replace('/', '_')
+        
+        # List repository folder
+        repo_data = self.list_folder(f"release-downloads/{folder_name}")
+        if not repo_data.get('children'):
+            return versions
+        
+        for version_item in repo_data['children']:
+            if version_item.get('folder'):
+                version = version_item['uri'].strip('/')
+                versions.append(version)
+        
+        return sorted(versions, reverse=True)  # Show newest versions first
+
+    def list_releases_with_versions(self) -> Dict[str, List[str]]:
+        """List all releases with their available versions."""
+        releases_with_versions = {}
+        
+        # Get all repositories
+        releases = self.list_releases()
+        
+        for repo in releases:
+            versions = self.list_repository_versions(repo)
+            releases_with_versions[repo] = versions
+        
+        return releases_with_versions
+
     def download_repository(self, repo_name: str, output_dir: str, pattern: Optional[str] = None) -> int:
         """Download all artifacts for a repository."""
         # Convert slash to underscore for folder name
@@ -245,7 +277,13 @@ def main():
     parser.add_argument(
         '--list',
         action='store_true',
-        help='List available repositories'
+        help='List available repositories with their versions'
+    )
+    
+    parser.add_argument(
+        '--list-repos-only',
+        action='store_true',
+        help='List only repository names (faster, no version details)'
     )
 
     parser.add_argument(

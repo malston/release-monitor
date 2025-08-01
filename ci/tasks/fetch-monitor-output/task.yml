@@ -22,6 +22,7 @@ params:
   ARTIFACTORY_USERNAME:
   ARTIFACTORY_PASSWORD:
   ARTIFACTORY_SKIP_SSL_VERIFICATION:
+  OUTPUT_DIR: /monitor-output  # Output directory for latest-releases.json
 
 run:
   path: /bin/bash
