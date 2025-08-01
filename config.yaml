@@ -49,6 +49,20 @@ settings:
   # Include pre-releases in monitoring
   include_prereleases: false
 
+  # Strict prerelease filtering - exclude versions with prerelease patterns
+  # (alpha, beta, rc, etc.) even if GitHub doesn't mark them as prerelease
+  #
+  # Options:
+  #   false (default): Trust GitHub's prerelease flag, only use pattern detection as fallback
+  #   true: Always check patterns AND GitHub flag - exclude if either indicates prerelease
+  #
+  # Examples with strict_prerelease_filtering: true and include_prereleases: false:
+  #   ✅ v3.20.0 (GitHub: prerelease=false) -> Downloaded (clean version)
+  #   ❌ v3.21.0-beta.0 (GitHub: prerelease=false) -> Skipped (contains "beta")
+  #   ❌ v3.20.0-rc.1 (GitHub: prerelease=false) -> Skipped (contains "rc")
+  #   ❌ v3.19.0-alpha.1 (GitHub: prerelease=true) -> Skipped (both flags indicate prerelease)
+  strict_prerelease_filtering: true
+
 # Download configuration (optional)
 # Uncomment and configure to enable automatic downloading of releases
 download:
