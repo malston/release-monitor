@@ -853,18 +853,21 @@ download_repository_overrides: |
 The `target_version` field allows you to pin a repository to a specific release version, bypassing the normal "latest release" logic.
 
 **When to use:**
+
 - **Stability:** Pin production systems to known-good versions
 - **Testing:** Download specific versions for testing/validation
 - **Rollback:** Revert to previous versions when needed
 - **Compliance:** Ensure consistent versions across environments
 
 **Features:**
+
 - **Flexible format:** Accepts versions with or without 'v' prefix (`"v3.19.1"` or `"3.19.1"`)
 - **Exact matching:** Only downloads the specified version
 - **Override behavior:** Takes precedence over prerelease filtering and latest-release logic
 - **Error handling:** Logs when target version is not found
 
 **Example:**
+
 ```yaml
 download_repository_overrides: |
   {
@@ -880,6 +883,7 @@ download_repository_overrides: |
 ```
 
 **Concourse Parameter Example:**
+
 ```bash
 # Pin gatekeeper to specific version via pipeline parameter
 fly set-pipeline -p release-monitor \

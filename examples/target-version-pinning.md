@@ -80,6 +80,7 @@ The system automatically normalizes versions to match GitHub's tag format.
 ## Use Cases
 
 ### Production Stability
+
 Pin critical components to known-good versions:
 
 ```yaml
@@ -97,6 +98,7 @@ download_repository_overrides: |
 ```
 
 ### Testing Specific Versions
+
 Download older versions for testing:
 
 ```yaml
@@ -110,6 +112,7 @@ download_repository_overrides: |
 ```
 
 ### Rollback Scenarios
+
 Quickly revert to previous versions:
 
 ```bash
@@ -128,6 +131,7 @@ fly set-pipeline -p release-monitor \
 ## Example Output
 
 When target version is found:
+
 ```
 2025-08-01 08:55:18,664 - INFO - Checking open-policy-agent/gatekeeper...
 2025-08-01 08:55:20,151 - INFO - Found target version: v3.19.1 (requested: v3.19.1)
@@ -135,6 +139,7 @@ When target version is found:
 ```
 
 When target version is not found:
+
 ```
 2025-08-01 08:55:18,664 - INFO - Checking open-policy-agent/gatekeeper...
 2025-08-01 08:55:20,151 - INFO - Target version v99.99.99 not found for open-policy-agent/gatekeeper
