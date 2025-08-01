@@ -1,0 +1,49 @@
+# Test configuration for target version pinning
+repositories:
+  - owner: open-policy-agent
+    repo: gatekeeper
+    description: "Policy Controller for Kubernetes"
+
+settings:
+  rate_limit_delay: 1.0
+  max_releases_per_repo: 10
+  include_prereleases: false
+
+download:
+  enabled: true
+  directory: ./test-downloads
+  version_db: ./version_db.json
+
+  artifactory_storage:
+    enabled: false
+    base_url: "http://localhost:8081/artifactory"
+    repository: "generic-releases"
+    path_prefix: "release-monitor/"
+    verify_ssl: false
+
+  asset_patterns:
+    - "*-linux-amd64.tar.gz"
+    - "*.yaml"
+    - "*.yml"
+
+  include_prereleases: false
+  strict_prerelease_filtering: false
+
+  source_archives:
+    enabled: true
+    prefer: "tarball"
+    fallback_only: false
+
+  verify_downloads: true
+  cleanup_old_versions: true
+  keep_versions: 5
+  timeout: 300
+
+  # Repository overrides with target version
+  repository_overrides:
+    open-policy-agent/gatekeeper:
+      target_version: "v99.99.99"
+      asset_patterns: ["*-linux-amd64.tar.gz"]
+      source_archives:
+        fallback_only: false
+        prefer: "tarball"

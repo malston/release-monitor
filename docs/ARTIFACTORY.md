@@ -822,6 +822,7 @@ export REPOSITORIES_OVERRIDE='[{"owner":"etcd-io","repo":"etcd","asset_patterns"
 - **Per-repo patterns:** Different asset patterns for different repositories
 - **Conditional downloads:** Some repos download source, others don't
 - **Version limits:** Different keep_versions settings per repository
+- **Version pinning:** Pin specific repositories to exact versions using `target_version`
 
 **Examples:**
 
@@ -838,8 +839,58 @@ download_repository_overrides: |
       "asset_patterns": ["istio-*-linux-amd64.tar.gz"],
       "download_source": true,
       "fallback_only": true
+    },
+    "open-policy-agent/gatekeeper": {
+      "target_version": "v3.19.1",
+      "asset_patterns": ["*-linux-amd64.tar.gz"],
+      "include_prereleases": false
     }
   }
+```
+
+#### Target Version Pinning
+
+The `target_version` field allows you to pin a repository to a specific release version, bypassing the normal "latest release" logic.
+
+**When to use:**
+- **Stability:** Pin production systems to known-good versions
+- **Testing:** Download specific versions for testing/validation
+- **Rollback:** Revert to previous versions when needed
+- **Compliance:** Ensure consistent versions across environments
+
+**Features:**
+- **Flexible format:** Accepts versions with or without 'v' prefix (`"v3.19.1"` or `"3.19.1"`)
+- **Exact matching:** Only downloads the specified version
+- **Override behavior:** Takes precedence over prerelease filtering and latest-release logic
+- **Error handling:** Logs when target version is not found
+
+**Example:**
+```yaml
+download_repository_overrides: |
+  {
+    "open-policy-agent/gatekeeper": {
+      "target_version": "v3.19.1",
+      "asset_patterns": ["*-linux-amd64.tar.gz"]
+    },
+    "kubernetes/kubernetes": {
+      "target_version": "1.28.0",
+      "asset_patterns": ["kubernetes-server-*.tar.gz"]
+    }
+  }
+```
+
+**Concourse Parameter Example:**
+```bash
+# Pin gatekeeper to specific version via pipeline parameter
+fly set-pipeline -p release-monitor \
+  -c ci/pipeline-artifactory.yml \
+  -l params/global-artifactory.yml \
+  -v download_repository_overrides='{
+    "open-policy-agent/gatekeeper": {
+      "target_version": "v3.19.1",
+      "asset_patterns": ["*-linux-amd64.tar.gz"]
+    }
+  }'
 ```
 
 ### Common Scenarios
