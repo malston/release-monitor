@@ -68,14 +68,19 @@ The system automatically normalizes versions to match GitHub's tag format.
    - Latest release logic
    - Prerelease filtering (`strict_prerelease_filtering`)
    - Include prereleases setting (`include_prereleases`)
+   - **Version database comparison** - downloads target version even if older than stored version
 
 2. **Exact matching:** Only the specified version will be downloaded
 
-3. **Error handling:** If the target version is not found:
+3. **Bypass version checks:** Target versions always download regardless of what's in the version database
+   - Allows downloading older versions for rollback scenarios
+   - Enables re-downloading the same version if needed
+
+4. **Error handling:** If the target version is not found:
    - Logs a warning message
    - Skips the repository (no download occurs)
 
-4. **Monitoring integration:** Works with both monitor and download phases
+5. **Monitoring integration:** Works with both monitor and download phases
 
 ## Use Cases
 
@@ -113,10 +118,11 @@ download_repository_overrides: |
 
 ### Rollback Scenarios
 
-Quickly revert to previous versions:
+Quickly revert to previous versions - even if they're older than what's currently stored:
 
 ```bash
 # Rollback gatekeeper from v3.20.0 to v3.19.1
+# This will download v3.19.1 even though v3.20.0 is already in the version database
 fly set-pipeline -p release-monitor \
   -c ci/pipeline-artifactory.yml \
   -l params/prod.yml \
@@ -128,6 +134,20 @@ fly set-pipeline -p release-monitor \
   }'
 ```
 
+### Re-downloading Same Version
+
+Force re-download of the same version (useful for corrupted downloads):
+
+```yaml
+download_repository_overrides: |
+  {
+    "open-policy-agent/gatekeeper": {
+      "target_version": "v3.20.0",
+      "asset_patterns": ["*-linux-amd64.tar.gz"]
+    }
+  }
+```
+
 ## Example Output
 
 When target version is found:
@@ -136,6 +156,7 @@ When target version is found:
 2025-08-01 08:55:18,664 - INFO - Checking open-policy-agent/gatekeeper...
 2025-08-01 08:55:20,151 - INFO - Found target version: v3.19.1 (requested: v3.19.1)
 2025-08-01 08:55:20,152 - INFO - New release found: open-policy-agent/gatekeeper v3.19.1
+2025-08-01 08:55:20,153 - INFO - Target version v3.19.1 specified for open-policy-agent/gatekeeper, bypassing version comparison
 ```
 
 When target version is not found:
