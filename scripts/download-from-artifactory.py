@@ -26,8 +26,14 @@ Examples:
     # Download with pattern matching
     python3 download-from-artifactory.py --pattern "*linux-amd64*"
 
-    # List available repositories
+    # List available repositories with versions
     python3 download-from-artifactory.py --list
+
+    # List repositories with detailed version and file information
+    python3 download-from-artifactory.py --list-detailed
+
+    # List only repository names (fastest)
+    python3 download-from-artifactory.py --list-repos-only
 """
 
 import os
@@ -140,33 +146,46 @@ class ArtifactoryDownloader:
     def list_repository_versions(self, repo_name: str) -> List[str]:
         """List all versions for a specific repository."""
         versions = []
-        
+
         # Convert slash to underscore for folder name
         folder_name = repo_name.replace('/', '_')
-        
+
         # List repository folder
         repo_data = self.list_folder(f"release-downloads/{folder_name}")
         if not repo_data.get('children'):
             return versions
-        
+
         for version_item in repo_data['children']:
             if version_item.get('folder'):
                 version = version_item['uri'].strip('/')
                 versions.append(version)
-        
+
         return sorted(versions, reverse=True)  # Show newest versions first
+
+    def get_version_file_count(self, repo_name: str, version: str) -> int:
+        """Get the number of files in a specific version."""
+        folder_name = repo_name.replace('/', '_')
+        version_path = f"release-downloads/{folder_name}/{version}"
+
+        version_data = self.list_folder(version_path)
+        if not version_data.get('children'):
+            return 0
+
+        # Count non-folder items (files)
+        file_count = sum(1 for item in version_data['children'] if not item.get('folder'))
+        return file_count
 
     def list_releases_with_versions(self) -> Dict[str, List[str]]:
         """List all releases with their available versions."""
         releases_with_versions = {}
-        
+
         # Get all repositories
         releases = self.list_releases()
-        
+
         for repo in releases:
             versions = self.list_repository_versions(repo)
             releases_with_versions[repo] = versions
-        
+
         return releases_with_versions
 
     def download_repository(self, repo_name: str, output_dir: str, pattern: Optional[str] = None) -> int:
@@ -279,11 +298,17 @@ def main():
         action='store_true',
         help='List available repositories with their versions'
     )
-    
+
     parser.add_argument(
         '--list-repos-only',
         action='store_true',
         help='List only repository names (faster, no version details)'
+    )
+
+    parser.add_argument(
+        '--list-detailed',
+        action='store_true',
+        help='List repositories with versions and file counts (slower but more detailed)'
     )
 
     parser.add_argument(
@@ -305,16 +330,71 @@ def main():
     )
 
     # List repositories
-    if args.list:
-        logger.info("Listing available repositories...")
-        releases = downloader.list_releases()
+    if args.list or args.list_repos_only or args.list_detailed:
+        if args.list_repos_only:
+            logger.info("Listing available repositories...")
+            releases = downloader.list_releases()
 
-        if releases:
-            print("\nAvailable repositories:")
-            for repo in releases:
-                print(f"  - {repo}")
+            if releases:
+                print("\nAvailable repositories:")
+                for repo in releases:
+                    print(f"  - {repo}")
+            else:
+                print("\nNo repositories found")
+        elif args.list_detailed:
+            logger.info("Listing available repositories with versions and file counts...")
+            releases_with_versions = downloader.list_releases_with_versions()
+
+            if releases_with_versions:
+                print("\nDetailed repository listing:")
+                print("=" * 60)
+                for repo, versions in releases_with_versions.items():
+                    print(f"\n📦 {repo}")
+                    if versions:
+                        print(f"   Versions ({len(versions)}):")
+                        for version in versions:
+                            file_count = downloader.get_version_file_count(repo, version)
+                            print(f"     • {version} ({file_count} files)")
+                    else:
+                        print("   No versions found")
+                print("\n" + "=" * 60)
+                total_repos = len(releases_with_versions)
+                total_versions = sum(len(versions) for versions in releases_with_versions.values())
+                total_files = sum(
+                    downloader.get_version_file_count(repo, version)
+                    for repo, versions in releases_with_versions.items()
+                    for version in versions
+                )
+                print(f"Summary: {total_repos} repositories, {total_versions} total versions, {total_files} total files")
+            else:
+                print("\nNo repositories found")
         else:
-            print("\nNo repositories found")
+            logger.info("Listing available repositories with versions...")
+            releases_with_versions = downloader.list_releases_with_versions()
+
+            if releases_with_versions:
+                print("\nAvailable repositories and versions:")
+                print("=" * 50)
+                for repo, versions in releases_with_versions.items():
+                    print(f"\n📦 {repo}")
+                    if versions:
+                        print(f"   Versions ({len(versions)}): ", end="")
+                        # Show first 5 versions inline, rest on separate lines if many
+                        if len(versions) <= 5:
+                            print(", ".join(versions))
+                        else:
+                            print(f"{len(versions)} versions available")
+                            print("   Latest 5:", ", ".join(versions[:5]))
+                            if len(versions) > 5:
+                                print(f"   ... and {len(versions) - 5} more")
+                    else:
+                        print("   No versions found")
+                print("\n" + "=" * 50)
+                total_repos = len(releases_with_versions)
+                total_versions = sum(len(versions) for versions in releases_with_versions.values())
+                print(f"Summary: {total_repos} repositories, {total_versions} total versions")
+            else:
+                print("\nNo repositories found")
         return 0
 
     # Download artifacts
