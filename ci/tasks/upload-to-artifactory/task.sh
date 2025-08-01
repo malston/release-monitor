@@ -29,10 +29,14 @@ echo "Repository: $ARTIFACTORY_REPOSITORY"
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
-pip3 install --quiet requests
+pip3 install --quiet requests PyYAML
 
-# Run the upload script
+# Set default config path if not provided
+CONFIG_PATH="${CONFIG_PATH:-config.yaml}"
+echo "Using configuration file: $CONFIG_PATH"
+
+# Run the upload script with configuration
 echo "Uploading artifacts to Artifactory..."
-python3 scripts/upload-to-artifactory.py
+python3 scripts/upload-to-artifactory.py --config "$CONFIG_PATH"
 
 echo "Artifact upload completed successfully"

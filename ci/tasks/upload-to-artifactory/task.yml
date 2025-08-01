@@ -20,6 +20,7 @@ params:
   ARTIFACTORY_USERNAME:
   ARTIFACTORY_PASSWORD:
   ARTIFACTORY_SKIP_SSL_VERIFICATION:
+  CONFIG_PATH: config.yaml  # Configuration file path for target version settings
 
 run:
   path: /bin/bash
