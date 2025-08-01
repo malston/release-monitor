@@ -416,6 +416,17 @@ def main():
             # Check for repository-specific target version first
             download_config = config.get("download", {})
             repository_overrides = download_config.get("repository_overrides", {})
+
+            # Handle REPOSITORY_OVERRIDES environment variable (same as download task)
+            env_repo_overrides = os.getenv('REPOSITORY_OVERRIDES', '{}')
+            if env_repo_overrides and env_repo_overrides.strip() != '{}':
+                try:
+                    env_overrides = json.loads(env_repo_overrides)
+                    if env_overrides:
+                        logger.info("Applying repository overrides from environment variable")
+                        repository_overrides = env_overrides
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse REPOSITORY_OVERRIDES environment variable: {e}")
             repo_override = repository_overrides.get(repo_key, {})
             target_version = repo_override.get("target_version")
 
