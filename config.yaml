@@ -119,7 +119,7 @@ download:
       include_prereleases: false
 
     open-policy-agent/gatekeeper:
-      target_version: "v3.18.0"
+      target_version: "v3.18.3"
       asset_patterns: ["*-linux-amd64.tar.gz"]
       source_archives:
         fallback_only: false
