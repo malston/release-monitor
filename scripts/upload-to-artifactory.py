@@ -170,6 +170,17 @@ def main():
         download_config = config.get('download', {})
         repository_overrides = download_config.get('repository_overrides', {})
 
+        # Handle REPOSITORY_OVERRIDES environment variable (same as download task)
+        env_repo_overrides = os.environ.get('REPOSITORY_OVERRIDES', '{}')
+        if env_repo_overrides and env_repo_overrides.strip() != '{}':
+            try:
+                env_overrides = json.loads(env_repo_overrides)
+                if env_overrides:
+                    print("Applying repository overrides from environment variable")
+                    repository_overrides = env_overrides
+            except json.JSONDecodeError as e:
+                print(f"Warning: Failed to parse REPOSITORY_OVERRIDES environment variable: {e}")
+
         # Load version database
         version_db_path = args.version_db or download_config.get('version_db', 'version_db.json')
         version_db = load_version_db(version_db_path)

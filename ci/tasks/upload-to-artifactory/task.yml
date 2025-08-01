@@ -21,6 +21,7 @@ params:
   ARTIFACTORY_PASSWORD:
   ARTIFACTORY_SKIP_SSL_VERIFICATION:
   CONFIG_PATH: config.yaml  # Configuration file path for target version settings
+  REPOSITORY_OVERRIDES: "{}"  # Repository-specific overrides (JSON)
 
 run:
   path: /bin/bash

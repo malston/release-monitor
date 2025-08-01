@@ -19,9 +19,16 @@ if [ -z "$ARTIFACTORY_REPOSITORY" ]; then
     exit 1
 fi
 
-if [ -z "$ARTIFACTORY_API_KEY" ]; then
-    echo "ERROR: ARTIFACTORY_API_KEY environment variable is not set!"
+# Check for authentication - either API key or username/password
+if [ -z "$ARTIFACTORY_API_KEY" ] && ([ -z "$ARTIFACTORY_USERNAME" ] || [ -z "$ARTIFACTORY_PASSWORD" ]); then
+    echo "ERROR: Either ARTIFACTORY_API_KEY or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD must be set!"
     exit 1
+fi
+
+if [ -n "$ARTIFACTORY_API_KEY" ]; then
+    echo "Using API key authentication"
+elif [ -n "$ARTIFACTORY_USERNAME" ] && [ -n "$ARTIFACTORY_PASSWORD" ]; then
+    echo "Using username/password authentication"
 fi
 
 echo "Artifactory URL: $ARTIFACTORY_URL"

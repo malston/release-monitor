@@ -152,6 +152,8 @@ jobs:
           ARTIFACTORY_USERNAME: ((artifactory_username))
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          CONFIG_PATH: config.yaml
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
 
   # Clear version database to force re-downloads
   - name: check-version-database
@@ -263,6 +265,8 @@ jobs:
           ARTIFACTORY_USERNAME: ((artifactory_username))
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+          CONFIG_PATH: config.yaml
+          REPOSITORY_OVERRIDES: ((download_repository_overrides))
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:
