@@ -29,7 +29,15 @@ params:
   DOWNLOAD_DIR: /tmp/downloads
   VERSION_DB_PATH: /tmp/version-db/version_db.json
 
-  # S3 version database configuration (optional)
+  # Artifactory configuration for version database
+  ARTIFACTORY_URL:
+  ARTIFACTORY_REPOSITORY:
+  ARTIFACTORY_API_KEY:
+  ARTIFACTORY_USERNAME:
+  ARTIFACTORY_PASSWORD:
+  ARTIFACTORY_SKIP_SSL_VERIFICATION:
+
+  # S3 version database configuration (optional, for non-Artifactory pipelines)
   USE_S3_VERSION_DB: false
   VERSION_DB_S3_BUCKET: ""
   VERSION_DB_S3_PREFIX: ""

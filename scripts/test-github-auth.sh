@@ -18,11 +18,11 @@ echo "✓ GitHub token is set (${#GITHUB_TOKEN} characters)"
 echo
 
 # Display proxy settings if configured
-if [ ! -z "$HTTP_PROXY" ] || [ ! -z "$HTTPS_PROXY" ]; then
+if [ -n "$HTTP_PROXY" ] || [ -n "$HTTPS_PROXY" ]; then
     echo "Proxy configuration detected:"
-    [ ! -z "$HTTP_PROXY" ] && echo "  HTTP_PROXY: $HTTP_PROXY"
-    [ ! -z "$HTTPS_PROXY" ] && echo "  HTTPS_PROXY: $HTTPS_PROXY"
-    [ ! -z "$NO_PROXY" ] && echo "  NO_PROXY: $NO_PROXY"
+    [ -n "$HTTP_PROXY" ] && echo "  HTTP_PROXY: $HTTP_PROXY"
+    [ -n "$HTTPS_PROXY" ] && echo "  HTTPS_PROXY: $HTTPS_PROXY"
+    [ -n "$NO_PROXY" ] && echo "  NO_PROXY: $NO_PROXY"
     echo
 fi
 

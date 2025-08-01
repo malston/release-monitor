@@ -17,17 +17,17 @@ else
 fi
 
 # Configure proxy settings if they exist (common in corporate environments)
-if [ ! -z "$HTTP_PROXY" ]; then
+if [ -n "$HTTP_PROXY" ]; then
     echo "Configuring HTTP_PROXY: $HTTP_PROXY"
     export http_proxy=$HTTP_PROXY
 fi
 
-if [ ! -z "$HTTPS_PROXY" ]; then
+if [ -n "$HTTPS_PROXY" ]; then
     echo "Configuring HTTPS_PROXY: $HTTPS_PROXY"
     export https_proxy=$HTTPS_PROXY
 fi
 
-if [ ! -z "$NO_PROXY" ]; then
+if [ -n "$NO_PROXY" ]; then
     echo "Configuring NO_PROXY: $NO_PROXY"
     export no_proxy=$NO_PROXY
 fi
@@ -67,10 +67,21 @@ pip install -r requirements.txt --quiet
 # Create output directory
 mkdir -p /release-output
 
+# Use CONFIG_FILE and STATE_FILE parameters from task.yml
+CONFIG_FILE="${CONFIG_FILE:-config.yaml}"
+STATE_FILE="${STATE_FILE:-/tmp/release-state/release_state.json}"
+
+echo "Using configuration file: $CONFIG_FILE"
+echo "Using state file: $STATE_FILE"
+
+# Create state file directory if it doesn't exist
+mkdir -p "$(dirname "$STATE_FILE")"
+
 # Run the monitoring script using the wrapper
 echo "Running release monitoring script..."
 ./scripts/monitor.sh \
-  --config config.yaml \
+  --config "$CONFIG_FILE" \
+  --state-file "$STATE_FILE" \
   --output /release-output/releases.json \
   --format json
 
