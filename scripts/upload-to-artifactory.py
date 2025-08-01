@@ -14,9 +14,15 @@ import requests
 from requests.auth import HTTPBasicAuth
 from pathlib import Path
 import argparse
-import yaml
 import json
 import logging
+
+# Import yaml conditionally - only needed for configuration loading
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
 
 
 def calculate_checksums(file_path):
@@ -34,6 +40,11 @@ def calculate_checksums(file_path):
 
 def load_config(config_path: str):
     """Load YAML configuration file."""
+    if not YAML_AVAILABLE:
+        print("ERROR: PyYAML is required for configuration loading but not installed")
+        print("Install it with: pip install PyYAML")
+        return {}
+
     try:
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
@@ -152,18 +163,24 @@ def main():
                        help='Version database file path (auto-detected from config if not specified)')
     args = parser.parse_args()
 
-    # Load configuration
-    config = load_config(args.config)
-    download_config = config.get('download', {})
-    repository_overrides = download_config.get('repository_overrides', {})
+    # Only load configuration if not in releases-json mode
+    if not args.releases_json:
+        # Load configuration
+        config = load_config(args.config)
+        download_config = config.get('download', {})
+        repository_overrides = download_config.get('repository_overrides', {})
 
-    # Load version database
-    version_db_path = args.version_db or download_config.get('version_db', 'version_db.json')
-    version_db = load_version_db(version_db_path)
+        # Load version database
+        version_db_path = args.version_db or download_config.get('version_db', 'version_db.json')
+        version_db = load_version_db(version_db_path)
 
-    print(f"Loaded configuration from: {args.config}")
-    print(f"Repository overrides: {len(repository_overrides)} configured")
-    print(f"Version database: {version_db_path} ({'found' if version_db else 'not found'})")
+        print(f"Loaded configuration from: {args.config}")
+        print(f"Repository overrides: {len(repository_overrides)} configured")
+        print(f"Version database: {version_db_path} ({'found' if version_db else 'not found'})")
+    else:
+        # In releases-json mode, we don't need configuration
+        repository_overrides = {}
+        version_db = {}
 
     # Required environment variables
     artifactory_url = os.environ.get('ARTIFACTORY_URL')
