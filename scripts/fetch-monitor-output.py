@@ -56,7 +56,7 @@ def fetch_monitor_output(output_dir='/monitor-output'):
         # Create output directory if it doesn't exist
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Write to output directory
         output_file = output_path / 'latest-releases.json'
         with open(output_file, 'w') as f:
@@ -86,17 +86,17 @@ def main():
         '--output-file',
         help='Full path to output file (overrides --output-dir if specified)'
     )
-    
+
     args = parser.parse_args()
-    
+
     if args.output_file:
         # If full output file path is specified, use its parent directory
         output_path = Path(args.output_file)
         output_dir = str(output_path.parent)
-        
+
         # Create directory and fetch
         fetch_monitor_output(output_dir)
-        
+
         # Rename the file if needed (in case filename is different from latest-releases.json)
         if output_path.name != 'latest-releases.json':
             default_output = Path(output_dir) / 'latest-releases.json'
