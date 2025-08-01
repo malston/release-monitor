@@ -74,6 +74,15 @@ STATE_FILE="${STATE_FILE:-/tmp/release-state/release_state.json}"
 echo "Using configuration file: $CONFIG_FILE"
 echo "Using state file: $STATE_FILE"
 
+# Handle REPOSITORIES_OVERRIDE parameter and export it as REPOSITORY_OVERRIDES
+if [ -n "${REPOSITORIES_OVERRIDE:-}" ]; then
+    echo "Repository overrides provided, exporting REPOSITORY_OVERRIDES environment variable"
+    echo "REPOSITORIES_OVERRIDE length: ${#REPOSITORIES_OVERRIDE} characters"
+    export REPOSITORY_OVERRIDES="$REPOSITORIES_OVERRIDE"
+else
+    echo "No repository overrides provided"
+fi
+
 # Create state file directory if it doesn't exist
 mkdir -p "$(dirname "$STATE_FILE")"
 
