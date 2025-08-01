@@ -12,13 +12,13 @@ inputs:
     path: /app
 
 params:
-  ARTIFACTORY_URL: ((artifactory_url))
-  ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-  ARTIFACTORY_API_KEY: ((artifactory_api_key))
-  ARTIFACTORY_USERNAME: ((artifactory_username))
-  ARTIFACTORY_PASSWORD: ((artifactory_password))
-  ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-  REPO_NAME: ((force_download_repo))  # Parameter: e.g., "etcd-io/etcd"
+  ARTIFACTORY_URL:
+  ARTIFACTORY_REPOSITORY:
+  ARTIFACTORY_API_KEY:
+  ARTIFACTORY_USERNAME:
+  ARTIFACTORY_PASSWORD:
+  ARTIFACTORY_SKIP_SSL_VERIFICATION:
+  REPO_NAME: # Parameter: e.g., "etcd-io/etcd"
 
 run:
   path: /bin/bash

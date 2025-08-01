@@ -14,12 +14,12 @@ inputs:
     path: /release-output
 
 params:
-  ARTIFACTORY_URL: ((artifactory_url))
-  ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-  ARTIFACTORY_API_KEY: ((artifactory_api_key))
-  ARTIFACTORY_USERNAME: ((artifactory_username))
-  ARTIFACTORY_PASSWORD: ((artifactory_password))
-  ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+  ARTIFACTORY_URL:
+  ARTIFACTORY_REPOSITORY:
+  ARTIFACTORY_API_KEY:
+  ARTIFACTORY_USERNAME:
+  ARTIFACTORY_PASSWORD:
+  ARTIFACTORY_SKIP_SSL_VERIFICATION:
 
 run:
   path: /bin/bash

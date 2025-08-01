@@ -1,18 +1,128 @@
-# Test configuration with smaller repositories for testing
-repositories:
-  - owner: semver
-    repo: semver
-    description: "Semantic versioning specification"
-  
-  - owner: github
-    repo: gitignore
-    description: "Collection of gitignore templates"
-  
-  - owner: kelseyhightower
-    repo: envconfig
-    description: "Simple environment configuration for Go"
+# GitHub Repository Monitoring Configuration
+# List of repositories to monitor for new releases
 
+repositories:
+  - owner: istio
+    repo: istio
+    description: "Istio service mesh"
+
+  - owner: NetApp
+    repo: trident
+    description: "Open Source Container Storage Provisioner"
+
+  - owner: open-policy-agent
+    repo: gatekeeper
+    description: "Policy Controller for Kubernetes"
+
+  - owner: wavefrontHQ
+    repo: observability-for-kubernetes
+    description: "Wavefront Observability"
+
+# Optional settings
 settings:
+  # Rate limit delay between API calls (seconds)
   rate_limit_delay: 1.0
-  max_releases_per_repo: 5
+
+  # Maximum number of releases to fetch per repository
+  max_releases_per_repo: 10
+
+  # Include pre-releases in monitoring
   include_prereleases: false
+
+# Download configuration (optional)
+# Uncomment and configure to enable automatic downloading of releases
+download:
+  # Enable download functionality
+  enabled: true
+
+  # Directory to store downloaded files
+  directory: ./downloads
+
+  # Version database file for tracking downloads (local file)
+  version_db: ./version_db.json
+
+  # S3 storage for version database (optional)
+  # Use this for cloud-native deployments and shared state
+  s3_storage:
+    enabled: false
+    bucket: my-release-monitor-bucket
+    prefix: release-monitor/
+    # region: us-west-2  # Optional, uses default region if not specified
+    # profile: default   # Optional, uses default profile if not specified
+
+  artifactory_storage:
+    enabled: false
+    base_url: "http://localhost:8081/artifactory"
+    repository: "generic-releases"
+    path_prefix: "release-monitor/"
+    verify_ssl: false
+
+  # Asset filtering patterns
+  asset_patterns:
+    - "*.tar.gz" # Include .tar.gz files
+    - "*.zip" # Include .zip files
+    - "*.yaml" # Include Kubernetes manifests
+    - "*.yml" # Include YAML configuration files
+    - "*.json" # Include JSON configuration files
+    - "!*-sources.zip" # Exclude source archives
+    - "!*.sig" # Exclude signature files
+
+  # Include pre-releases in downloads (overrides global setting)
+  include_prereleases: false
+
+  # Strict prerelease filtering - exclude versions with prerelease patterns
+  # (alpha, beta, rc, etc.) even if GitHub doesn't mark them as prerelease
+  #
+  # Options:
+  #   false (default): Trust GitHub's prerelease flag, only use pattern detection as fallback
+  #   true: Always check patterns AND GitHub flag - exclude if either indicates prerelease
+  #
+  # Examples with strict_prerelease_filtering: true and include_prereleases: false:
+  #   ✅ v3.20.0 (GitHub: prerelease=false) -> Downloaded (clean version)
+  #   ❌ v3.21.0-beta.0 (GitHub: prerelease=false) -> Skipped (contains "beta")
+  #   ❌ v3.20.0-rc.1 (GitHub: prerelease=false) -> Skipped (contains "rc")
+  #   ❌ v3.19.0-alpha.1 (GitHub: prerelease=true) -> Skipped (both flags indicate prerelease)
+  strict_prerelease_filtering: true
+
+  # Source code download settings
+  source_archives:
+    # Enable downloading source code (tarball/zipball) when no matching assets found
+    enabled: true
+    # Prefer tarball over zipball (tarball, zipball, both)
+    prefer: "tarball"
+    # Only download source if no assets match patterns
+    fallback_only: true
+
+  # Verification settings
+  verify_downloads: true
+
+  # Cleanup settings
+  cleanup_old_versions: true
+  keep_versions: 5 # Keep last 5 versions per repository
+
+  # Download timeout in seconds
+  timeout: 300
+
+  # Per-repository download overrides
+  repository_overrides:
+    # Example: Different settings for specific repositories
+    istio/istio:
+      asset_patterns:
+        - "*-linux-amd64.tar.gz"
+      include_prereleases: false
+
+    # Example: Repository with Kubernetes manifests only
+    wavefrontHQ/observability-for-kubernetes:
+      asset_patterns:
+        - "*.yaml"
+        - "*.yml"
+      source_archives:
+        fallback_only: false # Always download source for this repo
+        prefer: "tarball"
+      include_prereleases: false
+
+    open-policy-agent/gatekeeper:
+      asset_patterns: ["*-linux-amd64.tar.gz"]
+      source_archives:
+        fallback_only: false
+        prefer: "tarball"

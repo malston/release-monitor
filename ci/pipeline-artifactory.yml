@@ -26,6 +26,11 @@ resources:
     source:
       interval: 1h  # Check every hour
 
+  - name: manual-trigger
+    type: time
+    source:
+      interval: 70000h  # Check every 70000 hours
+
 #   - name: email-notification
 #     type: email
 #     source:
@@ -91,11 +96,13 @@ jobs:
     #       params:
     #         subject: email/subject
     #         body: email/body.html
+      - put: manual-trigger
 
   - name: download-new-releases
     plan:
       - in_parallel:
           - get: release-monitor-repo
+          - get: manual-trigger
             trigger: true
             passed: [monitor-releases]
 
