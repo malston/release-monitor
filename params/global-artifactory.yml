@@ -45,6 +45,11 @@ download_repository_overrides: |
     "prometheus/prometheus": {
       "asset_patterns": ["prometheus-*.tar.gz", "!prometheus-*-rc*.tar.gz"],
       "include_prereleases": false
+    },
+    "open-policy-agent/gatekeeper": {
+      "target_version": "v3.19.1",
+      "asset_patterns": ["*-linux-amd64.tar.gz"],
+      "include_prereleases": false
     }
   }
 

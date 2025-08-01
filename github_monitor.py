@@ -255,6 +255,40 @@ def is_prerelease_pattern(version: str) -> bool:
     return any(indicator in version_lower for indicator in prerelease_indicators)
 
 
+def find_specific_version_release(releases: List[Dict[str, Any]], target_version: str) -> Optional[Dict[str, Any]]:
+    """
+    Find a specific version release from a list of releases.
+    
+    Args:
+        releases: List of GitHub release objects
+        target_version: The specific version to find (e.g., "v3.19.1", "3.19.1")
+        
+    Returns:
+        The matching release, or None if not found
+    """
+    # Normalize target version (handle with/without 'v' prefix)
+    target_normalized = target_version.lower().strip()
+    if not target_normalized.startswith('v'):
+        target_with_v = f"v{target_normalized}"
+    else:
+        target_with_v = target_normalized
+    target_without_v = target_normalized.lstrip('v')
+    
+    for release in releases:
+        # Skip draft releases
+        if release.get('draft', False):
+            continue
+            
+        tag_name = release.get('tag_name', '').lower()
+        
+        # Check for exact match (with or without 'v' prefix)
+        if tag_name == target_normalized or tag_name == target_with_v or tag_name == target_without_v:
+            logger.info(f"Found target version: {release.get('tag_name')} (requested: {target_version})")
+            return release
+    
+    return None
+
+
 def find_newest_clean_release(releases: List[Dict[str, Any]], strict_filtering: bool) -> Optional[Dict[str, Any]]:
     """
     Find the newest clean (non-prerelease) release from a list of releases.
@@ -379,28 +413,46 @@ def main():
         logger.info(f"Checking {repo_key}...")
 
         try:
-            # Check if we need to apply prerelease filtering at the monitor level
+            # Check for repository-specific target version first
             download_config = config.get("download", {})
-            strict_filtering = download_config.get("strict_prerelease_filtering", False)
-            include_prereleases = download_config.get("include_prereleases", False)
-
-            if strict_filtering and not include_prereleases:
-                # Use get_all_releases to find the newest clean release
+            repository_overrides = download_config.get("repository_overrides", {})
+            repo_override = repository_overrides.get(repo_key, {})
+            target_version = repo_override.get("target_version")
+            
+            if target_version:
+                # Target version specified - fetch multiple releases to find the specific version
                 max_releases = settings.get("max_releases_per_repo", 10)
                 all_releases = monitor.get_all_releases(owner, repo, max_releases)
                 if not all_releases:
                     continue
-
-                # Filter releases to find the newest clean one
-                latest_release = find_newest_clean_release(all_releases, strict_filtering)
+                
+                # Look for the specific target version
+                latest_release = find_specific_version_release(all_releases, target_version)
                 if not latest_release:
-                    logger.info(f"No clean releases found for {repo_key} with strict filtering")
+                    logger.info(f"Target version {target_version} not found for {repo_key}")
                     continue
             else:
-                # Use the standard latest release endpoint
-                latest_release = monitor.get_latest_release(owner, repo)
-                if not latest_release:
-                    continue
+                # No target version - use standard release selection logic
+                strict_filtering = download_config.get("strict_prerelease_filtering", False)
+                include_prereleases = download_config.get("include_prereleases", False)
+                
+                if strict_filtering and not include_prereleases:
+                    # Use get_all_releases to find the newest clean release
+                    max_releases = settings.get("max_releases_per_repo", 10)
+                    all_releases = monitor.get_all_releases(owner, repo, max_releases)
+                    if not all_releases:
+                        continue
+                    
+                    # Filter releases to find the newest clean one
+                    latest_release = find_newest_clean_release(all_releases, strict_filtering)
+                    if not latest_release:
+                        logger.info(f"No clean releases found for {repo_key} with strict filtering")
+                        continue
+                else:
+                    # Use the standard latest release endpoint
+                    latest_release = monitor.get_latest_release(owner, repo)
+                    if not latest_release:
+                        continue
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to check {repo_key}: {e}")
             # Check if we should exit on API errors or continue
