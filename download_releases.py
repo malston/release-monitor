@@ -255,18 +255,26 @@ class ReleaseDownloadCoordinator:
         # Get current stored version
         current_version = self.version_db.get_current_version(owner, repo)
 
-        # Check if this version is newer
-        github_prerelease = release.get('prerelease')  # Get GitHub's official prerelease flag
-        if not self.version_comparator.is_newer(tag_name, current_version, github_prerelease):
-            reason = f"Version {tag_name} is not newer than {current_version}"
-            logger.debug(f"Skipping {repository}: {reason}")
-            return {
-                'repository': repository,
-                'tag_name': tag_name,
-                'current_version': current_version,
-                'action': 'skipped',
-                'reason': reason
-            }
+        # Get repository-specific configuration to check for target version
+        repo_override = self.repository_overrides.get(repository, {})
+        target_version = repo_override.get('target_version')
+
+        if target_version:
+            # Target version specified - always download regardless of stored version
+            logger.info(f"Target version {target_version} specified for {repository}, bypassing version comparison")
+        else:
+            # No target version - check if this version is newer
+            github_prerelease = release.get('prerelease')  # Get GitHub's official prerelease flag
+            if not self.version_comparator.is_newer(tag_name, current_version, github_prerelease):
+                reason = f"Version {tag_name} is not newer than {current_version}"
+                logger.debug(f"Skipping {repository}: {reason}")
+                return {
+                    'repository': repository,
+                    'tag_name': tag_name,
+                    'current_version': current_version,
+                    'action': 'skipped',
+                    'reason': reason
+                }
 
         # Check if release has downloadable content (assets or source code)
         has_assets = bool(release.get('assets'))
