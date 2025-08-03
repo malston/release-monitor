@@ -23,7 +23,7 @@ cleanup_days_to_keep: "90"
 repositories_override: ""
 
 # Production-specific repository overrides (comprehensive set)
-download_repository_overrides: |
+repository_overrides: |
   {
     "kubernetes/kubernetes": {
       "asset_patterns": [

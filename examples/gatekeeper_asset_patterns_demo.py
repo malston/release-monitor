@@ -193,7 +193,7 @@ def show_gatekeeper_concourse_examples():
             'name': 'Your Pattern: Gator + Linux AMD64',
             'config': '''
 # Complete Linux AMD64 setup (CLI + Manager)
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*-linux-amd64.tar.gz", "*-linux-amd64.tar.gz"],
@@ -206,7 +206,7 @@ download_repository_overrides: |
             'name': 'CLI Only for Policy Development',
             'config': '''
 # Gator CLI only for policy testing
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*-linux-amd64.tar.gz"],
@@ -219,7 +219,7 @@ download_repository_overrides: |
             'name': 'Production Deployment (Manager Only)',
             'config': '''
 # Manager/controller only for Kubernetes deployment
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["manager-v*-linux-amd64.tar.gz"],
@@ -232,7 +232,7 @@ download_repository_overrides: |
             'name': 'Multi-Platform Development',
             'config': '''
 # Gator CLI for all platforms
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*", "!*windows*"],
@@ -245,7 +245,7 @@ download_repository_overrides: |
             'name': 'GitOps Configuration Only',
             'config': '''
 # Helm charts and manifests only
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["*.yaml", "*.yml", "*.tgz"],
@@ -268,7 +268,7 @@ download_repository_overrides: |
 download_asset_patterns: '["*.yaml", "*.yml", "*.json"]'
 
 # Let repository overrides handle binary downloads
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*-linux-amd64.tar.gz", "*-linux-amd64.tar.gz"],

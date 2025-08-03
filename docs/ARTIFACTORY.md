@@ -753,14 +753,14 @@ To migrate from S3 to Artifactory:
 
 ## Configuration Parameters
 
-Understanding the difference between `repositories_override` and `download_repository_overrides` is crucial for pipeline configuration.
+Understanding the difference between `repositories_override` and `repository_overrides` is crucial for pipeline configuration.
 
 ### Parameter Overview
 
 | Parameter | Pipeline Phase | Purpose | When to Use |
 |-----------|----------------|---------|-------------|
 | `repositories_override` | Monitor Phase | Controls **which repositories** to monitor | Change the list of repositories to track |
-| `download_repository_overrides` | Download Phase | Controls **how to download** assets | Customize download settings per repository |
+| `repository_overrides` | Download Phase | Controls **how to download** assets | Customize download settings per repository |
 
 ### Pipeline Flow
 
@@ -768,7 +768,7 @@ Understanding the difference between `repositories_override` and `download_repos
 graph TD
     A[Monitor Phase] --> B[Download Phase]
     A --> |uses| C[repositories_override]
-    B --> |uses| D[download_repository_overrides]
+    B --> |uses| D[repository_overrides]
 
     C --> E[Which repos to check?]
     D --> F[How to download from each repo?]
@@ -811,7 +811,7 @@ repositories_override: |
 export REPOSITORIES_OVERRIDE='[{"owner":"etcd-io","repo":"etcd","asset_patterns":["etcd-*.linux-amd64.tar.gz"]}]'
 ```
 
-### download_repository_overrides
+### repository_overrides
 
 **Controls:** How to download assets from specific repositories during the download phase.
 
@@ -828,7 +828,7 @@ export REPOSITORIES_OVERRIDE='[{"owner":"etcd-io","repo":"etcd","asset_patterns"
 
 ```yaml
 # Pipeline parameter
-download_repository_overrides: |
+repository_overrides: |
   {
     "kubernetes/kubernetes": {
       "asset_patterns": ["kubernetes-server-*.tar.gz", "kubernetes-client-*.tar.gz"],
@@ -869,7 +869,7 @@ The `target_version` field allows you to pin a repository to a specific release 
 **Example:**
 
 ```yaml
-download_repository_overrides: |
+repository_overrides: |
   {
     "open-policy-agent/gatekeeper": {
       "target_version": "v3.19.1",
@@ -889,7 +889,7 @@ download_repository_overrides: |
 fly set-pipeline -p release-monitor \
   -c ci/pipeline-artifactory.yml \
   -l params/global-artifactory.yml \
-  -v download_repository_overrides='{
+  -v repository_overrides='{
     "open-policy-agent/gatekeeper": {
       "target_version": "v3.19.1",
       "asset_patterns": ["*-linux-amd64.tar.gz"]
@@ -907,7 +907,7 @@ repositories_override: |
   [{"owner": "prometheus", "repo": "prometheus"}]
 
 # No download overrides needed - uses default settings
-download_repository_overrides: "{}"
+repository_overrides: "{}"
 ```
 
 #### 2. Production with Custom Download Settings
@@ -917,7 +917,7 @@ download_repository_overrides: "{}"
 repositories_override: ""  # Empty = use config.yaml
 
 # Customize download behavior per repo
-download_repository_overrides: |
+repository_overrides: |
   {
     "kubernetes/kubernetes": {
       "asset_patterns": ["kubernetes-server-*.tar.gz"],
@@ -941,7 +941,7 @@ repositories_override: |
   ]
 
 # Force re-download everything
-download_repository_overrides: |
+repository_overrides: |
   {
     "etcd-io/etcd": {"force_download": true},
     "prometheus/prometheus": {"force_download": true}
@@ -955,7 +955,7 @@ download_repository_overrides: |
 - `monitor-releases`
 - `check-releases` (in force-download-repo)
 
-**Download Jobs:** Use `download_repository_overrides`
+**Download Jobs:** Use `repository_overrides`
 
 - `download-new-releases`
 - `download-releases` (in force-download-repo)
@@ -968,7 +968,7 @@ download_repository_overrides: |
 - Each item has `owner` and `repo` fields
 - Optional fields: `asset_patterns`, `include_prereleases`, etc.
 
-**download_repository_overrides must be:**
+**repository_overrides must be:**
 
 - Valid JSON object
 - Keys are in format `owner/repo`
@@ -983,7 +983,7 @@ download_repository_overrides: |
 
 **Issue:** "Downloads not using custom settings"
 
-- Ensure `download_repository_overrides` key matches exactly: `owner/repo`
+- Ensure `repository_overrides` key matches exactly: `owner/repo`
 - Check that the repository was processed in monitor phase first
 
 **Issue:** "Pipeline ignoring parameters"

@@ -71,7 +71,7 @@ jobs:
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          REPOSITORY_OVERRIDES: ((repository_overrides))
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))

@@ -33,7 +33,7 @@ version_db_s3_prefix: "release-monitor/"
 repositories_override: ""
 
 # Repository-specific download overrides (JSON format)
-download_repository_overrides: |
+repository_overrides: |
   {
     "kubernetes/kubernetes": {
       "asset_patterns": ["kubernetes-client-*.tar.gz", "kubernetes-server-*.tar.gz"],

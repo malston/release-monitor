@@ -129,7 +129,7 @@ jobs:
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          REPOSITORY_OVERRIDES: ((repository_overrides))
 
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
@@ -153,7 +153,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
           CONFIG_PATH: config.yaml
-          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          REPOSITORY_OVERRIDES: ((repository_overrides))
 
   # Clear version database to force re-downloads
   - name: check-version-database
@@ -247,7 +247,7 @@ jobs:
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          REPOSITORY_OVERRIDES: ((repository_overrides))
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -266,7 +266,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
           CONFIG_PATH: config.yaml
-          REPOSITORY_OVERRIDES: ((download_repository_overrides))
+          REPOSITORY_OVERRIDES: ((repository_overrides))
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:

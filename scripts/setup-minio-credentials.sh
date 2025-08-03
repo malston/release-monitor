@@ -117,7 +117,7 @@ s3_releases_bucket: release-monitor-artifacts
 version_db_s3_bucket: release-monitor-output
 version_db_s3_prefix: version-db/
 use_s3_version_db: true
-download_repository_overrides: |-
+repository_overrides: |-
   {
     "kubernetes/kubernetes": {
       "asset_patterns": ["kubernetes-client-*.tar.gz", "kubernetes-server-*.tar.gz"],

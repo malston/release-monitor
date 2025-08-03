@@ -170,7 +170,7 @@ def show_concourse_config_example():
     print("=" * 50)
     print("""
 # In your pipeline params file:
-download_repository_overrides: |
+repository_overrides: |
   {
     "istio/istio": {
       "asset_patterns": ["*-linux-amd64.tar.gz"],
