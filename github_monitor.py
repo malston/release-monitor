@@ -215,23 +215,49 @@ def load_config(config_path: str) -> Dict[str, Any]:
             config = yaml.safe_load(f)
 
         # Allow overriding repositories via environment variable
-        repositories_override = os.getenv("REPOSITORIES_OVERRIDE")
+        # Check both variable names for compatibility (REPOSITORY_OVERRIDES from task.sh, REPOSITORIES_OVERRIDE for direct usage)
+        repositories_override = os.getenv("REPOSITORY_OVERRIDES") or os.getenv("REPOSITORIES_OVERRIDE")
+        env_var_name = "REPOSITORY_OVERRIDES" if os.getenv("REPOSITORY_OVERRIDES") else "REPOSITORIES_OVERRIDE"
         if repositories_override:
             try:
-                # Parse JSON list of repositories
-                override_repos = json.loads(repositories_override)
-                if isinstance(override_repos, list):
-                    config["repositories"] = override_repos
+                # Parse JSON - support both array (legacy) and map (new) formats
+                override_data = json.loads(repositories_override)
+
+                if isinstance(override_data, list):
+                    # Legacy format: array of repository objects
+                    config["repositories"] = override_data
                     logger.info(
-                        f"Overrode repositories list with {len(override_repos)} repositories from REPOSITORIES_OVERRIDE environment variable"
+                        f"Overrode repositories list with {len(override_data)} repositories from {env_var_name} environment variable (array format)"
                     )
+                elif isinstance(override_data, dict):
+                    # New format: map of repository configurations
+                    # Convert map keys (owner/repo) to repository objects for monitoring
+                    override_repos = []
+                    for repo_name in override_data.keys():
+                        if '/' in repo_name:
+                            owner, repo = repo_name.split('/', 1)
+                            override_repos.append({
+                                'owner': owner,
+                                'repo': repo,
+                                'description': f'Repository {repo_name} from override configuration'
+                            })
+                        else:
+                            logger.warning(f"Skipping invalid repository format in override: '{repo_name}' (should be 'owner/repo')")
+
+                    if override_repos:
+                        config["repositories"] = override_repos
+                        logger.info(
+                            f"Overrode repositories list with {len(override_repos)} repositories from {env_var_name} environment variable (map format)"
+                        )
+                    else:
+                        logger.warning(f"No valid repositories found in {env_var_name} map format")
                 else:
                     logger.error(
-                        "REPOSITORIES_OVERRIDE must be a JSON array of repository objects"
+                        f"{env_var_name} must be a JSON array of repository objects or a JSON object with repository configurations"
                     )
             except json.JSONDecodeError as e:
                 logger.error(
-                    f"Invalid JSON in REPOSITORIES_OVERRIDE environment variable: {e}"
+                    f"Invalid JSON in {env_var_name} environment variable: {e}"
                 )
 
         return config
