@@ -59,8 +59,6 @@ jobs:
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
-          # Repository list override
-          REPOSITORIES_OVERRIDE: ((repositories_override))
           # Artifactory configuration for version database
         #   ARTIFACTORY_URL: ((artifactory_url))
         #   ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -204,8 +202,6 @@ jobs:
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
-          # Repository list override
-          REPOSITORIES_OVERRIDE: ((repositories_override))
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))

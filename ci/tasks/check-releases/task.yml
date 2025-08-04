@@ -24,8 +24,6 @@ params:
   GITHUB_TOKEN: ((github_token))
   CONFIG_FILE: config.yaml
   STATE_FILE: /tmp/release-state/release_state.json
-  # Repository list override
-  REPOSITORIES_OVERRIDE:
 
 run:
   path: /bin/bash
