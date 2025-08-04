@@ -124,12 +124,12 @@ jobs:
         params:
           GITHUB_TOKEN: ((github_token))
           # Download configuration
-          ASSET_PATTERNS: ((download_asset_patterns))
           INCLUDE_PRERELEASES: ((download_include_prereleases))
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          REPOSITORY_OVERRIDES: ((repositories_override))
+          VERBOSE: true  # Enable verbose logging for debugging
 
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
@@ -152,8 +152,7 @@ jobs:
           ARTIFACTORY_USERNAME: ((artifactory_username))
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          CONFIG_PATH: config.yaml
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          REPOSITORY_OVERRIDES: ((repositories_override))
 
   # Clear version database to force re-downloads
   - name: check-version-database
@@ -242,12 +241,12 @@ jobs:
           monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
-          ASSET_PATTERNS: ((download_asset_patterns))
           INCLUDE_PRERELEASES: ((download_include_prereleases))
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          REPOSITORY_OVERRIDES: ((repositories_override))
+          VERBOSE: true  # Enable verbose logging for debugging
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -265,8 +264,7 @@ jobs:
           ARTIFACTORY_USERNAME: ((artifactory_username))
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-          CONFIG_PATH: config.yaml
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          REPOSITORY_OVERRIDES: ((repositories_override))
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:

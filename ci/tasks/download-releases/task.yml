@@ -56,9 +56,6 @@ params:
   VERBOSE: false
   DRY_RUN: false
 
-  # Asset filtering patterns (JSON array)
-  ASSET_PATTERNS: '["*.tar.gz", "*.zip", "!*-sources.zip"]'
-
   # Download settings
   INCLUDE_PRERELEASES: "false"
   VERIFY_DOWNLOADS: "true"

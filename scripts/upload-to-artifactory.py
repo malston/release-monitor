@@ -172,12 +172,15 @@ def main():
 
         # Handle REPOSITORY_OVERRIDES environment variable (same as download task)
         env_repo_overrides = os.environ.get('REPOSITORY_OVERRIDES', '{}')
+        print(f"DEBUG: Raw REPOSITORY_OVERRIDES env var: {env_repo_overrides[:200]}...")
         if env_repo_overrides and env_repo_overrides.strip() != '{}':
             try:
                 env_overrides = json.loads(env_repo_overrides)
                 if env_overrides:
-                    print("Applying repository overrides from environment variable")
+                    print(f"Applying repository overrides from environment variable ({len(env_overrides)} repositories)")
                     repository_overrides = env_overrides
+                    for repo, config in env_overrides.items():
+                        print(f"  {repo}: asset_patterns={config.get('asset_patterns', 'not specified')}")
             except json.JSONDecodeError as e:
                 print(f"Warning: Failed to parse REPOSITORY_OVERRIDES environment variable: {e}")
 
@@ -187,6 +190,9 @@ def main():
 
         print(f"Loaded configuration from: {args.config}")
         print(f"Repository overrides: {len(repository_overrides)} configured")
+        if repository_overrides:
+            for repo, config in repository_overrides.items():
+                print(f"  Final config for {repo}: asset_patterns={config.get('asset_patterns', 'not specified')}")
         print(f"Version database: {version_db_path} ({'found' if version_db else 'not found'})")
     else:
         # In releases-json mode, we don't need configuration
