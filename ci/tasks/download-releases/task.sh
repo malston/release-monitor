@@ -225,15 +225,9 @@ elif '${USE_S3_VERSION_DB}' == 'true':
     if '${S3_ENDPOINT}':
         s3_config['endpoint_url'] = '${S3_ENDPOINT}'
 
-# Parse JSON parameters from environment
-try:
-    asset_patterns = json.loads('${ASSET_PATTERNS:-["*.tar.gz", "*.zip"]}')
-    download_config['asset_patterns'] = asset_patterns
-except json.JSONDecodeError:
-    download_config['asset_patterns'] = ['*.tar.gz', '*.zip']
-
-# Handle repository overrides which might be multi-line JSON
+# Handle repository overrides first to determine if we need global patterns
 repo_overrides_str = '''${REPOSITORY_OVERRIDES:-{}}'''
+repo_overrides = {}
 try:
     repo_overrides = json.loads(repo_overrides_str)
     if repo_overrides:
@@ -241,6 +235,28 @@ try:
 except json.JSONDecodeError:
     # Try to parse as empty dict if parsing fails
     download_config['repository_overrides'] = {}
+
+# Parse global asset patterns - use minimal patterns if repository overrides exist
+if repo_overrides:
+    # If we have repository overrides with asset_patterns, use minimal global fallback
+    has_asset_patterns = any('asset_patterns' in config for config in repo_overrides.values())
+    if has_asset_patterns:
+        # Use empty global patterns, rely on repository overrides
+        download_config['asset_patterns'] = []
+    else:
+        # Repository overrides exist but no asset_patterns specified, use defaults
+        try:
+            asset_patterns = json.loads('${ASSET_PATTERNS:-["*.tar.gz", "*.zip"]}')
+            download_config['asset_patterns'] = asset_patterns
+        except json.JSONDecodeError:
+            download_config['asset_patterns'] = ['*.tar.gz', '*.zip']
+else:
+    # No repository overrides, use global patterns
+    try:
+        asset_patterns = json.loads('${ASSET_PATTERNS:-["*.tar.gz", "*.zip"]}')
+        download_config['asset_patterns'] = asset_patterns
+    except json.JSONDecodeError:
+        download_config['asset_patterns'] = ['*.tar.gz', '*.zip']
 
 # Set other download parameters
 # Convert bash true/false strings to Python booleans
@@ -475,7 +491,7 @@ else
     # Create failure status
     echo "{\"status\": \"failed\", \"message\": \"Download process failed\", \"exit_code\": $DOWNLOAD_EXIT_CODE, \"duration_seconds\": $DURATION}" > /tmp/downloads/download_status.json
 
-    exit $DOWNLOAD_EXIT_CODE
+    exit "$DOWNLOAD_EXIT_CODE"
 fi
 
 # Validate outputs exist
