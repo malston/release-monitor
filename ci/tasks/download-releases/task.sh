@@ -287,6 +287,9 @@ print(f"DEBUG: repository_overrides = {download_config.get('repository_overrides
 print("DEBUG: Main config object before YAML dump:")
 print(f"DEBUG: config['download']['repository_overrides'] = {config.get('download', {}).get('repository_overrides', 'NOT_FOUND')}")
 
+# Ensure download_config changes are saved back to main config
+config['download'] = download_config
+
 # Write updated configuration
 with open('$TEMP_CONFIG', 'w') as f:
     yaml.dump(config, f)
