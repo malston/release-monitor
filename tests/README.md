@@ -20,6 +20,7 @@ This directory contains the test suite for the GitHub Release Monitor.
 
 ### Integration Tests (tests/integration/)
 
+- `test_artifactory_integration.py` - Integration tests for Artifactory version storage (requires running Artifactory)
 - `test_repositories_override_integration.py` - Integration tests for REPOSITORIES_OVERRIDE functionality
 - `test_repositories_override_e2e.py` - End-to-end examples and format validation for repository overrides
 - `test_integration_download.py` - Integration tests for download workflows
@@ -69,6 +70,9 @@ python -m unittest tests.test_target_version_integration.TestTargetVersionEndToE
 
 # Run integration tests matching a pattern
 python -m unittest discover tests/integration -k "repository_override" -v
+
+# Run Artifactory integration test (requires running Artifactory instance)
+python -m unittest tests.integration.test_artifactory_integration -v
 ```
 
 ### All Tests
