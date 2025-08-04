@@ -236,9 +236,16 @@ repo_overrides_str = '''${REPOSITORY_OVERRIDES:-{}}'''
 repo_overrides = {}
 try:
     repo_overrides = json.loads(repo_overrides_str)
+    download_config['repository_overrides'] = repo_overrides
     if repo_overrides:
-        download_config['repository_overrides'] = repo_overrides
-except json.JSONDecodeError:
+        print(f"DEBUG: Successfully parsed repository overrides: {list(repo_overrides.keys())}")
+        for repo, config in repo_overrides.items():
+            if 'target_version' in config:
+                print(f"DEBUG: {repo} has target_version: {config['target_version']}")
+    else:
+        print("DEBUG: Repository overrides are empty")
+except json.JSONDecodeError as e:
+    print(f"DEBUG: Failed to parse REPOSITORY_OVERRIDES: {e}")
     # Try to parse as empty dict if parsing fails
     download_config['repository_overrides'] = {}
 
@@ -276,6 +283,9 @@ download_config['timeout'] = int('${DOWNLOAD_TIMEOUT:-300}')
 with open('$TEMP_CONFIG', 'w') as f:
     yaml.dump(config, f)
 EOF
+
+log_debug "REPOSITORY_OVERRIDES environment variable:"
+log_debug "${REPOSITORY_OVERRIDES:-<empty>}"
 
 log_debug "Generated configuration:"
 if [[ "${VERBOSE:-false}" == "true" ]]; then
