@@ -6,10 +6,8 @@ SHELL := /bin/bash
 
 # Python virtual environment
 VENV := venv
-TEST_VENV := test-env
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip
-TEST_PYTHON := $(TEST_VENV)/bin/python3
 
 # Configuration files
 CONFIG := config.yaml

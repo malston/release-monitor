@@ -2,7 +2,7 @@
 """
 Comprehensive test suite for target_version functionality.
 
-This test suite ensures that the target_version feature works consistently 
+This test suite ensures that the target_version feature works consistently
 across all scenarios including edge cases and error conditions.
 """
 
@@ -28,7 +28,7 @@ class TestTargetVersionFunctionality(unittest.TestCase):
     def setUp(self):
         """Set up test environment with mocks and fixtures."""
         self.test_dir = tempfile.mkdtemp()
-        
+
         # Mock environment variables to prevent Artifactory usage during tests
         self.env_patcher = patch.dict(os.environ, {
             'ARTIFACTORY_URL': '',
@@ -74,7 +74,7 @@ class TestTargetVersionFunctionality(unittest.TestCase):
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
 
-    def _create_release_data(self, repository='target/repo-v1', tag_name='v1.5.0', 
+    def _create_release_data(self, repository='target/repo-v1', tag_name='v1.5.0',
                            assets=None, prerelease=False):
         """Create mock release data for testing."""
         if assets is None:
@@ -85,7 +85,7 @@ class TestTargetVersionFunctionality(unittest.TestCase):
                     'browser_download_url': f'https://github.com/{repository}/releases/download/{tag_name}/release.tar.gz'
                 }
             ]
-        
+
         return {
             'repository': repository,
             'tag_name': tag_name,
@@ -121,7 +121,7 @@ class TestTargetVersionMatching(TestTargetVersionFunctionality):
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(result['tag_name'], 'v1.5.0')
         self.assertEqual(result['repository'], 'target/repo-v1')
@@ -145,13 +145,13 @@ class TestTargetVersionMatching(TestTargetVersionFunctionality):
                     tag_name=tag_name
                 )
                 result = self.coordinator._process_single_release(release)
-                
+
                 self.assertEqual(result['action'], 'skipped')
                 self.assertIn('does not match target version', result['reason'])
                 self.assertIn('v1.5.0', result['reason'])
 
     def test_prerelease_target_version_matching(self):
-        """Test target version matching with prerelease versions.""" 
+        """Test target version matching with prerelease versions."""
         # Mock successful download
         self.mock_downloader.download_release_content.return_value = [
             {
@@ -175,7 +175,7 @@ class TestTargetVersionMatching(TestTargetVersionFunctionality):
             prerelease=True
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(result['tag_name'], 'v2.0.0-beta.1')
 
@@ -195,7 +195,7 @@ class TestTargetVersionMatching(TestTargetVersionFunctionality):
                     tag_name=tag_name
                 )
                 result = self.coordinator._process_single_release(release)
-                
+
                 self.assertEqual(result['action'], 'skipped')
                 self.assertIn('does not match target version', result['reason'])
 
@@ -207,7 +207,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
         """Test target version downloads older version than stored."""
         # Store a newer version in database
         self.coordinator.version_db.update_version('target', 'repo-v1', 'v2.0.0')
-        
+
         # Mock successful download
         self.mock_downloader.download_release_content.return_value = [
             {
@@ -225,7 +225,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(result['previous_version'], 'v2.0.0')
         self.assertEqual(result['tag_name'], 'v1.5.0')
@@ -234,7 +234,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
         """Test target version downloads same version as stored."""
         # Store the same version in database
         self.coordinator.version_db.update_version('target', 'repo-v1', 'v1.5.0')
-        
+
         # Mock successful download
         self.mock_downloader.download_release_content.return_value = [
             {
@@ -252,7 +252,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(result['previous_version'], 'v1.5.0')
 
@@ -267,7 +267,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'skipped')
         self.assertIn('is not newer than', result['reason'])
         self.assertIn('v2.0.0', result['reason'])
@@ -276,7 +276,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
         """Test that prerelease filtering is bypassed when target version is set."""
         # Configure coordinator to exclude prereleases normally
         self.coordinator.version_comparator.include_prereleases = False
-        
+
         # Mock successful download
         self.mock_downloader.download_release_content.return_value = [
             {
@@ -300,7 +300,7 @@ class TestTargetVersionBypassesVersionComparison(TestTargetVersionFunctionality)
             prerelease=True
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
 
 
@@ -323,7 +323,7 @@ class TestTargetVersionAssetHandling(TestTargetVersionFunctionality):
             }]
         )
         result = self.coordinator._process_single_release(release)
-        
+
         # Should attempt download but fail due to no matching assets
         self.assertEqual(result['action'], 'failed')
         self.assertIn('All asset downloads failed', result['reason'])
@@ -349,7 +349,7 @@ class TestTargetVersionAssetHandling(TestTargetVersionFunctionality):
             assets=[]
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(len(result['download_results']), 1)
         self.assertIn('source_type', result['download_results'][0])
@@ -385,7 +385,7 @@ class TestTargetVersionAssetHandling(TestTargetVersionFunctionality):
             ]
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(result['metadata']['download_count'], 2)
 
@@ -395,15 +395,18 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
 
     def test_target_version_empty_string(self):
         """Test behavior with empty string target version."""
+        # Pre-populate version database so v1.5.0 won't be considered newer
+        self.coordinator.version_db.update_version('target', 'repo-v1', 'v1.5.0', {})
+
         # Modify configuration to have empty target version
         self.coordinator.repository_overrides['target/repo-v1']['target_version'] = ''
 
         release = self._create_release_data(
-            repository='target/repo-v1', 
+            repository='target/repo-v1',
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         # Empty target version should be treated as no target version
         # Should fall back to normal version comparison
         self.assertEqual(result['action'], 'skipped')
@@ -411,6 +414,9 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
 
     def test_target_version_none_value(self):
         """Test behavior with None target version."""
+        # Pre-populate version database so v1.5.0 won't be considered newer
+        self.coordinator.version_db.update_version('target', 'repo-v1', 'v1.5.0', {})
+
         # Modify configuration to have None target version
         self.coordinator.repository_overrides['target/repo-v1']['target_version'] = None
 
@@ -419,7 +425,7 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         # None target version should be treated as no target version
         self.assertEqual(result['action'], 'skipped')
         self.assertIn('is not newer than', result['reason'])
@@ -432,7 +438,7 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
             'assets': []
         }
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'failed')
         self.assertIn('Invalid repository format', result['reason'])
 
@@ -452,7 +458,7 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
             tag_name='v1.5.0'
         )
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'failed')
         self.assertIn('All asset downloads failed', result['reason'])
 
@@ -468,7 +474,7 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
         release['zipball_url'] = None
 
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'skipped')
         self.assertIn('No downloadable content', result['reason'])
 
@@ -491,7 +497,7 @@ class TestTargetVersionIntegration(TestTargetVersionFunctionality):
                     }
                 ]
             return []  # No downloads for other repos
-        
+
         self.mock_downloader.download_release_content.side_effect = mock_download_side_effect
 
         # Create monitor output with mixed repositories
@@ -507,19 +513,22 @@ class TestTargetVersionIntegration(TestTargetVersionFunctionality):
         }
 
         results = self.coordinator.process_monitor_output(monitor_output)
-        
+
         # Verify results
         self.assertEqual(results['total_releases_checked'], 4)
         self.assertEqual(results['new_downloads'], 2)  # target/repo-v1 v1.5.0 and target/repo-v2 v2.0.0-beta.1
-        self.assertEqual(results['skipped_releases'], 2)  # target/repo-v1 v1.6.0 and normal/repo v1.0.0 (no assets)
+        self.assertEqual(results['skipped_releases'], 1)  # target/repo-v1 v1.6.0 (doesn't match target)
+        self.assertEqual(results['failed_downloads'], 1)  # normal/repo v1.0.0 (no successful downloads)
 
         # Verify specific results
         download_results = results['download_results']
         downloaded_repos = [r for r in download_results if r['action'] == 'downloaded']
         skipped_repos = [r for r in download_results if r['action'] == 'skipped']
+        failed_repos = [r for r in download_results if r['action'] == 'failed']
 
         self.assertEqual(len(downloaded_repos), 2)
-        self.assertEqual(len(skipped_repos), 2)
+        self.assertEqual(len(skipped_repos), 1)
+        self.assertEqual(len(failed_repos), 1)
 
         # Check that target versions were downloaded
         target_v1_result = next(r for r in downloaded_repos if r['repository'] == 'target/repo-v1')
@@ -543,7 +552,7 @@ class TestTargetVersionIntegration(TestTargetVersionFunctionality):
 
         # Store newer version first
         self.coordinator.version_db.update_version('target', 'repo-v1', 'v2.0.0')
-        
+
         # Verify initial state
         current_version = self.coordinator.version_db.get_current_version('target', 'repo-v1')
         self.assertEqual(current_version, 'v2.0.0')
@@ -551,13 +560,13 @@ class TestTargetVersionIntegration(TestTargetVersionFunctionality):
         # Process target version (older)
         release = self._create_release_data('target/repo-v1', 'v1.5.0')
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
-        
+
         # Verify version database was updated to target version
         updated_version = self.coordinator.version_db.get_current_version('target', 'repo-v1')
         self.assertEqual(updated_version, 'v1.5.0')
-        
+
         # Verify download history contains both versions
         history = self.coordinator.version_db.get_download_history('target', 'repo-v1')
         self.assertGreaterEqual(len(history), 2)
@@ -573,7 +582,7 @@ class TestRepositoryOverridesConfigurationHandling(TestTargetVersionFunctionalit
         self.assertIn('target/repo-v1', self.coordinator.repository_overrides)
         self.assertIn('target/repo-v2', self.coordinator.repository_overrides)
         self.assertIn('normal/repo', self.coordinator.repository_overrides)
-        
+
         # Verify target versions
         self.assertEqual(
             self.coordinator.repository_overrides['target/repo-v1']['target_version'],
@@ -593,11 +602,11 @@ class TestRepositoryOverridesConfigurationHandling(TestTargetVersionFunctionalit
         # Test repository with target version
         config = self.coordinator._get_repository_config('target/repo-v1')
         self.assertEqual(config['asset_patterns'], ['*.tar.gz'])
-        
+
         # Test repository without target version
         config = self.coordinator._get_repository_config('normal/repo')
         self.assertEqual(config['asset_patterns'], ['*.tar.gz'])
-        
+
         # Test non-existent repository (should return defaults)
         config = self.coordinator._get_repository_config('nonexistent/repo')
         self.assertEqual(config['asset_patterns'], ['*.tar.gz', '*.zip'])  # Global default
@@ -614,16 +623,21 @@ class TestRepositoryOverridesConfigurationHandling(TestTargetVersionFunctionalit
                 'repository_overrides': {}
             }
         }
-        
-        with patch('download_releases.GitHubDownloader'):
+
+        with patch('download_releases.GitHubDownloader') as mock_downloader_class:
             coordinator = ReleaseDownloadCoordinator(config_no_overrides, 'fake_token', force_local=True)
-        
+            mock_downloader = mock_downloader_class.return_value
+
+            # Pre-populate version database so v1.0.0 won't be considered newer
+            coordinator.version_db.update_version('any', 'repo', 'v1.0.0', {})
+
         # Should work normally without target versions
         release = self._create_release_data('any/repo', 'v1.0.0')
         result = coordinator._process_single_release(release)
-        
-        # Should skip due to no stored version and normal comparison logic
+
+        # Should skip because v1.0.0 is not newer than stored v1.0.0
         self.assertEqual(result['action'], 'skipped')
+        self.assertIn('is not newer than', result['reason'])
 
 
 if __name__ == '__main__':
