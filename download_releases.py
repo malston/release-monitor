@@ -159,6 +159,7 @@ class ReleaseDownloadCoordinator:
 
         # Repository overrides
         self.repository_overrides = download_config.get('repository_overrides', {})
+        logger.debug(f"Repository overrides loaded: {self.repository_overrides}")
 
         logger.info("Release download coordinator initialized")
 
@@ -258,6 +259,7 @@ class ReleaseDownloadCoordinator:
         # Get repository-specific configuration to check for target version
         repo_override = self.repository_overrides.get(repository, {})
         target_version = repo_override.get('target_version')
+        logger.debug(f"Repository {repository}: override config = {repo_override}, target_version = {target_version}")
 
         if target_version:
             # Target version specified - check if this release matches the target
