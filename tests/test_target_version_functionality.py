@@ -395,6 +395,9 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
 
     def test_target_version_empty_string(self):
         """Test behavior with empty string target version."""
+        # Pre-populate version database so v1.5.0 won't be considered newer
+        self.coordinator.version_db.update_version('target', 'repo-v1', 'v1.5.0', {})
+
         # Modify configuration to have empty target version
         self.coordinator.repository_overrides['target/repo-v1']['target_version'] = ''
 
@@ -411,6 +414,9 @@ class TestTargetVersionErrorConditions(TestTargetVersionFunctionality):
 
     def test_target_version_none_value(self):
         """Test behavior with None target version."""
+        # Pre-populate version database so v1.5.0 won't be considered newer
+        self.coordinator.version_db.update_version('target', 'repo-v1', 'v1.5.0', {})
+
         # Modify configuration to have None target version
         self.coordinator.repository_overrides['target/repo-v1']['target_version'] = None
 
@@ -511,15 +517,18 @@ class TestTargetVersionIntegration(TestTargetVersionFunctionality):
         # Verify results
         self.assertEqual(results['total_releases_checked'], 4)
         self.assertEqual(results['new_downloads'], 2)  # target/repo-v1 v1.5.0 and target/repo-v2 v2.0.0-beta.1
-        self.assertEqual(results['skipped_releases'], 2)  # target/repo-v1 v1.6.0 and normal/repo v1.0.0 (no assets)
+        self.assertEqual(results['skipped_releases'], 1)  # target/repo-v1 v1.6.0 (doesn't match target)
+        self.assertEqual(results['failed_downloads'], 1)  # normal/repo v1.0.0 (no successful downloads)
 
         # Verify specific results
         download_results = results['download_results']
         downloaded_repos = [r for r in download_results if r['action'] == 'downloaded']
         skipped_repos = [r for r in download_results if r['action'] == 'skipped']
+        failed_repos = [r for r in download_results if r['action'] == 'failed']
 
         self.assertEqual(len(downloaded_repos), 2)
-        self.assertEqual(len(skipped_repos), 2)
+        self.assertEqual(len(skipped_repos), 1)
+        self.assertEqual(len(failed_repos), 1)
 
         # Check that target versions were downloaded
         target_v1_result = next(r for r in downloaded_repos if r['repository'] == 'target/repo-v1')
