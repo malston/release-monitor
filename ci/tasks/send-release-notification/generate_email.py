@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 Generate email notification for new GitHub releases
+
+Environment Variables:
+    RELEASES_INPUT_DIR: Directory containing releases.json (default: ../release-output)
+    EMAIL_OUTPUT_DIR: Directory to write email files (default: ../email)
+    EMAIL_SUBJECT_PREFIX: Prefix for email subject line (default: [GitHub Release Monitor])
+    INCLUDE_ASSET_DETAILS: Include asset details in email (default: true)
 """
 import json
 import os
@@ -202,13 +208,17 @@ This is an automated notification from the GitHub Release Monitor pipeline.
 
 def main():
     """Main function to generate email notification"""
+    # Get configurable paths from environment variables
+    # Default to Concourse structure if not specified
+    releases_input_dir = os.getenv('RELEASES_INPUT_DIR', '../release-output')
+    email_output_dir = os.getenv('EMAIL_OUTPUT_DIR', '../email')
+
     # Read the releases data
-    # Concourse mounts inputs at the same level as the working directory
-    releases_file = Path('../release-output/releases.json')
+    releases_file = Path(releases_input_dir) / 'releases.json'
     if not releases_file.exists():
         print("No releases.json file found, creating empty email notification")
         # Create empty email files so the S3 resource doesn't fail
-        email_dir = Path('../email')
+        email_dir = Path(email_output_dir)
         email_dir.mkdir(exist_ok=True)
 
         # Write empty body file
@@ -242,7 +252,7 @@ def main():
     if not all_releases:
         print("No releases found in releases.json, creating empty email notification")
         # Create empty email files so the S3 resource doesn't fail
-        email_dir = Path('../email')
+        email_dir = Path(email_output_dir)
         email_dir.mkdir(exist_ok=True)
 
         # Write empty body file
@@ -273,7 +283,7 @@ def main():
     if not new_releases:
         print("All releases have already been downloaded, creating empty email notification")
         # Create empty email files so the S3 resource doesn't fail
-        email_dir = Path('../email')
+        email_dir = Path(email_output_dir)
         email_dir.mkdir(exist_ok=True)
 
         # Write empty body file
@@ -310,8 +320,8 @@ def main():
         sys.exit(1)
 
     # Write email content for Concourse email resource
-    # Concourse expects outputs at the same level as inputs
-    email_dir = Path('../email')
+    # Use configurable output directory
+    email_dir = Path(email_output_dir)
     email_dir.mkdir(exist_ok=True)
 
     # Write subject

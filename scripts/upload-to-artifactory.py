@@ -94,10 +94,14 @@ def should_upload_file(relative_path: Path, target_version: str = None, version_
 def upload_releases_json(artifactory_url, repository, headers, auth, verify_ssl):
     """Upload just the releases.json file to Artifactory."""
 
+    # Get configurable path from environment variable
+    # Default to Concourse structure if not specified
+    releases_input_dir = os.getenv('RELEASES_INPUT_DIR', '/release-output')
+
     # Find releases.json file
-    releases_file = Path('../release-output/releases.json')
+    releases_file = Path(releases_input_dir) / 'releases.json'
     if not releases_file.exists():
-        print("ERROR: Could not find releases.json file at ../release-output/releases.json")
+        print(f"ERROR: Could not find releases.json file at {releases_file}")
         return False
 
     # Upload releases.json file

@@ -4,12 +4,10 @@ Unit tests for Artifactory-based Version Storage
 """
 
 import unittest
-import json
 import os
 import sys
 from pathlib import Path
-from datetime import datetime, timezone
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 import requests
 
 # Add project root to path
@@ -358,18 +356,6 @@ class TestArtifactoryVersionStorage(unittest.TestCase):
                 self.assertEqual(len(repo_data['download_history']), 100)
 
 
-class TestArtifactoryVersionStorageIntegration(unittest.TestCase):
-    """Integration tests that test the full flow without mocking HTTP calls."""
-
-    def setUp(self):
-        """Set up test environment for integration tests."""
-        # These tests require actual Artifactory instance or can be skipped
-        self.skipTest("Integration tests require actual Artifactory instance")
-
-    def test_full_lifecycle(self):
-        """Test complete lifecycle: create, update, retrieve, save."""
-        # This would test against a real Artifactory instance
-        pass
 
 
 if __name__ == '__main__':

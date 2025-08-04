@@ -20,6 +20,7 @@ params:
   ARTIFACTORY_USERNAME:
   ARTIFACTORY_PASSWORD:
   ARTIFACTORY_SKIP_SSL_VERIFICATION:
+  RELEASES_INPUT_DIR: /release-output
 
 run:
   path: /bin/bash

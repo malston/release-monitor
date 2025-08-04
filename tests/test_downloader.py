@@ -100,7 +100,8 @@ class TestGitHubDownloader(unittest.TestCase):
         checksum_file = test_file.with_suffix('.txt.sha256')
         self.assertTrue(checksum_file.exists())
     
-    def test_download_with_retry_failure(self):
+    @patch('time.sleep')
+    def test_download_with_retry_failure(self, mock_sleep):
         """Test download failure and retry logic."""
         # Mock failed response
         self.mock_session.get.side_effect = Exception("Network error")

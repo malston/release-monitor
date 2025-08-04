@@ -16,14 +16,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 class TestEmailNotificationIntegration(unittest.TestCase):
     """Integration tests for email notification functionality"""
-    
+
     def setUp(self):
         """Set up test environment"""
         self.test_dir = tempfile.mkdtemp()
         self.release_output_dir = Path(self.test_dir) / 'release-output'
         self.email_output_dir = Path(self.test_dir) / 'email'
         self.release_output_dir.mkdir()
-        
+
         # Sample releases data matching actual monitor output format
         self.sample_releases = {
             "timestamp": "2023-08-15T14:00:00+00:00",
@@ -68,56 +68,54 @@ class TestEmailNotificationIntegration(unittest.TestCase):
                 }
             ]
         }
-        
+
         # Write test releases file
         with open(self.release_output_dir / 'releases.json', 'w') as f:
             json.dump(self.sample_releases, f)
-    
+
     def tearDown(self):
         """Clean up test environment"""
         import shutil
         shutil.rmtree(self.test_dir, ignore_errors=True)
-    
+
     def test_email_generation_script(self):
         """Test running the email generation script"""
         script_path = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'generate_email.py'
-        
-        # Set up environment
+
+        # Set up environment with custom paths
         env = os.environ.copy()
         env['EMAIL_SUBJECT_PREFIX'] = '[Test Monitor]'
         env['INCLUDE_ASSET_DETAILS'] = 'true'
-        
-        # Run the script with modified paths
-        modified_script = f"""
+        env['RELEASES_INPUT_DIR'] = str(self.release_output_dir)
+        env['EMAIL_OUTPUT_DIR'] = str(self.email_output_dir)
+
+        # Add project root to Python path and run script
+        project_root = script_path.parent.parent.parent
+        script_content = f"""
 import sys
-sys.path.insert(0, "{script_path.parent}")
-# Patch the paths
-import generate_email
-generate_email.Path = lambda x: Path("{self.test_dir}") / Path(x).relative_to("/")
-from pathlib import Path
-exec(open("{script_path}").read())
+sys.path.insert(0, '{project_root}')
+{script_path.read_text()}
 """
-        
+
         result = subprocess.run(
-            [sys.executable, '-c', modified_script],
+            [sys.executable, '-c', script_content],
             env=env,
             capture_output=True,
-            text=True,
-            cwd=str(script_path.parent)
+            text=True
         )
-        
+
         # Check script succeeded
         self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
-        
+
         # Verify email files were created
         self.assertTrue((self.email_output_dir / 'subject').exists())
         self.assertTrue((self.email_output_dir / 'body').exists())
         self.assertTrue((self.email_output_dir / 'body.html').exists())
-        
+
         # Check subject content
         subject = (self.email_output_dir / 'subject').read_text()
         self.assertEqual(subject, '[Test Monitor] 2 new releases detected')
-        
+
         # Check body content
         body = (self.email_output_dir / 'body').read_text()
         self.assertIn('Total new releases: 2', body)
@@ -126,13 +124,13 @@ exec(open("{script_path}").read())
         self.assertIn('prometheus/prometheus', body)
         self.assertIn('v2.46.0', body)
         self.assertIn('kubernetes-client-linux-amd64.tar.gz (48.0 MB)', body)
-        
+
         # Check HTML content
         html = (self.email_output_dir / 'body.html').read_text()
         self.assertIn('<h2>New GitHub Releases Detected</h2>', html)
         self.assertIn('kubernetes/kubernetes - Kubernetes v1.28.0', html)
         self.assertIn('prometheus/prometheus - 2.46.0 / 2023-07-25', html)
-    
+
     def test_no_releases_scenario(self):
         """Test when there are no new releases"""
         # Create empty releases file
@@ -142,67 +140,82 @@ exec(open("{script_path}").read())
             "new_releases_found": 0,
             "releases": []
         }
-        
+
         with open(self.release_output_dir / 'releases.json', 'w') as f:
             json.dump(empty_releases, f)
-        
+
         script_path = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'generate_email.py'
-        
-        # Run the script
-        result = subprocess.run(
-            [sys.executable, str(script_path)],
-            capture_output=True,
-            text=True,
-            cwd=str(self.test_dir)
-        )
-        
-        # Should exit cleanly
-        self.assertEqual(result.returncode, 0)
-        self.assertIn('No new releases found', result.stdout)
-        
-        # No email files should be created
-        self.assertFalse((self.email_output_dir / 'subject').exists())
-        self.assertFalse((self.email_output_dir / 'body').exists())
-    
-    def test_environment_variable_overrides(self):
-        """Test environment variable configuration"""
-        script_path = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'generate_email.py'
-        
-        # Test with custom subject prefix
+
+        # Set up environment with custom paths
         env = os.environ.copy()
-        env['EMAIL_SUBJECT_PREFIX'] = '[PRODUCTION]'
-        env['INCLUDE_ASSET_DETAILS'] = 'false'
-        
-        # Run with single release
-        single_release = {
-            "releases": [self.sample_releases["releases"][0]]
-        }
-        
-        with open(self.release_output_dir / 'releases.json', 'w') as f:
-            json.dump(single_release, f)
-        
-        modified_script = f"""
+        env['RELEASES_INPUT_DIR'] = str(self.release_output_dir)
+        env['EMAIL_OUTPUT_DIR'] = str(self.email_output_dir)
+
+        # Add project root to Python path and run script
+        project_root = script_path.parent.parent.parent
+        script_content = f"""
 import sys
-sys.path.insert(0, "{script_path.parent}")
-import generate_email
-from pathlib import Path
-generate_email.Path = lambda x: Path("{self.test_dir}") / Path(x).relative_to("/")
-exec(open("{script_path}").read())
+sys.path.insert(0, '{project_root}')
+{script_path.read_text()}
 """
-        
+
         result = subprocess.run(
-            [sys.executable, '-c', modified_script],
+            [sys.executable, '-c', script_content],
             env=env,
             capture_output=True,
             text=True
         )
-        
+
+        # Should exit cleanly
         self.assertEqual(result.returncode, 0)
-        
+        self.assertIn('No releases found in releases.json, creating empty email notification', result.stdout)
+
+        # Empty email files should be created
+        self.assertTrue((self.email_output_dir / 'subject').exists())
+        self.assertTrue((self.email_output_dir / 'body').exists())
+        self.assertEqual((self.email_output_dir / 'subject').read_text(), '')
+        self.assertEqual((self.email_output_dir / 'body').read_text(), '')
+
+    def test_environment_variable_overrides(self):
+        """Test environment variable configuration"""
+        script_path = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'generate_email.py'
+
+        # Test with custom paths and configuration
+        env = os.environ.copy()
+        env['EMAIL_SUBJECT_PREFIX'] = '[PRODUCTION]'
+        env['INCLUDE_ASSET_DETAILS'] = 'false'
+        env['RELEASES_INPUT_DIR'] = str(self.release_output_dir)
+        env['EMAIL_OUTPUT_DIR'] = str(self.email_output_dir)
+
+        # Run with single release
+        single_release = {
+            "releases": [self.sample_releases["releases"][0]]
+        }
+
+        with open(self.release_output_dir / 'releases.json', 'w') as f:
+            json.dump(single_release, f)
+
+        # Add project root to Python path and run script directly
+        project_root = script_path.parent.parent.parent
+        script_content = f"""
+import sys
+sys.path.insert(0, '{project_root}')
+{script_path.read_text()}
+"""
+
+        result = subprocess.run(
+            [sys.executable, '-c', script_content],
+            env=env,
+            capture_output=True,
+            text=True
+        )
+
+        self.assertEqual(result.returncode, 0)
+
         # Check custom subject prefix
         subject = (self.email_output_dir / 'subject').read_text()
         self.assertIn('[PRODUCTION]', subject)
-        
+
         # Check assets are not included
         body = (self.email_output_dir / 'body').read_text()
         self.assertNotIn('Assets:', body)
@@ -211,16 +224,16 @@ exec(open("{script_path}").read())
 
 class TestConcourseTaskIntegration(unittest.TestCase):
     """Test the Concourse task configuration"""
-    
+
     def test_task_yaml_validity(self):
         """Test that the task YAML is valid"""
         import yaml
-        
+
         task_file = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'task.yml'
-        
+
         with open(task_file, 'r') as f:
             task_config = yaml.safe_load(f)
-        
+
         # Verify required fields
         self.assertEqual(task_config['platform'], 'linux')
         self.assertIn('image_resource', task_config)
@@ -228,16 +241,16 @@ class TestConcourseTaskIntegration(unittest.TestCase):
         self.assertIn('outputs', task_config)
         self.assertIn('params', task_config)
         self.assertIn('run', task_config)
-        
+
         # Check inputs
         input_names = [i['name'] for i in task_config['inputs']]
         self.assertIn('release-monitor-repo', input_names)
         self.assertIn('release-output', input_names)
-        
+
         # Check outputs
         output_names = [o['name'] for o in task_config['outputs']]
         self.assertIn('email', output_names)
-        
+
         # Check params
         self.assertIn('EMAIL_SUBJECT_PREFIX', task_config['params'])
         self.assertIn('INCLUDE_ASSET_DETAILS', task_config['params'])
