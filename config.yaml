@@ -122,5 +122,5 @@ download:
       target_version: "v3.18.3"
       asset_patterns: ["*-linux-amd64.tar.gz"]
       source_archives:
-        fallback_only: false
+        fallback_only: true
         prefer: "tarball"
