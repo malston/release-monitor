@@ -281,9 +281,19 @@ download_config['cleanup_old_versions'] = '${CLEANUP_OLD_VERSIONS:-true}'.lower(
 download_config['keep_versions'] = int('${KEEP_VERSIONS:-5}')
 download_config['timeout'] = int('${DOWNLOAD_TIMEOUT:-300}')
 
+# Debug: Print final configuration before writing
+print("DEBUG: Final download_config before YAML dump:")
+print(f"DEBUG: repository_overrides = {download_config.get('repository_overrides', 'NOT_FOUND')}")
+
 # Write updated configuration
 with open('$TEMP_CONFIG', 'w') as f:
     yaml.dump(config, f)
+
+# Debug: Read and print the YAML file that was written
+print("DEBUG: Reading back the generated YAML config:")
+with open('$TEMP_CONFIG', 'r') as f:
+    written_config = yaml.safe_load(f)
+    print(f"DEBUG: Written repository_overrides = {written_config.get('download', {}).get('repository_overrides', 'NOT_FOUND')}")
 EOF
 
 log_debug "REPOSITORY_OVERRIDES environment variable:"
