@@ -587,9 +587,9 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
             }]
         )
         result = self.coordinator._process_single_release(release)
-        
-        # Should fail because no assets match the pattern
-        self.assertEqual(result['action'], 'failed')
+
+        # Should skip because no assets match the pattern
+        self.assertEqual(result['action'], 'skipped')
         self.assertIn('All asset downloads failed', result['reason'])
 
     def test_mixed_repositories_target_version_and_normal(self):
