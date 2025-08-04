@@ -429,6 +429,233 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         result = self.coordinator._process_single_release(target_release)
         self.assertEqual(result['action'], 'downloaded')
 
+    def test_target_version_exact_match_required(self):
+        """Test that target version requires exact match."""
+        self.coordinator.repository_overrides = {
+            'test/repo': {
+                'target_version': 'v1.5.0',
+                'asset_patterns': ['*.tar.gz']
+            }
+        }
+
+        # Test similar but non-matching versions
+        non_matching_cases = [
+            'v1.5.1',      # Different patch
+            'v1.4.0',      # Different minor  
+            'v2.5.0',      # Different major
+            'v1.5.0-beta', # With suffix
+            '1.5.0',       # Missing v prefix
+            'V1.5.0'       # Different case
+        ]
+
+        for tag_name in non_matching_cases:
+            with self.subTest(tag_name=tag_name):
+                release = self._create_release_data(tag_name=tag_name)
+                result = self.coordinator._process_single_release(release)
+                self.assertEqual(result['action'], 'skipped')
+                self.assertIn('does not match target version', result['reason'])
+
+    def test_target_version_with_prerelease(self):
+        """Test target version functionality with prerelease versions."""
+        self.coordinator.repository_overrides = {
+            'test/repo': {
+                'target_version': 'v2.0.0-beta.1',
+                'asset_patterns': ['*.tar.gz']
+            }
+        }
+
+        # Mock successful download
+        self.mock_downloader.download_release_content.return_value = [
+            {
+                'success': True,
+                'asset_name': 'release.tar.gz',
+                'file_path': '/path/to/release.tar.gz',
+                'file_size': 1024
+            }
+        ]
+
+        # Exact prerelease match should download
+        prerelease = self._create_release_data(tag_name='v2.0.0-beta.1', prerelease=True)
+        result = self.coordinator._process_single_release(prerelease)
+        self.assertEqual(result['action'], 'downloaded')
+
+    def test_target_version_bypasses_prerelease_filtering(self):
+        """Test that target version bypasses prerelease filtering."""
+        # Configure to exclude prereleases normally
+        self.coordinator.version_comparator.include_prereleases = False
+        
+        self.coordinator.repository_overrides = {
+            'test/repo': {
+                'target_version': 'v2.0.0-beta.1',
+                'asset_patterns': ['*.tar.gz']
+            }
+        }
+
+        # Mock successful download
+        self.mock_downloader.download_release_content.return_value = [
+            {
+                'success': True,
+                'asset_name': 'release.tar.gz',
+                'file_path': '/path/to/release.tar.gz',
+                'file_size': 1024
+            }
+        ]
+
+        # Target prerelease should still download despite prerelease filtering
+        prerelease = self._create_release_data(tag_name='v2.0.0-beta.1', prerelease=True)
+        result = self.coordinator._process_single_release(prerelease)
+        self.assertEqual(result['action'], 'downloaded')
+
+    def test_target_version_version_database_update(self):
+        """Test that version database is updated correctly with target version."""
+        # Store a newer version first
+        self.coordinator.version_db.update_version('test', 'repo', 'v3.0.0')
+        
+        self.coordinator.repository_overrides = {
+            'test/repo': {
+                'target_version': 'v1.5.0',
+                'asset_patterns': ['*.tar.gz']
+            }
+        }
+
+        # Mock successful download
+        self.mock_downloader.download_release_content.return_value = [
+            {
+                'success': True,
+                'asset_name': 'release.tar.gz',
+                'file_path': '/path/to/release.tar.gz',
+                'file_size': 1024
+            }
+        ]
+
+        # Download target version
+        release = self._create_release_data(tag_name='v1.5.0')
+        result = self.coordinator._process_single_release(release)
+        
+        self.assertEqual(result['action'], 'downloaded')
+        self.assertEqual(result['previous_version'], 'v3.0.0')
+        
+        # Verify database was updated to target version
+        current_version = self.coordinator.version_db.get_current_version('test', 'repo')
+        self.assertEqual(current_version, 'v1.5.0')
+
+    def test_target_version_empty_or_none_fallback(self):
+        """Test behavior when target_version is empty or None."""
+        test_cases = [
+            ('', 'empty string'),
+            (None, 'None value')
+        ]
+
+        for target_version, description in test_cases:
+            with self.subTest(target_version=target_version, description=description):
+                self.coordinator.repository_overrides = {
+                    'test/repo': {
+                        'target_version': target_version,
+                        'asset_patterns': ['*.tar.gz']
+                    }
+                }
+
+                # Should fall back to normal version comparison
+                release = self._create_release_data(tag_name='v1.5.0')
+                result = self.coordinator._process_single_release(release)
+                
+                # Should be skipped due to no stored version and normal comparison
+                self.assertEqual(result['action'], 'skipped')
+                if target_version == '':
+                    # Empty string should be treated as falsy
+                    self.assertIn('is not newer than', result['reason'])
+
+    def test_target_version_respects_asset_patterns(self):
+        """Test that target version still respects asset pattern filtering."""
+        self.coordinator.repository_overrides = {
+            'test/repo': {
+                'target_version': 'v1.5.0',
+                'asset_patterns': ['*.tar.gz']  # Only tar.gz files
+            }
+        }
+
+        # Mock downloader to return no matching assets
+        self.mock_downloader.download_release_content.return_value = []
+
+        # Release with only zip files (doesn't match pattern)
+        release = self._create_release_data(
+            tag_name='v1.5.0',
+            assets=[{
+                'name': 'release.zip',
+                'size': 1024,
+                'browser_download_url': 'https://github.com/test/repo/releases/download/v1.5.0/release.zip'
+            }]
+        )
+        result = self.coordinator._process_single_release(release)
+        
+        # Should fail because no assets match the pattern
+        self.assertEqual(result['action'], 'failed')
+        self.assertIn('All asset downloads failed', result['reason'])
+
+    def test_mixed_repositories_target_version_and_normal(self):
+        """Test processing multiple repositories with mixed target version configuration."""
+        # Configure multiple repos: some with target versions, some without
+        self.coordinator.repository_overrides = {
+            'target/repo1': {
+                'target_version': 'v1.5.0',
+                'asset_patterns': ['*.tar.gz']
+            },
+            'target/repo2': {
+                'target_version': 'v2.0.0',
+                'asset_patterns': ['*.zip']
+            },
+            'normal/repo': {
+                'asset_patterns': ['*.tar.gz']
+                # No target_version
+            }
+        }
+
+        # Store newer versions for all repos
+        self.coordinator.version_db.update_version('target', 'repo1', 'v3.0.0')
+        self.coordinator.version_db.update_version('target', 'repo2', 'v3.0.0')
+        self.coordinator.version_db.update_version('normal', 'repo', 'v3.0.0')
+
+        # Mock successful downloads for target repos only
+        def mock_download_side_effect(release, asset_patterns, source_config):
+            if release['repository'] in ['target/repo1', 'target/repo2']:
+                return [{
+                    'success': True,
+                    'asset_name': 'release.tar.gz',
+                    'file_path': f"/path/to/{release['repository'].replace('/', '_')}.tar.gz",
+                    'file_size': 1024
+                }]
+            return []  # Normal repo gets no downloads
+
+        self.mock_downloader.download_release_content.side_effect = mock_download_side_effect
+
+        # Create monitor output with releases for all repos
+        monitor_output = {
+            'releases': [
+                self._create_release_data(repository='target/repo1', tag_name='v1.5.0'),  # Matches target
+                self._create_release_data(repository='target/repo1', tag_name='v1.6.0'),  # Doesn't match target
+                self._create_release_data(repository='target/repo2', tag_name='v2.0.0'),  # Matches target
+                self._create_release_data(repository='normal/repo', tag_name='v1.0.0'),   # Normal repo, old version
+            ]
+        }
+
+        results = self.coordinator.process_monitor_output(monitor_output)
+
+        # Should have 2 downloads (matching target versions) and 2 skips
+        self.assertEqual(results['new_downloads'], 2)
+        self.assertEqual(results['skipped_releases'], 2)
+
+        # Verify specific results
+        downloaded = [r for r in results['download_results'] if r['action'] == 'downloaded']
+        skipped = [r for r in results['download_results'] if r['action'] == 'skipped']
+
+        self.assertEqual(len(downloaded), 2)
+        self.assertEqual(len(skipped), 2)
+
+        # Check that the right releases were downloaded
+        downloaded_tags = {r['repository']: r['tag_name'] for r in downloaded}
+        self.assertEqual(downloaded_tags.get('target/repo1'), 'v1.5.0')
+        self.assertEqual(downloaded_tags.get('target/repo2'), 'v2.0.0')
+
 
 if __name__ == '__main__':
     unittest.main()
