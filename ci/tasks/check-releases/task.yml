@@ -21,8 +21,14 @@ outputs:
     path: /tmp/release-state
 
 params:
-  GITHUB_TOKEN: ((github_token))
   CONFIG_FILE: config.yaml
+  CONTINUE_ON_API_ERROR: "false"
+  GITHUB_TOKEN: ((github_token))
+  GITHUB_SKIP_SSL_VERIFICATION: "false"
+  HTTP_PROXY: ""
+  HTTPS_PROXY: ""
+  LOG_LEVEL: info
+  REPOSITORIES_OVERRIDE: "{}"
   STATE_FILE: /tmp/release-state/release_state.json
 
 run:
