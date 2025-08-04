@@ -284,6 +284,8 @@ download_config['timeout'] = int('${DOWNLOAD_TIMEOUT:-300}')
 # Debug: Print final configuration before writing
 print("DEBUG: Final download_config before YAML dump:")
 print(f"DEBUG: repository_overrides = {download_config.get('repository_overrides', 'NOT_FOUND')}")
+print("DEBUG: Main config object before YAML dump:")
+print(f"DEBUG: config['download']['repository_overrides'] = {config.get('download', {}).get('repository_overrides', 'NOT_FOUND')}")
 
 # Write updated configuration
 with open('$TEMP_CONFIG', 'w') as f:
