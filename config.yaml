@@ -21,7 +21,7 @@ settings:
   rate_limit_delay: 1.0
 
   # Maximum number of releases to fetch per repository
-  max_releases_per_repo: 10
+  max_releases_per_repo: 100
 
   # Include pre-releases in monitoring
   include_prereleases: false
