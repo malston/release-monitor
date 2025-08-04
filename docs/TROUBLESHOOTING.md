@@ -7,6 +7,7 @@ Common issues and solutions for the GitHub Release Monitor.
 ### Issue: No Downloads Despite New Releases Found
 
 **Symptoms:**
+
 - Script reports new releases found but downloads 0 files
 - Debug logs show "Skipping X: Version Y is not newer than Y"
 - Downloads worked before but suddenly stopped
@@ -15,6 +16,7 @@ Common issues and solutions for the GitHub Release Monitor.
 The version database already contains these release versions, so the script considers them "already downloaded" and skips them.
 
 **Solution 1 - Reset Version Database (Local Storage):**
+
 ```bash
 # Remove local version database
 rm -f version_db.json release_state.json
@@ -24,6 +26,7 @@ python github_monitor.py --config ./config.yaml --download
 ```
 
 **Solution 2 - Reset Version Database (S3 Storage):**
+
 ```bash
 # Delete version database from S3
 aws s3 rm s3://your-bucket/release-monitor/version_db.json
@@ -33,6 +36,7 @@ python github_monitor.py --config ./config.yaml --download
 ```
 
 **Solution 3 - Reset Version Database (Artifactory):**
+
 ```bash
 # Clear Artifactory version database
 python -c "
@@ -57,6 +61,7 @@ python github_monitor.py --config ./config.yaml --download
 ### Issue: Environment Variables Override Config File Settings
 
 **Symptoms:**
+
 - Config has `artifactory_storage.enabled: false` but script uses Artifactory anyway
 - Log shows "Auto-detected Artifactory version database from environment variables"
 - Expected local storage but got cloud storage instead
@@ -65,11 +70,13 @@ python github_monitor.py --config ./config.yaml --download
 Environment variables take precedence over config file settings. The script auto-detects storage backends based on environment variables.
 
 **Configuration Precedence (Highest to Lowest):**
+
 1. **Environment Variables** (auto-detection)
 2. **Config File Settings**
 3. **Default Values**
 
 **Auto-Detection Rules:**
+
 - **Artifactory**: If `ARTIFACTORY_URL` and `ARTIFACTORY_REPOSITORY` are set
 - **S3**: If `AWS_ACCESS_KEY_ID` and S3 bucket is configured
 - **Local**: Fallback when no cloud storage is detected
@@ -77,12 +84,14 @@ Environment variables take precedence over config file settings. The script auto
 **Solution - Control Auto-Detection:**
 
 **Option 1 - Use Force Download Flag (Recommended):**
+
 ```bash
 # Bypass auto-detection with --force-download flag
 python github_monitor.py --config ./config.yaml --force-download
 ```
 
 **Option 2 - Disable Environment Variables:**
+
 ```bash
 # Temporarily unset Artifactory variables
 unset ARTIFACTORY_URL
@@ -96,6 +105,7 @@ python github_monitor.py --config ./config.yaml --download
 ```
 
 **Option 3 - Use Separate Environment Files:**
+
 ```bash
 # Create .env.local (no Artifactory variables)
 cat > .env.local << 'EOF'
@@ -108,6 +118,7 @@ python github_monitor.py --config ./config.yaml --download
 ```
 
 **Option 4 - Explicit Config Override:**
+
 ```yaml
 # In config.yaml - be very explicit
 download:
@@ -126,6 +137,7 @@ download:
 ### Issue: Downloads Fail with Connection Errors
 
 **Symptoms:**
+
 - "Connection refused" or "timeout" errors
 - Can't connect to Artifactory/S3
 - Downloads work sometimes but not others
@@ -133,6 +145,7 @@ download:
 **Solutions:**
 
 **For Artifactory:**
+
 ```bash
 # Check if Artifactory is running
 curl -f http://localhost:8081/artifactory/api/system/ping
@@ -147,6 +160,7 @@ curl -H "X-JFrog-Art-Api: $ARTIFACTORY_API_KEY" \
 ```
 
 **For S3:**
+
 ```bash
 # Test S3 connection
 aws s3 ls s3://your-bucket/
@@ -161,11 +175,13 @@ aws s3 ls s3://your-bucket/
 ### Issue: "No module named 'yaml'" Error
 
 **Symptoms:**
-```
+
+```console
 ModuleNotFoundError: No module named 'yaml'
 ```
 
 **Solution:**
+
 ```bash
 # Install dependencies
 pip install PyYAML requests
@@ -179,6 +195,7 @@ pip install -r requirements.txt
 ### Issue: "GITHUB_TOKEN environment variable is required"
 
 **Solution:**
+
 ```bash
 # Set GitHub token
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
@@ -191,11 +208,13 @@ source .env
 ### Issue: Config File Not Found
 
 **Symptoms:**
-```
+
+```console
 FileNotFoundError: [Errno 2] No such file or directory: 'config.yaml'
 ```
 
 **Solution:**
+
 ```bash
 # Check current directory
 ls -la config.yaml
@@ -225,32 +244,40 @@ LOG_LEVEL=DEBUG python github_monitor.py --config ./config.yaml --download
 ## Understanding Log Messages
 
 ### Version Comparison Logs
-```
+
+```console
 DEBUG - Version comparison: v1.33.3 vs v1.33.3 = 0 (newer: False)
 DEBUG - Skipping kubernetes/kubernetes: Version v1.33.3 is not newer than v1.33.3
 ```
+
 **Meaning:** The release version (v1.33.3) is not newer than what's in the version database (v1.33.3), so it's skipped.
 
 ### Storage Detection Logs
-```
+
+```console
 INFO - Auto-detected Artifactory version database from ARTIFACTORY_URL and ARTIFACTORY_REPOSITORY environment variables
 ```
+
 **Meaning:** Environment variables overrode config file settings.
 
 ### Download Decision Logs
-```
+
+```console
 DEBUG - Skipping pre-release: v3.20.0-rc.1
 ```
+
 **Meaning:** Pre-releases are excluded (check `include_prereleases` setting).
 
 ## Quick Diagnostic Commands
 
 ### Check Environment Variables
+
 ```bash
 env | grep -E "(GITHUB_TOKEN|ARTIFACTORY|AWS)" | sort
 ```
 
 ### Check Config Parsing
+
 ```bash
 python -c "
 import yaml
@@ -262,6 +289,7 @@ with open('config.yaml') as f:
 ```
 
 ### Check Version Database Content
+
 ```bash
 # Local
 cat version_db.json | python -m json.tool
@@ -276,6 +304,7 @@ curl -s -u admin:password \
 ```
 
 ### Test GitHub API Access
+
 ```bash
 curl -H "Authorization: token $GITHUB_TOKEN" \
   "https://api.github.com/repos/kubernetes/kubernetes/releases/latest"
@@ -284,6 +313,7 @@ curl -H "Authorization: token $GITHUB_TOKEN" \
 ## Common Patterns
 
 ### Fresh Start (Complete Reset)
+
 ```bash
 # Remove all local state
 rm -f release_state.json version_db.json
@@ -297,6 +327,7 @@ python github_monitor.py --config ./config.yaml --download
 ```
 
 ### Testing New Repository
+
 ```bash
 # Add to config.yaml
 repositories:
@@ -309,6 +340,7 @@ python github_monitor.py --config ./config.yaml --force-check --download
 ```
 
 ### Pipeline Testing
+
 ```bash
 # Test monitoring only
 python github_monitor.py --config ./config.yaml --output test-releases.json
@@ -329,6 +361,7 @@ python download_releases.py --input test-releases.json --output ./test-downloads
 5. **Use Force Check**: `--force-check` ignores timestamps for testing
 
 For additional help, check the main documentation or create an issue with:
+
 - Full debug logs (`LOG_LEVEL=DEBUG`)
 - Configuration file (redact sensitive tokens)
 - Environment variables (redact sensitive values)
