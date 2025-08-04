@@ -122,6 +122,18 @@ Many tests need to avoid external dependencies like Artifactory or S3. Common pa
 
 3. **Mock configuration issues**: Ensure mocks are properly configured before the code under test uses them.
 
+### Identifying Skipped Tests
+
+To see which tests are being skipped:
+
+```bash
+# Run tests with verbose output and filter for skipped tests
+python -m unittest discover tests -p "test_*.py" -v 2>&1 | grep -A1 -B1 "skipped"
+
+# See just the skipped test summary
+python -m unittest discover tests -p "test_*.py" -v 2>&1 | tail -3
+```
+
 ### Running Failed Tests
 
 When a test fails, you can run it individually for easier debugging:
