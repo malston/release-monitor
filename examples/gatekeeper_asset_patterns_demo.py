@@ -178,7 +178,7 @@ def demo_gatekeeper_asset_patterns():
     print(f"   Perfect for: Linux deployment with both CLI and controller")
     
     print(f"\n💡 How to use in pipeline:")
-    print(f'   asset_patterns: ["gator-v*-linux-amd64.tar.gz", "*-linux-amd64.tar.gz"]')
+    print(f'   repositories_override: \'{"open-policy-agent/gatekeeper": {"asset_patterns": ["gator-v*-linux-amd64.tar.gz", "*-linux-amd64.tar.gz"]}}\'')
     print("=" * 75)
 
 
@@ -193,7 +193,7 @@ def show_gatekeeper_concourse_examples():
             'name': 'Your Pattern: Gator + Linux AMD64',
             'config': '''
 # Complete Linux AMD64 setup (CLI + Manager)
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*-linux-amd64.tar.gz", "*-linux-amd64.tar.gz"],
@@ -206,7 +206,7 @@ repository_overrides: |
             'name': 'CLI Only for Policy Development',
             'config': '''
 # Gator CLI only for policy testing
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*-linux-amd64.tar.gz"],
@@ -219,7 +219,7 @@ repository_overrides: |
             'name': 'Production Deployment (Manager Only)',
             'config': '''
 # Manager/controller only for Kubernetes deployment
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["manager-v*-linux-amd64.tar.gz"],
@@ -232,7 +232,7 @@ repository_overrides: |
             'name': 'Multi-Platform Development',
             'config': '''
 # Gator CLI for all platforms
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*", "!*windows*"],
@@ -245,7 +245,7 @@ repository_overrides: |
             'name': 'GitOps Configuration Only',
             'config': '''
 # Helm charts and manifests only
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["*.yaml", "*.yml", "*.tgz"],
@@ -264,11 +264,8 @@ repository_overrides: |
     print(f"\n📋 Global Pipeline Configuration")
     print("=" * 35)
     print("""
-# In your pipeline params file - Conservative global pattern
-download_asset_patterns: '["*.yaml", "*.yml", "*.json"]'
-
-# Let repository overrides handle binary downloads
-repository_overrides: |
+# In your pipeline params file - Let repository overrides handle all downloads
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "asset_patterns": ["gator-v*-linux-amd64.tar.gz", "*-linux-amd64.tar.gz"],

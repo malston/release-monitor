@@ -130,10 +130,10 @@ def demo_istio_asset_patterns():
     print(f"\n{'=' * 70}")
     print("🎉 ASSET_PATTERNS Demo Complete!")
     print("\n💡 How to use in Concourse pipeline:")
-    print("   Set the ASSET_PATTERNS parameter in your pipeline config:")
-    print('   ASSET_PATTERNS: \'["*-linux-amd64.tar.gz"]\'')
+    print("   Set repository overrides in your pipeline params:")
+    print('   repositories_override: \'{"istio/istio": {"asset_patterns": ["*-linux-amd64.tar.gz"]}}\'')
     print("\n💡 How to use in download script:")
-    print("   python download_releases.py --asset-patterns '*-linux-amd64.tar.gz'")
+    print("   Set REPOSITORY_OVERRIDES environment variable or use config file")
     print("=" * 70)
 
 
@@ -162,15 +162,17 @@ def show_concourse_config_example():
         }
     ]
     
+    print("\n# Repository-specific patterns (recommended approach):")
     for config in example_configs:
         print(f"\n# {config['scenario']}")
-        print(f"download_asset_patterns: {config['config']}")
+        repo_config = '{"istio/istio": {"asset_patterns": ' + config["config"] + '}}'
+        print(f"repositories_override: '{repo_config}'")
     
     print("\n📋 Example Repository Override Configuration")
     print("=" * 50)
     print("""
 # In your pipeline params file:
-repository_overrides: |
+repositories_override: |-
   {
     "istio/istio": {
       "asset_patterns": ["*-linux-amd64.tar.gz"],

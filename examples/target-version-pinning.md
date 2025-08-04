@@ -25,7 +25,7 @@ download:
 
 ```yaml
 # params/prod.yml
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "target_version": "v3.19.1",
@@ -89,7 +89,7 @@ The system automatically normalizes versions to match GitHub's tag format.
 Pin critical components to known-good versions:
 
 ```yaml
-repository_overrides: |
+repositories_override: |-
   {
     "kubernetes/kubernetes": {
       "target_version": "v1.28.0",
@@ -107,7 +107,7 @@ repository_overrides: |
 Download older versions for testing:
 
 ```yaml
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "target_version": "v3.15.0",
@@ -126,7 +126,7 @@ Quickly revert to previous versions - even if they're older than what's currentl
 fly set-pipeline -p release-monitor \
   -c ci/pipeline-artifactory.yml \
   -l params/prod.yml \
-  -v repository_overrides='{
+  -v repositories_override='{
     "open-policy-agent/gatekeeper": {
       "target_version": "v3.19.1",
       "asset_patterns": ["*-linux-amd64.tar.gz"]
@@ -139,7 +139,7 @@ fly set-pipeline -p release-monitor \
 Force re-download of the same version (useful for corrupted downloads):
 
 ```yaml
-repository_overrides: |
+repositories_override: |-
   {
     "open-policy-agent/gatekeeper": {
       "target_version": "v3.20.0",
