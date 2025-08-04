@@ -232,7 +232,8 @@ elif '${USE_S3_VERSION_DB}' == 'true':
         s3_config['endpoint_url'] = '${S3_ENDPOINT}'
 
 # Handle repository overrides first to determine if we need global patterns
-repo_overrides_str = '''${REPOSITORY_OVERRIDES:-{}}'''
+# Use os.environ.get to properly handle multiline JSON
+repo_overrides_str = os.environ.get('REPOSITORY_OVERRIDES', '{}')
 repo_overrides = {}
 try:
     repo_overrides = json.loads(repo_overrides_str)
@@ -246,6 +247,7 @@ try:
         print("DEBUG: Repository overrides are empty")
 except json.JSONDecodeError as e:
     print(f"DEBUG: Failed to parse REPOSITORY_OVERRIDES: {e}")
+    print(f"DEBUG: REPOSITORY_OVERRIDES content: {repr(repo_overrides_str)}")
     # Try to parse as empty dict if parsing fails
     download_config['repository_overrides'] = {}
 
