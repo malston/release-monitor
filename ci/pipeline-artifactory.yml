@@ -16,6 +16,7 @@ groups:
 resources:
   - name: release-monitor-repo
     type: git
+    icon: github
     source:
       uri: ((git_repo_uri))
       branch: ((git_branch))
@@ -23,11 +24,13 @@ resources:
 
   - name: schedule-trigger
     type: time
+    icon: clock-outline
     source:
-      interval: 1h  # Check every hour
+      interval: 24h
 
   - name: manual-trigger
     type: time
+    icon: clock-outline
     source:
       interval: 70000h  # Check every 70000 hours
 
@@ -129,7 +132,6 @@ jobs:
           KEEP_VERSIONS: ((download_keep_versions))
           REPOSITORY_OVERRIDES: ((repositories_override))
           VERBOSE: true  # Enable verbose logging for debugging
-
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
@@ -137,9 +139,6 @@ jobs:
           ARTIFACTORY_USERNAME: ((artifactory_username))
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-
-          # Force re-download for testing (comment out in production)
-          # FORCE_DOWNLOAD: "true"
 
       # Upload downloaded files to Artifactory storage
       - task: upload-to-artifactory
@@ -203,6 +202,7 @@ jobs:
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
+          REPOSITORIES_OVERRIDE: ((repositories_override))
           # Artifactory configuration for version database
           ARTIFACTORY_URL: ((artifactory_url))
           ARTIFACTORY_REPOSITORY: ((artifactory_repository))
