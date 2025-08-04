@@ -19,8 +19,8 @@ if [ -z "$ARTIFACTORY_REPOSITORY" ]; then
     exit 1
 fi
 
-if [ -z "$ARTIFACTORY_API_KEY" ]; then
-    echo "ERROR: ARTIFACTORY_API_KEY environment variable is not set!"
+if [ -z "$ARTIFACTORY_API_KEY" ] && [ -z "$ARTIFACTORY_USERNAME" ]; then
+    echo "ERROR: Either ARTIFACTORY_API_KEY or ARTIFACTORY_USERNAME/ARTIFACTORY_PASSWORD must be set!"
     exit 1
 fi
 

@@ -286,6 +286,39 @@ class ArtifactoryVersionStorage:
         """
         return self._save_to_artifactory(data)
 
+    def get_database_stats(self) -> Dict[str, Any]:
+        """
+        Get database statistics.
+        Returns:
+            Statistics about the database content
+        """
+        try:
+            data = self.load_versions()
+            total_repos = len(data.get('repositories', {}))
+            total_downloads = sum(
+                len(repo_data.get('download_history', []))
+                for repo_data in data.get('repositories', {}).values()
+            )
+            return {
+                'total_repositories': total_repos,
+                'total_downloads': total_downloads,
+                'database_created': data.get('metadata', {}).get('created_at'),
+                'last_updated': data.get('metadata', {}).get('last_updated'),
+                'database_version': data.get('metadata', {}).get('version'),
+                'storage_type': 'artifactory'
+            }
+        except Exception as e:
+            logger.warning(f"Error getting database stats: {e}")
+            return {
+                'total_repositories': 0,
+                'total_downloads': 0,
+                'database_created': None,
+                'last_updated': None,
+                'database_version': None,
+                'storage_type': 'artifactory',
+                'error': str(e)
+            }
+
 
 # Alias for compatibility with S3 implementations
 ArtifactoryVersionDatabase = ArtifactoryVersionStorage
