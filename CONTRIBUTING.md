@@ -41,22 +41,25 @@ Not sure where to start? Comment on any issue that interests you and we'll help 
 We use the GitHub fork-and-pull model for contributions. This ensures a clean separation between the main repository and your development work.
 
 1. **Fork the repository on GitHub:**
-   - Navigate to https://github.com/malston/release-monitor
+   - Navigate to <https://github.com/malston/release-monitor>
    - Click the "Fork" button in the top-right corner
    - This creates your own copy of the repository under your GitHub account
 
 2. **Clone your fork locally:**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/release-monitor.git
    cd release-monitor
    ```
 
 3. **Add the upstream remote:**
+
    ```bash
    git remote add upstream https://github.com/malston/release-monitor.git
    ```
 
 4. **Verify your remotes:**
+
    ```bash
    git remote -v
    # You should see:
@@ -83,6 +86,7 @@ Or use the setup script directly:
 ```
 
 This will:
+
 - Create local configuration files from templates
 - Set up Python virtual environment
 - Install dependencies
@@ -93,17 +97,20 @@ This will:
 If you prefer manual setup:
 
 1. **Create Virtual Environment:**
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    ```
 
 2. **Install Dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Configure Environment:**
+
    ```bash
    cp .env.example .env
    cp config-local.yaml.example config-local.yaml
@@ -111,6 +118,7 @@ If you prefer manual setup:
 
 4. **Set Your GitHub Token:**
    Edit `.env` and add your GitHub personal access token:
+
    ```bash
    GITHUB_TOKEN=your_github_token_here
    ```
@@ -163,6 +171,7 @@ Include the motivation for the change and contrast with previous behavior.
 ### Running Tests
 
 Using Make (recommended):
+
 ```bash
 # Run all tests
 make test
@@ -172,6 +181,7 @@ make check
 ```
 
 Or manually:
+
 ```bash
 # Activate virtual environment
 source venv/bin/activate
@@ -243,6 +253,7 @@ make lint       # Check code style
 ```
 
 Or manually:
+
 ```bash
 # Validate Concourse pipeline syntax
 ./ci/validate.sh
@@ -261,6 +272,7 @@ python3 test.py
 
 1. **Sync with Upstream:**
    Before starting work, ensure your fork is up to date:
+
    ```bash
    git checkout main
    git fetch upstream
@@ -270,10 +282,11 @@ python3 test.py
 
 2. **Create a Feature Branch:**
    Always create a new branch from main for your work:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
-   
+
    Use descriptive branch names:
    - `feature/add-slack-notifications`
    - `fix/handle-empty-releases`
@@ -285,6 +298,7 @@ python3 test.py
    - Update documentation if needed
 
 4. **Test Your Changes:**
+
    ```bash
    # Run unit tests
    python3 test.py
@@ -297,12 +311,14 @@ python3 test.py
    ```
 
 5. **Commit Your Changes:**
+
    ```bash
    git add .
    git commit -m "Add feature: description of your changes"
    ```
 
 6. **Push to Your Fork:**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -317,6 +333,7 @@ python3 test.py
 
 8. **Keep Your PR Updated:**
    If the main branch is updated while your PR is open:
+
    ```bash
    git checkout main
    git fetch upstream
@@ -354,6 +371,7 @@ python3 test.py
 ### Reporting Security Issues
 
 If you discover a security vulnerability:
+
 1. **DO NOT** create a public issue
 2. Email the maintainers directly (see README for contact info)
 3. Include detailed information about the vulnerability
@@ -380,6 +398,7 @@ If you discover a security vulnerability:
 ### Files to Update
 
 When making changes, consider updating:
+
 - `README.md` - Main project documentation
 - `ci/README.md` - CI/CD specific documentation
 - `scripts/README.md` - Script usage documentation
@@ -403,12 +422,14 @@ When making changes, consider updating:
 ### Working with Forks
 
 **Why we use forks:**
+
 - Keeps the main repository clean
 - Allows experimentation without affecting others
 - Provides better security and access control
 - Enables easier code review process
 
 **Best practices:**
+
 - Keep your fork's main branch in sync with upstream
 - Never commit directly to main in your fork
 - Always work in feature branches
@@ -419,11 +440,13 @@ When making changes, consider updating:
 If modifying CI/CD components:
 
 1. **Validate Syntax:**
+
    ```bash
    ./ci/validate.sh
    ```
 
 2. **Test Locally:**
+
    ```bash
    # Test individual tasks
    ./scripts/monitor.sh --config test-config.yaml
@@ -445,6 +468,7 @@ If modifying CI/CD components:
 ### Asking Questions
 
 When asking for help:
+
 1. Search existing issues first
 2. Provide context and specific error messages
 3. Include steps to reproduce problems
@@ -480,6 +504,7 @@ We welcome various types of contributions:
 ## Recognition
 
 Contributors will be recognized in:
+
 - Git commit history
 - Pull request acknowledgments
 - Release notes for significant contributions
