@@ -441,7 +441,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         # Test similar but non-matching versions
         non_matching_cases = [
             'v1.5.1',      # Different patch
-            'v1.4.0',      # Different minor  
+            'v1.4.0',      # Different minor
             'v2.5.0',      # Different major
             'v1.5.0-beta', # With suffix
             '1.5.0',       # Missing v prefix
@@ -483,7 +483,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         """Test that target version bypasses prerelease filtering."""
         # Configure to exclude prereleases normally
         self.coordinator.version_comparator.include_prereleases = False
-        
+
         self.coordinator.repository_overrides = {
             'test/repo': {
                 'target_version': 'v2.0.0-beta.1',
@@ -510,7 +510,7 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         """Test that version database is updated correctly with target version."""
         # Store a newer version first
         self.coordinator.version_db.update_version('test', 'repo', 'v3.0.0')
-        
+
         self.coordinator.repository_overrides = {
             'test/repo': {
                 'target_version': 'v1.5.0',
@@ -531,16 +531,19 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         # Download target version
         release = self._create_release_data(tag_name='v1.5.0')
         result = self.coordinator._process_single_release(release)
-        
+
         self.assertEqual(result['action'], 'downloaded')
         self.assertEqual(result['previous_version'], 'v3.0.0')
-        
+
         # Verify database was updated to target version
         current_version = self.coordinator.version_db.get_current_version('test', 'repo')
         self.assertEqual(current_version, 'v1.5.0')
 
     def test_target_version_empty_or_none_fallback(self):
         """Test behavior when target_version is empty or None."""
+        # Pre-populate version database so v1.5.0 won't be considered newer
+        self.coordinator.version_db.update_version('test', 'repo', 'v1.5.0', {})
+
         test_cases = [
             ('', 'empty string'),
             (None, 'None value')
@@ -558,12 +561,10 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
                 # Should fall back to normal version comparison
                 release = self._create_release_data(tag_name='v1.5.0')
                 result = self.coordinator._process_single_release(release)
-                
-                # Should be skipped due to no stored version and normal comparison
+
+                # Should be skipped because v1.5.0 is not newer than stored v1.5.0
                 self.assertEqual(result['action'], 'skipped')
-                if target_version == '':
-                    # Empty string should be treated as falsy
-                    self.assertIn('is not newer than', result['reason'])
+                self.assertIn('is not newer than', result['reason'])
 
     def test_target_version_respects_asset_patterns(self):
         """Test that target version still respects asset pattern filtering."""
@@ -588,9 +589,9 @@ class TestReleaseDownloadCoordinator(unittest.TestCase):
         )
         result = self.coordinator._process_single_release(release)
 
-        # Should skip because no assets match the pattern
-        self.assertEqual(result['action'], 'skipped')
-        self.assertIn('All asset downloads failed', result['reason'])
+        # Should fail because target version is specified but no assets match the pattern
+        self.assertEqual(result['action'], 'failed')
+        self.assertEqual(result['reason'], 'All asset downloads failed')
 
     def test_mixed_repositories_target_version_and_normal(self):
         """Test processing multiple repositories with mixed target version configuration."""

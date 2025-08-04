@@ -55,7 +55,7 @@ class TestTargetVersionConfigurationParsing(unittest.TestCase):
 
         # Test parsing in Python (simulating task.sh behavior)
         repo_overrides_str = json.dumps(repository_overrides_json)
-        
+
         # Parse as task.sh would
         try:
             parsed_overrides = json.loads(repo_overrides_str)
@@ -257,7 +257,7 @@ class TestTargetVersionTaskScriptSimulation(unittest.TestCase):
         # Verify configuration structure
         self.assertIn('download', config)
         self.assertIn('repository_overrides', config['download'])
-        
+
         repo_overrides = config['download']['repository_overrides']
         self.assertIn('target/repo1', repo_overrides)
         self.assertEqual(repo_overrides['target/repo1']['target_version'], 'v1.5.0')
@@ -266,14 +266,14 @@ class TestTargetVersionTaskScriptSimulation(unittest.TestCase):
     def test_task_script_with_empty_overrides(self):
         """Test task script simulation with empty repository overrides."""
         config = self.simulate_task_script_config_generation('{}')
-        
+
         self.assertIn('repository_overrides', config['download'])
         self.assertEqual(len(config['download']['repository_overrides']), 0)
 
     def test_task_script_with_invalid_overrides(self):
         """Test task script simulation with invalid repository overrides JSON."""
         config = self.simulate_task_script_config_generation('invalid json')
-        
+
         self.assertIn('repository_overrides', config['download'])
         self.assertEqual(len(config['download']['repository_overrides']), 0)
 
@@ -395,7 +395,7 @@ class TestTargetVersionEndToEndIntegration(unittest.TestCase):
 
         # Import and run download script
         from download_releases import main
-        
+
         # Temporarily modify sys.argv to simulate command line arguments
         original_argv = sys.argv
         try:
@@ -405,33 +405,33 @@ class TestTargetVersionEndToEndIntegration(unittest.TestCase):
                 '--input', self.monitor_output_file,
                 '--verbose'
             ]
-            
+
             # Capture stdout to check results
             from io import StringIO
             import contextlib
-            
+
             stdout_capture = StringIO()
             with contextlib.redirect_stdout(stdout_capture):
                 main()
-            
+
             # Parse output JSON
             output = stdout_capture.getvalue()
             try:
                 results = json.loads(output)
-                
+
                 # Verify results structure
                 self.assertIn('download_results', results)
                 self.assertIn('new_downloads', results)
                 self.assertIn('skipped_releases', results)
-                
+
                 # Should have downloaded the target version and skipped the non-matching one
                 # Note: Actual download behavior depends on mocking, but structure should be correct
                 self.assertIsInstance(results['download_results'], list)
-                
+
             except json.JSONDecodeError:
                 # If output is not JSON, at least verify script ran without crashing
                 self.assertIsInstance(output, str)
-                
+
         finally:
             sys.argv = original_argv
 
@@ -470,18 +470,18 @@ class TestTargetVersionEndToEndIntegration(unittest.TestCase):
             with self.subTest(config_index=i):
                 # Validate configuration structure
                 self.assertIsInstance(repo_overrides, dict)
-                
+
                 for repo_name, repo_config in repo_overrides.items():
                     # Validate repository name format
                     self.assertIn('/', repo_name, "Repository name should be in owner/repo format")
-                    
+
                     # Validate repository configuration
                     self.assertIsInstance(repo_config, dict)
-                    
+
                     if 'target_version' in repo_config:
                         self.assertIsInstance(repo_config['target_version'], str)
                         self.assertNotEqual(repo_config['target_version'], '')
-                    
+
                     if 'asset_patterns' in repo_config:
                         self.assertIsInstance(repo_config['asset_patterns'], list)
                         for pattern in repo_config['asset_patterns']:
@@ -491,18 +491,28 @@ class TestTargetVersionEndToEndIntegration(unittest.TestCase):
 class TestTargetVersionLoggingAndDebugging(unittest.TestCase):
     """Test logging and debugging output for target version functionality."""
 
+    def setUp(self):
+        """Set up test fixtures."""
+        self.test_dir = tempfile.mkdtemp()
+        self.version_db_path = os.path.join(self.test_dir, 'version_db.json')
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+
     def test_target_version_debug_logging(self):
         """Test that appropriate debug logging is generated for target version processing."""
         # This would test the debug log output we added
         # For now, we'll verify that the debug logging methods exist and can be called
-        
+
         from download_releases import ReleaseDownloadCoordinator
-        
+
         config = {
             'download': {
                 'enabled': True,
-                'directory': '/tmp/test',
-                'version_db': '/tmp/test/version_db.json',
+                'directory': self.test_dir,
+                'version_db': self.version_db_path,
                 'repository_overrides': {
                     'test/repo': {
                         'target_version': 'v1.0.0'
@@ -510,11 +520,11 @@ class TestTargetVersionLoggingAndDebugging(unittest.TestCase):
                 }
             }
         }
-        
+
         with patch('download_releases.GitHubDownloader'), \
              patch.dict(os.environ, {'ARTIFACTORY_URL': '', 'ARTIFACTORY_REPOSITORY': ''}, clear=False):
             coordinator = ReleaseDownloadCoordinator(config, 'fake_token', force_local=True)
-            
+
             # Verify repository overrides were loaded with debug info
             self.assertIn('test/repo', coordinator.repository_overrides)
             self.assertEqual(coordinator.repository_overrides['test/repo']['target_version'], 'v1.0.0')
