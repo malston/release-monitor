@@ -16,14 +16,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 class TestEmailNotificationIntegration(unittest.TestCase):
     """Integration tests for email notification functionality"""
-    
+
     def setUp(self):
         """Set up test environment"""
         self.test_dir = tempfile.mkdtemp()
         self.release_output_dir = Path(self.test_dir) / 'release-output'
         self.email_output_dir = Path(self.test_dir) / 'email'
         self.release_output_dir.mkdir()
-        
+
         # Sample releases data matching actual monitor output format
         self.sample_releases = {
             "timestamp": "2023-08-15T14:00:00+00:00",
@@ -68,25 +68,25 @@ class TestEmailNotificationIntegration(unittest.TestCase):
                 }
             ]
         }
-        
+
         # Write test releases file
         with open(self.release_output_dir / 'releases.json', 'w') as f:
             json.dump(self.sample_releases, f)
-    
+
     def tearDown(self):
         """Clean up test environment"""
         import shutil
         shutil.rmtree(self.test_dir, ignore_errors=True)
-    
+
     def test_email_generation_script(self):
         """Test running the email generation script"""
         script_path = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'generate_email.py'
-        
+
         # Set up environment
         env = os.environ.copy()
         env['EMAIL_SUBJECT_PREFIX'] = '[Test Monitor]'
         env['INCLUDE_ASSET_DETAILS'] = 'true'
-        
+
         # Run the script with modified paths
         modified_script = f"""
 import sys
@@ -97,7 +97,7 @@ generate_email.Path = lambda x: Path("{self.test_dir}") / Path(x).relative_to("/
 from pathlib import Path
 exec(open("{script_path}").read())
 """
-        
+
         result = subprocess.run(
             [sys.executable, '-c', modified_script],
             env=env,
@@ -105,19 +105,19 @@ exec(open("{script_path}").read())
             text=True,
             cwd=str(script_path.parent)
         )
-        
+
         # Check script succeeded
         self.assertEqual(result.returncode, 0, f"Script failed: {result.stderr}")
-        
+
         # Verify email files were created
         self.assertTrue((self.email_output_dir / 'subject').exists())
         self.assertTrue((self.email_output_dir / 'body').exists())
         self.assertTrue((self.email_output_dir / 'body.html').exists())
-        
+
         # Check subject content
         subject = (self.email_output_dir / 'subject').read_text()
         self.assertEqual(subject, '[Test Monitor] 2 new releases detected')
-        
+
         # Check body content
         body = (self.email_output_dir / 'body').read_text()
         self.assertIn('Total new releases: 2', body)
@@ -126,13 +126,13 @@ exec(open("{script_path}").read())
         self.assertIn('prometheus/prometheus', body)
         self.assertIn('v2.46.0', body)
         self.assertIn('kubernetes-client-linux-amd64.tar.gz (48.0 MB)', body)
-        
+
         # Check HTML content
         html = (self.email_output_dir / 'body.html').read_text()
         self.assertIn('<h2>New GitHub Releases Detected</h2>', html)
         self.assertIn('kubernetes/kubernetes - Kubernetes v1.28.0', html)
         self.assertIn('prometheus/prometheus - 2.46.0 / 2023-07-25', html)
-    
+
     def test_no_releases_scenario(self):
         """Test when there are no new releases"""
         # Create empty releases file
@@ -142,12 +142,12 @@ exec(open("{script_path}").read())
             "new_releases_found": 0,
             "releases": []
         }
-        
+
         with open(self.release_output_dir / 'releases.json', 'w') as f:
             json.dump(empty_releases, f)
-        
+
         script_path = Path(__file__).parent.parent.parent / 'ci' / 'tasks' / 'send-release-notification' / 'generate_email.py'
-        
+
         # Run the script
         result = subprocess.run(
             [sys.executable, str(script_path)],
