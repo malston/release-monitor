@@ -260,7 +260,18 @@ class ReleaseDownloadCoordinator:
         target_version = repo_override.get('target_version')
 
         if target_version:
-            # Target version specified - always download regardless of stored version
+            # Target version specified - check if this release matches the target
+            if tag_name != target_version:
+                reason = f"Release {tag_name} does not match target version {target_version}"
+                logger.debug(f"Skipping {repository}: {reason}")
+                return {
+                    'repository': repository,
+                    'tag_name': tag_name,
+                    'current_version': current_version,
+                    'action': 'skipped',
+                    'reason': reason
+                }
+            # Target version matches - always download regardless of stored version
             logger.info(f"Target version {target_version} specified for {repository}, bypassing version comparison")
         else:
             # No target version - check if this version is newer
