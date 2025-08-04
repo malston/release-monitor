@@ -112,14 +112,13 @@ with patch('github_monitor.GitHubMonitor.get_latest_release',
         finally:
             os.unlink(config_file)
 
-    @unittest.skip("Flaky test - depends on GitHub API responses that can vary")
     def test_monitor_exits_without_flag(self):
         """Test that monitor exits when CONTINUE_ON_API_ERROR is not set"""
 
-        # Create a test config with invalid repo
+        # Create a test config
         config = {
             "repositories": [
-                {"owner": "invalid-owner-12345", "repo": "invalid-repo-12345"}
+                {"owner": "test-owner", "repo": "test-repo"}
             ]
         }
 
@@ -128,22 +127,35 @@ with patch('github_monitor.GitHubMonitor.get_latest_release',
             config_file = f.name
 
         try:
-            # Run without CONTINUE_ON_API_ERROR
+            # Run without CONTINUE_ON_API_ERROR, but force RequestException via mocking
             env = os.environ.copy()
-            env['GITHUB_TOKEN'] = os.getenv('GITHUB_TOKEN', 'dummy')
+            env['GITHUB_TOKEN'] = 'test-token'
             env.pop('CONTINUE_ON_API_ERROR', None)
 
+            # Create test script that mocks the RequestException
+            test_script = '''
+import sys
+sys.path.insert(0, "%s")
+from unittest.mock import patch
+import requests.exceptions
+sys.argv = ["github_monitor.py", "--config", "%s"]
+with patch('github_monitor.GitHubMonitor.get_latest_release',
+           side_effect=requests.exceptions.RequestException("Mocked connection failed")):
+    import github_monitor
+    github_monitor.main()
+''' % (os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), config_file)
+
             result = subprocess.run(
-                [sys.executable, 'github_monitor.py', '--config', config_file],
+                [sys.executable, '-c', test_script],
                 capture_output=True,
                 text=True,
                 env=env,
-                timeout=30,  # Don't wait forever
-                cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                timeout=30
             )
 
-            # Should exit with error
-            self.assertNotEqual(result.returncode, 0)
+            # Should exit with error code 1
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('Exiting due to API error', result.stderr)
 
         finally:
             os.unlink(config_file)
