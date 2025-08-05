@@ -67,7 +67,7 @@ class ArtifactoryDownloader:
         # Set up authentication
         self.session = requests.Session()
         if api_key:
-            self.session.headers['X-JFrog-Art-Api'] = api_key
+            self.session.headers['Authorization'] = f'Bearer {api_key}'
             logger.info("Using API key authentication")
         elif username and password:
             self.session.auth = (username, password)
