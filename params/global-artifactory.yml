@@ -66,9 +66,7 @@ force_download_repo: "etcd-io/etcd" # Default repo for force download testing
 # Email notification configuration
 # SMTP settings
 smtp_host: smtp.gmail.com
-smtp_port: "587"
-smtp_username:
-smtp_password:
+smtp_port: "465"
 smtp_anonymous: false
 smtp_skip_ssl_validation: false
 smtp_ca_cert: ""

@@ -443,6 +443,145 @@ clear-version-entry: venv ## Clear specific repository from version database (RE
 	export S3_BUCKET=release-monitor-output && \
 	python3 scripts/clear-version-entry.py "$(REPO)"
 
+##@ Artifactory Management
+
+.PHONY: artifactory-setup
+artifactory-setup: ## Setup local Artifactory instance with Docker
+	@printf "$(GREEN)Setting up local Artifactory...$(NC)\n"
+	@./scripts/setup-artifactory-local.sh
+
+.PHONY: artifactory-start
+artifactory-start: ## Start Artifactory service
+	@printf "$(GREEN)Starting Artifactory...$(NC)\n"
+	@./scripts/setup-artifactory-local.sh start
+
+.PHONY: artifactory-stop
+artifactory-stop: ## Stop Artifactory service
+	@printf "$(GREEN)Stopping Artifactory...$(NC)\n"
+	@./scripts/setup-artifactory-local.sh stop
+
+.PHONY: artifactory-status
+artifactory-status: ## Check Artifactory status and test connection
+	@printf "$(GREEN)Checking Artifactory status...$(NC)\n"
+	@./scripts/setup-artifactory-local.sh status
+
+.PHONY: artifactory-logs
+artifactory-logs: ## Show Artifactory logs
+	@printf "$(GREEN)Showing Artifactory logs...$(NC)\n"
+	@./scripts/setup-artifactory-local.sh logs
+
+.PHONY: artifactory-clean
+artifactory-clean: ## Stop Artifactory and remove all data (destructive!)
+	@printf "$(RED)Warning: This will permanently delete all Artifactory data!$(NC)\n"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	printf "\n"; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		printf "$(RED)Cleaning Artifactory data...$(NC)\n"; \
+		./scripts/setup-artifactory-local.sh clean; \
+	else \
+		printf "$(RED)Operation cancelled$(NC)\n"; \
+	fi
+
+.PHONY: artifactory-view-db
+artifactory-view-db: venv ## View Artifactory version database contents
+	@printf "$(GREEN)Viewing Artifactory version database...$(NC)\n"
+	@if [ -z "$$ARTIFACTORY_URL" ] || [ -z "$$ARTIFACTORY_REPOSITORY" ]; then \
+		printf "$(RED)Error: Required environment variables not set$(NC)\n"; \
+		printf "$(YELLOW)Please set:$(NC)\n"; \
+		printf "  export ARTIFACTORY_URL=\"http://localhost:8081/artifactory\"\n"; \
+		printf "  export ARTIFACTORY_REPOSITORY=\"generic-releases\"\n"; \
+		printf "  export ARTIFACTORY_API_KEY=\"your-api-key\"\n"; \
+		exit 1; \
+	fi
+	@$(PYTHON) scripts/show-version-db-artifactory.py
+
+.PHONY: artifactory-clear-db
+artifactory-clear-db: venv ## Clear entire Artifactory version database (forces re-download)
+	@printf "$(YELLOW)Warning: This will clear the entire Artifactory version database!$(NC)\n"
+	@printf "$(YELLOW)All tracked releases will be re-downloaded on next pipeline run.$(NC)\n"
+	@if [ -z "$$ARTIFACTORY_URL" ] || [ -z "$$ARTIFACTORY_REPOSITORY" ]; then \
+		printf "$(RED)Error: Required environment variables not set$(NC)\n"; \
+		printf "$(YELLOW)Please set ARTIFACTORY_URL, ARTIFACTORY_REPOSITORY, and ARTIFACTORY_API_KEY$(NC)\n"; \
+		exit 1; \
+	fi
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	printf "\n"; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		printf "$(GREEN)Clearing Artifactory version database...$(NC)\n"; \
+		$(PYTHON) scripts/clear-version-db-artifactory.py; \
+	else \
+		printf "$(RED)Operation cancelled$(NC)\n"; \
+	fi
+
+.PHONY: artifactory-clear-entry
+artifactory-clear-entry: venv ## Clear specific repository from Artifactory version database (REPO=owner/repo)
+	@if [ -z "$(REPO)" ]; then \
+		printf "$(RED)Error: REPO is required. Usage: make artifactory-clear-entry REPO=kubernetes/kubernetes$(NC)\n"; \
+		exit 1; \
+	fi
+	@if [ -z "$$ARTIFACTORY_URL" ] || [ -z "$$ARTIFACTORY_REPOSITORY" ]; then \
+		printf "$(RED)Error: Required environment variables not set$(NC)\n"; \
+		printf "$(YELLOW)Please set ARTIFACTORY_URL, ARTIFACTORY_REPOSITORY, and ARTIFACTORY_API_KEY$(NC)\n"; \
+		exit 1; \
+	fi
+	@printf "$(GREEN)Clearing $(REPO) from Artifactory version database...$(NC)\n"
+	@$(PYTHON) scripts/clear-version-entry-artifactory.py "$(REPO)"
+
+.PHONY: artifactory-clean-repo
+artifactory-clean-repo: venv ## Clean Artifactory repository (releases only or all data)
+	@printf "$(GREEN)Artifactory Repository Cleanup$(NC)\n"
+	@printf "Choose cleanup type:\n"
+	@printf "  1) $(YELLOW)Releases only$(NC) - Delete downloaded files, keep version database\n"
+	@printf "  2) $(RED)Everything$(NC) - Delete all data including version database\n"
+	@printf "  3) $(CYAN)Preview only$(NC) - Show what would be deleted (dry-run)\n"
+	@read -p "Choice [1-3]: " -n 1 -r; \
+	printf "\n"; \
+	if [ "$$REPLY" = "1" ]; then \
+		printf "$(YELLOW)This will delete all downloaded releases but keep version tracking$(NC)\n"; \
+		read -p "Continue? [y/N] " -n 1 -r; \
+		printf "\n"; \
+		if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+			$(PYTHON) scripts/clean-artifactory-repository.py --releases-only; \
+		fi; \
+	elif [ "$$REPLY" = "2" ]; then \
+		printf "$(RED)This will delete EVERYTHING including version database!$(NC)\n"; \
+		read -p "Continue? [y/N] " -n 1 -r; \
+		printf "\n"; \
+		if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+			$(PYTHON) scripts/clean-artifactory-repository.py --all; \
+		fi; \
+	elif [ "$$REPLY" = "3" ]; then \
+		printf "$(CYAN)Preview mode - showing what would be deleted:$(NC)\n"; \
+		$(PYTHON) scripts/clean-artifactory-repository.py --all --dry-run; \
+	else \
+		printf "$(RED)Invalid choice or cancelled$(NC)\n"; \
+	fi
+
+.PHONY: artifactory-download
+artifactory-download: venv ## Download releases from Artifactory (REPO=owner/repo optional)
+	@if [ -z "$$ARTIFACTORY_URL" ] || [ -z "$$ARTIFACTORY_REPOSITORY" ]; then \
+		printf "$(RED)Error: Required environment variables not set$(NC)\n"; \
+		printf "$(YELLOW)Please set ARTIFACTORY_URL, ARTIFACTORY_REPOSITORY, and ARTIFACTORY_API_KEY$(NC)\n"; \
+		exit 1; \
+	fi
+	@if [ -n "$(REPO)" ]; then \
+		printf "$(GREEN)Downloading releases for $(REPO)...$(NC)\n"; \
+		./scripts/download-from-artifactory.sh --repo "$(REPO)"; \
+	else \
+		printf "$(GREEN)Downloading all releases from Artifactory...$(NC)\n"; \
+		./scripts/download-from-artifactory.sh; \
+	fi
+
+.PHONY: artifactory-list
+artifactory-list: venv ## List available repositories in Artifactory
+	@if [ -z "$$ARTIFACTORY_URL" ] || [ -z "$$ARTIFACTORY_REPOSITORY" ]; then \
+		printf "$(RED)Error: Required environment variables not set$(NC)\n"; \
+		printf "$(YELLOW)Please set ARTIFACTORY_URL, ARTIFACTORY_REPOSITORY, and ARTIFACTORY_API_KEY$(NC)\n"; \
+		exit 1; \
+	fi
+	@printf "$(GREEN)Listing repositories in Artifactory...$(NC)\n"
+	@./scripts/download-from-artifactory.sh --list
+
 ##@ Utilities
 
 .PHONY: show-config
