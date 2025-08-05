@@ -398,6 +398,9 @@ try:
 
         if repo_response.status_code == 200:
             print(f"Repository '{repository}' is accessible")
+        elif repo_response.status_code == 400:
+            print(f"INFO: Repository metadata endpoint requires Artifactory Pro (status: {repo_response.status_code})")
+            print("This is normal for Artifactory OSS - file operations will still work")
         else:
             print(f"WARNING: Repository '{repository}' may not exist or is not accessible (status: {repo_response.status_code})")
     else:
