@@ -495,7 +495,7 @@ class S3VersionDatabase:
             profile: AWS profile name (optional, ignored for mc implementation)
         """
         # Check if we should use mc implementation
-        use_mc = os.environ.get('S3_USE_MC', 'true').lower() == 'true'
+        use_mc = os.environ.get('S3_USE_MC', 'false').lower() == 'true'
 
         if use_mc:
             logger.info("Using MinIO client (mc) for S3 operations")

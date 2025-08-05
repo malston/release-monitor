@@ -92,7 +92,7 @@ class ReleaseDownloadCoordinator:
             logger.info(f"Using Artifactory version storage: {os.environ.get('ARTIFACTORY_URL') or artifactory_config.get('base_url')}")
         elif use_s3:
             # Check if we should use mc-based S3 implementation
-            use_mc_s3 = os.environ.get('S3_USE_MC', 'true').lower() == 'true'
+            use_mc_s3 = os.environ.get('S3_USE_MC', 'false').lower() == 'true'
 
             if use_mc_s3:
                 # Try to use mc-based S3 version storage for better compatibility
