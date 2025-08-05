@@ -40,7 +40,7 @@ params:
 run:
   path: /bin/bash
   args:
-    - -exc
+    - -ec
     - |
       # Navigate to repo directory
       cd release-monitor-repo
