@@ -1,12 +1,10 @@
+---
 # Concourse Pipeline for GitHub Release Monitor - JFrog Artifactory Version
 # This pipeline uses JFrog Artifactory for storing release artifacts and version database
 
 groups:
   - name: main-pipeline
-    jobs:
-      - monitor-releases
-      - download-new-releases
-
+    jobs: [monitor-releases, download-new-releases]
   - name: utilities
     jobs:
       - check-version-database
@@ -32,23 +30,23 @@ resources:
     type: time
     icon: clock-outline
     source:
-      interval: 70000h  # Check every 70000 hours
+      interval: 70000h # Large interval to prevent automatic triggering
 
-#   - name: email-notification
-#     type: email
-#     source:
-#       smtp:
-#         host: ((smtp_host))
-#         port: ((smtp_port))
-#         username: ((smtp_username))
-#         password: ((smtp_password))
-#         anonymous: ((smtp_anonymous))
-#         skip_ssl_validation: ((smtp_skip_ssl_validation))
-#         ca_cert: ((smtp_ca_cert))
-#         host_origin: ((smtp_host_origin))
-#         login_auth: ((smtp_login_auth))
-#       from: ((email_from))
-#       to: ((email_to))
+  - name: email-notification
+    type: email
+    source:
+      smtp:
+        host: ((smtp_host))
+        port: ((smtp_port))
+        username: ((smtp_username))
+        password: ((smtp_password))
+        anonymous: ((smtp_anonymous))
+        skip_ssl_validation: ((smtp_skip_ssl_validation))
+        ca_cert: ((smtp_ca_cert))
+        host_origin: ((smtp_host_origin))
+        login_auth: ((smtp_login_auth))
+      from: ((email_from))
+      to: ((email_to))
 
 jobs:
   - name: monitor-releases
@@ -81,23 +79,23 @@ jobs:
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
-    #   - task: prepare-email-notification
-    #     file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
-    #     params:
-    #       EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
-    #       INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
-    #       REPOSITORIES_OVERRIDE: ((repositories_override))
+      - task: prepare-email-notification
+        file: release-monitor-repo/ci/tasks/send-release-notification/task.yml
+        params:
+          EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
+          INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
+          REPOSITORIES_OVERRIDE: ((repositories_override))
+          # Artifactory version database configuration for filtering
+          ARTIFACTORY_URL: ((artifactory_url))
+          ARTIFACTORY_REPOSITORY: ((artifactory_repository))
+          ARTIFACTORY_API_KEY: ((artifactory_api_key))
+          ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
+        on_success:
+          put: email-notification
+          params:
+            subject: email/subject
+            body: email/body.html
 
-    #       # Artifactory version database configuration for filtering
-    #       ARTIFACTORY_URL: ((artifactory_url))
-    #       ARTIFACTORY_REPOSITORY: ((artifactory_repository))
-    #       ARTIFACTORY_API_KEY: ((artifactory_api_key))
-    #       ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
-    #     on_success:
-    #       put: email-notification
-    #       params:
-    #         subject: email/subject
-    #         body: email/body.html
       - put: manual-trigger
 
   - name: download-new-releases
