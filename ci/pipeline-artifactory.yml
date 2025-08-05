@@ -8,7 +8,7 @@ groups:
   - name: utilities
     jobs:
       - check-version-database
-      - reset-version-database
+      - clear-version-database
       - force-download-repo
 
 resources:
@@ -146,7 +146,6 @@ jobs:
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
           REPOSITORY_OVERRIDES: ((repositories_override))
 
-  # Clear version database to force re-downloads
   - name: check-version-database
     plan:
       - get: release-monitor-repo
@@ -161,7 +160,8 @@ jobs:
           ARTIFACTORY_PASSWORD: ((artifactory_password))
           ARTIFACTORY_SKIP_SSL_VERIFICATION: ((artifactory_skip_ssl_verification))
 
-  - name: reset-version-database
+  # Clear version database to force re-downloads
+  - name: clear-version-database
     plan:
       - get: release-monitor-repo
 
