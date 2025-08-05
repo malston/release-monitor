@@ -397,7 +397,7 @@ try:
         else:
             print(f"WARNING: Repository '{repository}' may not exist or is not accessible (status: {repo_response.status_code})")
     else:
-        print(f"ERROR: Failed to ping Artifactory (status: {response.status_code})")
+        print(f"ERROR: Failed to ping Artifactory (url: {ping_url}, status: {response.status_code})")
         sys.exit(1)
 
 except Exception as e:
