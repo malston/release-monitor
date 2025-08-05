@@ -40,11 +40,7 @@ resources:
         port: ((smtp_port))
         username: ((smtp_username))
         password: ((smtp_password))
-        anonymous: ((smtp_anonymous))
         skip_ssl_validation: ((smtp_skip_ssl_validation))
-        ca_cert: ((smtp_ca_cert))
-        host_origin: ((smtp_host_origin))
-        login_auth: ((smtp_login_auth))
       from: ((email_from))
       to: ((email_to))
 
