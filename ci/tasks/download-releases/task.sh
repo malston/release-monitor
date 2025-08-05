@@ -382,14 +382,14 @@ try:
         print("WARNING: Skipping SSL verification for Artifactory")
 
     # Test system ping
-    ping_url = urljoin(base_url, '/api/system/ping')
+    ping_url = urljoin(base_url, 'api/system/ping')  # Remove leading slash
     response = requests.get(ping_url, auth=auth, headers=headers, verify=verify_ssl, timeout=10)
 
     if response.status_code == 200:
         print("Connection successful! Artifactory is reachable")
 
         # Test repository access
-        repo_url = urljoin(base_url, f'/api/repositories/{repository}')
+        repo_url = urljoin(base_url, f'api/repositories/{repository}')  # Remove leading slash
         repo_response = requests.get(repo_url, auth=auth, headers=headers, verify=verify_ssl, timeout=10)
 
         if repo_response.status_code == 200:
