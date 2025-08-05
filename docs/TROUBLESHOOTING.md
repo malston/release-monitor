@@ -155,7 +155,7 @@ docker-compose -f docker-compose-artifactory.yml up -d
 ./scripts/wait-for-artifactory.sh
 
 # Test authentication
-curl -H "X-JFrog-Art-Api: $ARTIFACTORY_API_KEY" \
+curl -H "Authorization: Bearer $ARTIFACTORY_API_KEY" \
   "$ARTIFACTORY_URL/api/repositories"
 ```
 

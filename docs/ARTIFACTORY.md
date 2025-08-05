@@ -436,7 +436,7 @@ Next pipeline run will re-download all releases
 
 #### clean-artifactory-repository.py
 
-```
+```sh
 --releases-only    Delete only downloaded release artifacts, keep database and monitor output
 --all             Delete everything including version database and monitor output
 --dry-run         Show what would be deleted without actually deleting
@@ -445,7 +445,7 @@ Next pipeline run will re-download all releases
 
 #### clear-version-entry-artifactory.py
 
-```
+```sh
 Usage: python3 scripts/clear-version-entry-artifactory.py <owner/repo>
 
 Arguments:
@@ -628,7 +628,8 @@ python github_monitor.py --config ./config.yaml --download
 
 - Verify API key or username/password are correct
 - Check user has proper permissions for the repository
-- Test manually: `curl -H "X-JFrog-Art-Api: your-key" "http://localhost:8081/artifactory/api/repositories"`
+- Test manually: `curl -H "Authorization: Bearer $ARTIFACTORY_API_KEY" "http://localhost:8081/artifactory/api/repositories"` or
+  `curl -u "$ARTIFACTORY_USERNAME:$ARTIFACTORY_PASSWORD" "http://localhost:8081/artifactory/api/repositories"`
 
 ### SSL Certificate Issues
 
@@ -649,7 +650,7 @@ python github_monitor.py --config ./config.yaml --download
 - Check URL format: should end with `/artifactory` (no trailing slash)
 - For Docker: Ensure port 8081 is accessible
 - Check firewall and proxy settings
-- Verify Artifactory is running: `curl http://localhost:8081/artifactory/api/system/ping`
+- Verify Artifactory is running: `curl -I -u "$ARTIFACTORY_USERNAME:$ARTIFACTORY_PASSWORD" http://localhost:8081/artifactory/api/system/ping`
 
 ### No Artifacts Found
 
