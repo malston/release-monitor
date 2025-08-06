@@ -19,12 +19,29 @@ from typing import List, Dict, Any
 # Since the task runs from release-monitor-repo/, we need to add current directory to path
 sys.path.insert(0, '.')
 
+# Import the unified version database utilities
+try:
+    from version_database_utils import get_version_database as get_unified_version_db
+    USE_UNIFIED_DB = True
+except ImportError:
+    USE_UNIFIED_DB = False
+
 
 def get_version_database():
     """
     Get version database instance based on environment configuration.
     Returns None if version database is disabled or unavailable.
     """
+    # Try unified version database first if available
+    if USE_UNIFIED_DB:
+        try:
+            version_db = get_unified_version_db(verbose=True)
+            if version_db:
+                return version_db
+        except Exception as e:
+            print(f"Unified version database failed: {e}, falling back to legacy S3 approach")
+
+    # Legacy behavior for backward compatibility
     # Check if version database is disabled
     if os.getenv('DISABLE_S3_VERSION_DB', '').lower() == 'true':
         print("Version database disabled, will not filter releases")
@@ -42,10 +59,17 @@ def get_version_database():
 
         if use_mc_s3:
             try:
-                from github_version_s3_mc import S3VersionDatabase
-                print("Using MinIO client for version database")
-            except ImportError:
-                print("MinIO client version not available, falling back to boto3")
+                # First check if mc command is available
+                import subprocess
+                mc_check = subprocess.run(['which', 'mc'], capture_output=True, text=True)
+                if mc_check.returncode != 0:
+                    print("MinIO client (mc) not found in PATH, falling back to boto3")
+                    use_mc_s3 = False
+                else:
+                    from github_version_s3_mc import S3VersionDatabase
+                    print("Using MinIO client for version database")
+            except (ImportError, Exception) as e:
+                print(f"MinIO client version not available ({e}), falling back to boto3")
                 use_mc_s3 = False
 
         if not use_mc_s3:
@@ -61,9 +85,21 @@ def get_version_database():
             return None
 
         # Initialize version database
-        version_db = S3VersionDatabase(bucket=bucket, key_prefix=prefix)
-        print(f"Initialized version database with bucket: {bucket}, prefix: {prefix}")
-        return version_db
+        try:
+            version_db = S3VersionDatabase(bucket=bucket, key_prefix=prefix)
+            print(f"Initialized version database with bucket: {bucket}, prefix: {prefix}")
+            return version_db
+        except Exception as init_error:
+            print(f"Failed to initialize version database: {init_error}")
+            # If mc initialization failed, try boto3 as final fallback
+            if use_mc_s3:
+                print("Attempting final fallback to boto3...")
+                from github_version_s3 import S3VersionStorage as S3VersionDatabase
+                version_db = S3VersionDatabase(bucket=bucket, key_prefix=prefix)
+                print(f"Successfully initialized boto3 version database")
+                return version_db
+            else:
+                raise
 
     except ImportError as e:
         print(f"Version database modules not available: {e}")

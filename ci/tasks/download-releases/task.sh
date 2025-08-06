@@ -53,8 +53,7 @@ trap cleanup EXIT
 log_info "Validating environment..."
 
 if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-    log_error "GITHUB_TOKEN is required but not set"
-    exit 1
+    log_warn "GITHUB_TOKEN is not set - you may hit GitHub API rate limits without authentication"
 fi
 
 # Set default values

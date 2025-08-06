@@ -1,9 +1,20 @@
 # Concourse Pipeline for GitHub Release Monitor - S3-Compatible Version
 # This pipeline supports both AWS S3 and S3-compatible storage (Minio, etc.)
 
+
+groups:
+  - name: main-pipeline
+    jobs: [monitor-releases, download-new-releases]
+  - name: utilities
+    jobs:
+      - check-version-database
+      - clear-version-database
+      - force-download-repo
+
 resources:
   - name: release-monitor-repo
     type: git
+    icon: github
     source:
       uri: ((git_repo_uri))
       branch: ((git_branch))
@@ -11,8 +22,15 @@ resources:
 
   - name: schedule-trigger
     type: time
+    icon: clock-outline
     source:
-      interval: 1h  # Check every hour
+      interval: 24h
+
+  - name: manual-trigger
+    type: time
+    icon: clock-outline
+    source:
+      interval: 70000h # Large interval to prevent automatic triggering
 
   - name: monitor-output
     type: s3
@@ -41,14 +59,9 @@ resources:
         port: ((smtp_port))
         username: ((smtp_username))
         password: ((smtp_password))
-        anonymous: ((smtp_anonymous))
         skip_ssl_validation: ((smtp_skip_ssl_validation))
-        ca_cert: ((smtp_ca_cert))
-        host_origin: ((smtp_host_origin))
-        login_auth: ((smtp_login_auth))
       from: ((email_from))
       to: ((email_to))
-
 
 jobs:
   - name: monitor-releases
@@ -78,13 +91,13 @@ jobs:
           EMAIL_SUBJECT_PREFIX: ((email_subject_prefix))
           INCLUDE_ASSET_DETAILS: ((email_include_asset_details))
           REPOSITORIES_OVERRIDE: ((repositories_override))
-          
+
           # Version database configuration for filtering
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
           VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
           S3_USE_MC: ((s3_use_mc))
-          
+
           # S3 credentials for version database access
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
@@ -96,10 +109,13 @@ jobs:
             subject: email/subject
             body: email/body.html
 
+      - put: manual-trigger
+
   - name: download-new-releases
     plan:
       - in_parallel:
           - get: release-monitor-repo
+          - get: manual-trigger
           - get: monitor-output
             trigger: true
             passed: [monitor-releases]
@@ -111,13 +127,13 @@ jobs:
           monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
-          ASSET_PATTERNS: ((download_asset_patterns))
+          # Download configuration
           INCLUDE_PRERELEASES: ((download_include_prereleases))
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((repository_overrides))
-
+          REPOSITORY_OVERRIDES: ((repositories_override))
+          VERBOSE: true  # Enable verbose logging for debugging
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
@@ -125,11 +141,9 @@ jobs:
           VERSION_DB_S3_REGION: ((s3_region))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
-
           # S3-compatible endpoint for version DB
           S3_ENDPOINT: ((s3_endpoint))
           S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
-
           # Force re-download for testing (comment out in production)
           # FORCE_DOWNLOAD: "true"
 
@@ -164,6 +178,21 @@ jobs:
                 cd release-monitor-repo
                 python3 scripts/upload-to-s3.py
 
+
+  - name: check-version-database
+    plan:
+      - get: release-monitor-repo
+
+      - task: show-version-db
+        file: release-monitor-repo/ci/tasks/show-version-db/task.yml
+        params:
+          S3_ENDPOINT: ((s3_endpoint))
+          S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
+          AWS_ACCESS_KEY_ID: ((s3_access_key))
+          AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+          VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
+          VERSION_DB_S3_PREFIX: ((version_db_s3_prefix))
+          VERSION_DB_S3_REGION: ((s3_region))
 
   # Clear version database to force re-downloads
   - name: clear-version-database
@@ -280,7 +309,7 @@ jobs:
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          REPOSITORY_OVERRIDES: ((repositories_override))
 
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
@@ -331,7 +360,7 @@ resource_types:
     source:
       repository: concourse/s3-resource
       tag: 1.2.1  # Use specific version that supports endpoints
-  
+
   - name: email
     type: registry-image
     source:

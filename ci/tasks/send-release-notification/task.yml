@@ -40,10 +40,17 @@ params:
 run:
   path: /bin/bash
   args:
-    - -exc
+    - -ec
     - |
       # Navigate to repo directory
       cd release-monitor-repo
+
+      # Export S3 endpoint for boto3 to use
+      if [[ -n "$S3_ENDPOINT" ]]; then
+        export AWS_ENDPOINT_URL="$S3_ENDPOINT"
+        export AWS_ENDPOINT_URL_S3="$S3_ENDPOINT"
+        echo "Using S3 endpoint: $S3_ENDPOINT"
+      fi
 
       # Install required dependencies
       pip3 install --quiet pyyaml jinja2 boto3

@@ -43,12 +43,8 @@ download_verify_downloads: "true"
 download_cleanup_old_versions: "true"
 download_keep_versions: "5"
 
-# Repository list override (JSON array of repository objects)
-# Example: '[{"owner": "kubernetes", "repo": "kubernetes", "description": "Kubernetes"}, {"owner": "istio", "repo": "istio", "description": "Istio"}]'
-repositories_override: ""
-
 # Repository-specific download overrides
-repository_overrides: |
+repositories_override: |
   {
     "kubernetes/kubernetes": {
       "asset_patterns": ["kubernetes-client-*.tar.gz", "kubernetes-server-*.tar.gz"],

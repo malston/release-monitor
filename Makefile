@@ -237,8 +237,8 @@ pipeline-set-test-simple-with-key: ## Deploy simplified pipeline with SSH key fo
 		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
 
-.PHONY: pipeline-set-test-minio
-pipeline-set-test-minio: ## Deploy pipeline with Minio support (local development)
+.PHONY: pipeline-set-minio
+pipeline-set-minio: ## Deploy pipeline with Minio support (local development)
 	@printf "$(GREEN)Deploying pipeline with Minio support...$(NC)\n"
 	@SSH_KEY=""; \
 	if [ -f ~/.ssh/id_ed25519 ]; then \
@@ -260,16 +260,16 @@ pipeline-set-test-minio: ## Deploy pipeline with Minio support (local developmen
 	fi; \
 	fly -t $(FLY_TARGET) set-pipeline \
 		-p github-release-monitor-minio \
-		-c ci/pipeline-s3-compatible.yml \
-		-l params/global-s3-compatible.yml \
+		-c ci/pipeline-minio.yml \
+		-l params/global-minio.yml \
 		-l params/minio-local.yml \
 		-l params/minio-credentials.yml \
 		--var github_token="$$GITHUB_TOKEN" \
 		--var git_private_key="$$(cat $$SSH_KEY)" \
 		--non-interactive
 
-.PHONY: pipeline-set-test-artifactory
-pipeline-set-test-artifactory: ## Deploy pipeline with Artifactory support
+.PHONY: pipeline-set-artifactory
+pipeline-set-artifactory: ## Deploy pipeline with Artifactory support
 	@printf "$(GREEN)Deploying pipeline with Artifactory support...$(NC)\n"
 	@SSH_KEY=""; \
 	if [ -f ~/.ssh/id_ed25519 ]; then \
@@ -494,6 +494,11 @@ artifactory-view-db: venv ## View Artifactory version database contents
 		exit 1; \
 	fi
 	@$(PYTHON) scripts/show-version-db-artifactory.py
+
+.PHONY: show-version-db
+show-version-db: venv ## View version database contents (auto-detects storage backend: Artifactory/S3/Local)
+	@printf "$(GREEN)Viewing version database (auto-detecting storage backend)...$(NC)\n"
+	@$(PYTHON) scripts/show-version-db.py --verbose
 
 .PHONY: artifactory-clear-db
 artifactory-clear-db: venv ## Clear entire Artifactory version database (forces re-download)

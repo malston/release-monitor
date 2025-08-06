@@ -26,13 +26,13 @@ class GitHubDownloader:
     Downloads GitHub release assets with authentication and verification.
     """
 
-    def __init__(self, token: str, download_dir: str = 'downloads',
+    def __init__(self, token: Optional[str] = None, download_dir: str = 'downloads',
                  chunk_size: int = 8192, timeout: int = 300):
         """
         Initialize GitHub downloader.
 
         Args:
-            token: GitHub API token
+            token: GitHub API token (optional - without it you may hit rate limits)
             download_dir: Directory to store downloaded files
             chunk_size: Chunk size for streaming downloads (bytes)
             timeout: Request timeout in seconds
@@ -45,13 +45,17 @@ class GitHubDownloader:
         # Create download directory
         self.download_dir.mkdir(parents=True, exist_ok=True)
 
-        # Setup session with authentication
+        # Setup session with optional authentication
         self.session = requests.Session()
-        self.session.headers.update({
-            'Authorization': f'token {token}',
+        headers = {
             'Accept': 'application/vnd.github.v3+json',
             'User-Agent': 'GitHub-Release-Monitor-Downloader/1.0'
-        })
+        }
+
+        if token:
+            headers['Authorization'] = f'token {token}'
+
+        self.session.headers.update(headers)
 
         # Configure proxy settings from environment if present
         proxy_settings = {}
