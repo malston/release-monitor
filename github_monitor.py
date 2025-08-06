@@ -30,24 +30,27 @@ logger = logging.getLogger(__name__)
 class GitHubMonitor:
     """GitHub repository release monitoring client"""
 
-    def __init__(self, token: str, rate_limit_delay: float = 1.0):
+    def __init__(self, token: Optional[str] = None, rate_limit_delay: float = 1.0):
         """
         Initialize GitHub monitor
 
         Args:
-            token: GitHub API token
+            token: GitHub API token (optional - without it you may hit rate limits)
             rate_limit_delay: Delay between API calls in seconds
         """
         self.token = token
         self.rate_limit_delay = rate_limit_delay
         self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Authorization": f"token {token}",
-                "Accept": "application/vnd.github.v3+json",
-                "User-Agent": "GitHub-Release-Monitor/1.0",
-            }
-        )
+
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "GitHub-Release-Monitor/1.0",
+        }
+
+        if token:
+            headers["Authorization"] = f"token {token}"
+
+        self.session.headers.update(headers)
 
         # Configure proxy settings from environment if present
         proxy_settings = {}
@@ -398,11 +401,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Get GitHub token from environment
+    # Get GitHub token from environment (optional)
     github_token = os.getenv("GITHUB_TOKEN")
     if not github_token:
-        logger.error("GITHUB_TOKEN environment variable is required")
-        sys.exit(1)
+        logger.warning("GITHUB_TOKEN environment variable not set - you may hit API rate limits without authentication")
 
     # Load configuration
     config = load_config(args.config)

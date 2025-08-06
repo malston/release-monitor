@@ -40,13 +40,13 @@ class ReleaseDownloadCoordinator:
     Coordinates the release download process with version tracking.
     """
 
-    def __init__(self, config: Dict[str, Any], github_token: str, force_local: bool = False):
+    def __init__(self, config: Dict[str, Any], github_token: Optional[str] = None, force_local: bool = False):
         """
         Initialize download coordinator.
 
         Args:
             config: Download configuration
-            github_token: GitHub API token
+            github_token: GitHub API token (optional - without it you may hit rate limits)
             force_local: Force local storage, bypassing S3/Artifactory auto-detection
         """
         self.config = config
@@ -479,11 +479,10 @@ def main():
         logger.error(f"Error loading config {args.config}: {e}")
         sys.exit(1)
 
-    # Get GitHub token
+    # Get GitHub token (optional)
     github_token = os.getenv('GITHUB_TOKEN')
     if not github_token:
-        logger.error("GITHUB_TOKEN environment variable is required")
-        sys.exit(1)
+        logger.warning("GITHUB_TOKEN environment variable not set - you may hit API rate limits without authentication")
 
     # Initialize coordinator
     coordinator = ReleaseDownloadCoordinator(config, github_token)
