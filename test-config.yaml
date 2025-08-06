@@ -46,7 +46,7 @@ download:
   s3_storage:
     enabled: false
     bucket: my-release-monitor-bucket
-    prefix: release-monitor/
+    prefix: version-db/
     # region: us-west-2  # Optional, uses default region if not specified
     # profile: default   # Optional, uses default profile if not specified
 
