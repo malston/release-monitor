@@ -65,8 +65,8 @@ def load_version_db(version_db_path: str):
         return {}
 
 
-def should_upload_file(relative_path: Path, target_version: str = None, version_db: dict = None):
-    """Determine if a file should be uploaded based on target version configuration."""
+def should_upload_file(relative_path: Path, target_version: str = None, version_db: dict = None, asset_patterns: list = None):
+    """Determine if a file should be uploaded based on target version configuration and asset patterns."""
     # Extract repository and version from file path
     # Path structure: owner_repo/version/file.ext (relative to downloads dir)
     path_parts = relative_path.parts
@@ -75,10 +75,35 @@ def should_upload_file(relative_path: Path, target_version: str = None, version_
 
     repo_folder = path_parts[0]  # e.g., 'open-policy-agent_gatekeeper'
     file_version = path_parts[1]  # e.g., 'v3.18.0'
+    filename = path_parts[2]  # e.g., 'file.yaml'
 
     # Convert folder name back to repository name
     repository = repo_folder.replace('_', '/')
 
+    # Check asset patterns first
+    if asset_patterns:
+        import fnmatch
+        filename_lower = filename.lower()
+        pattern_matches = False
+
+        # First check inclusion patterns
+        for pattern in asset_patterns:
+            if not pattern.startswith('!'):
+                if fnmatch.fnmatch(filename_lower, pattern.lower()):
+                    pattern_matches = True
+                    break
+
+        # If no inclusion pattern matched, return False
+        if not pattern_matches:
+            return False
+
+        # Now check exclusion patterns
+        for pattern in asset_patterns:
+            if pattern.startswith('!'):
+                if fnmatch.fnmatch(filename_lower, pattern[1:].lower()):
+                    return False
+
+    # Check version constraints
     if target_version:
         # If target version is specified, only upload files with that version
         return file_version == target_version
@@ -294,25 +319,34 @@ def main():
     uploaded_count = 0
     skipped_count = 0
 
-    # Upload files with target version filtering
+    # Upload files with target version filtering and asset pattern matching
     for file_path in downloads_dir.rglob('*'):
-        if file_path.is_file() and (file_path.suffix in ['.gz', '.zip']):
+        if file_path.is_file():
             # Create Artifactory path maintaining directory structure
             relative_path = file_path.relative_to(downloads_dir)
 
-            # Extract repository from path to check target version
+            # Extract repository from path to check target version and asset patterns
             path_parts = relative_path.parts
             if len(path_parts) >= 2:
                 repo_folder = path_parts[0]  # e.g., 'open-policy-agent_gatekeeper'
                 repository_name = repo_folder.replace('_', '/')
 
-                # Get target version for this repository
+                # Get repository-specific configuration
                 repo_override = repository_overrides.get(repository_name, {})
                 target_version = repo_override.get('target_version')
+                asset_patterns = repo_override.get('asset_patterns')
 
-                # Check if this file should be uploaded
-                if not should_upload_file(relative_path, target_version, version_db):
-                    print(f'Skipping {relative_path} (not matching target version criteria)')
+                # If no asset patterns specified for this repo, use default extensions
+                if not asset_patterns:
+                    # Fallback to original behavior for repositories without asset patterns
+                    if file_path.suffix not in ['.gz', '.zip']:
+                        print(f'Skipping {relative_path} (no asset patterns configured, using default .gz/.zip filter)')
+                        skipped_count += 1
+                        continue
+
+                # Check if this file should be uploaded (version and asset pattern filtering)
+                if not should_upload_file(relative_path, target_version, version_db, asset_patterns):
+                    print(f'Skipping {relative_path} (not matching target version or asset pattern criteria)')
                     skipped_count += 1
                     continue
 
