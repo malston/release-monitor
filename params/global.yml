@@ -10,6 +10,8 @@ git_private_key: ((git_private_key))
 github_token: ((github_token))
 
 # S3 configuration for storing releases and outputs
+s3_endpoint: http://host.docker.internal:9000
+s3_skip_ssl_verification: true
 s3_bucket: release-monitor-output
 s3_releases_bucket: release-monitor-artifacts
 s3_region: us-east-1

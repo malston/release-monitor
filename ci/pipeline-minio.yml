@@ -34,6 +34,7 @@ resources:
 
   - name: monitor-output
     type: s3
+    icon: cloud-download
     source:
       # S3-compatible endpoint (leave empty for AWS S3)
       endpoint: ((s3_endpoint))
