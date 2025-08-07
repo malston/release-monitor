@@ -28,16 +28,6 @@ resources:
       skip_ssl_verification: ((s3_skip_ssl_verification))
       versioned_file: release-monitor/latest-releases.json
 
-  - name: release-storage
-    type: s3
-    icon: cloud-download
-    source:
-      bucket: ((s3_releases_bucket))
-      region_name: ((s3_region))
-      access_key_id: ((s3_access_key))
-      secret_access_key: ((s3_secret_key))
-      regexp: release-downloads/(.*)
-
 jobs:
   - name: monitor-releases
     plan:
@@ -91,11 +81,36 @@ jobs:
           S3_ENDPOINT: ((s3_endpoint))
           S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
 
-      - put: release-storage
-        params:
-          file: downloads/*
-          acl: private
+      # Upload downloaded files to S3 storage
+      - task: upload-to-s3
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: python
+              tag: 3.11-slim
+          inputs:
+            - name: downloads
+            - name: release-monitor-repo
+          params:
+            AWS_ACCESS_KEY_ID: ((s3_access_key))
+            AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+            AWS_DEFAULT_REGION: ((s3_region))
+            S3_ENDPOINT: ((s3_endpoint))
+            S3_BUCKET: ((s3_releases_bucket))
+            S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
+          run:
+            path: bash
+            args:
+              - -exc
+              - |
+                # Install boto3
+                pip3 install --quiet boto3
 
+                # Run the upload script
+                cd release-monitor-repo
+                python3 scripts/upload-to-s3.py
 
 # Resource types (if not available in your Concourse deployment)
 resource_types:
