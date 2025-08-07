@@ -102,7 +102,6 @@ vars/
 local-vars.yml
 
 # Minio credentials (sensitive)
-params/minio-credentials.yml
 *credentials*.yml
 *credentials*.yaml
 

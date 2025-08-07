@@ -10,9 +10,11 @@ git_private_key: ((git_private_key))
 github_token: ((github_token))
 
 # S3 configuration for storing releases and outputs
-s3_bucket: ((s3_monitor_bucket))
-s3_releases_bucket: ((s3_releases_bucket))
-s3_region: us-west-2
+s3_endpoint: http://host.docker.internal:9000
+s3_skip_ssl_verification: true
+s3_bucket: release-monitor-output
+s3_releases_bucket: release-monitor-artifacts
+s3_region: us-east-1
 s3_access_key: ((s3_access_key_id))
 s3_secret_key: ((s3_secret_access_key))
 
@@ -25,15 +27,11 @@ download_keep_versions: "5"
 
 # S3 version database configuration
 use_s3_version_db: "true"
-version_db_s3_bucket: ((s3_bucket))
-version_db_s3_prefix: "release-monitor/"
-
-# Repository list override (JSON array of repository objects)
-# Example: '[{"owner": "kubernetes", "repo": "kubernetes", "description": "Kubernetes"}, {"owner": "istio", "repo": "istio", "description": "Istio"}]'
-repositories_override: ""
+version_db_s3_bucket: release-monitor-output
+version_db_s3_prefix: "version-db/"
 
 # Repository-specific download overrides (JSON format)
-repository_overrides: |
+repositories_override: |
   {
     "kubernetes/kubernetes": {
       "asset_patterns": ["kubernetes-client-*.tar.gz", "kubernetes-server-*.tar.gz"],

@@ -4,6 +4,7 @@
 resources:
   - name: release-monitor-repo
     type: git
+    icon: github
     source:
       uri: ((git_repo_uri))
       branch: ((git_branch))
@@ -11,20 +12,25 @@ resources:
 
   - name: schedule-trigger
     type: time
+    icon: clock-outline
     source:
       interval: 1h  # Check every hour
 
   - name: monitor-output
     type: s3
+    icon: cloud-download
     source:
+      endpoint: ((s3_endpoint))
       bucket: ((s3_bucket))
       region_name: ((s3_region))
       access_key_id: ((s3_access_key))
       secret_access_key: ((s3_secret_key))
+      skip_ssl_verification: ((s3_skip_ssl_verification))
       versioned_file: release-monitor/latest-releases.json
 
   - name: release-storage
     type: s3
+    icon: cloud-download
     source:
       bucket: ((s3_releases_bucket))
       region_name: ((s3_region))
@@ -44,6 +50,8 @@ jobs:
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
+          # Pass S3-compatible endpoint to task if needed
+          S3_ENDPOINT: ((s3_endpoint))
           # Repository list override
           REPOSITORIES_OVERRIDE: ((repositories_override))
 
@@ -63,15 +71,15 @@ jobs:
       - task: download-releases
         file: release-monitor-repo/ci/tasks/download-releases/task.yml
         input_mapping:
+          release-monitor: release-monitor-repo
           monitor-output: monitor-output
         params:
           GITHUB_TOKEN: ((github_token))
-          ASSET_PATTERNS: ((download_asset_patterns))
           INCLUDE_PRERELEASES: ((download_include_prereleases))
           VERIFY_DOWNLOADS: ((download_verify_downloads))
           CLEANUP_OLD_VERSIONS: ((download_cleanup_old_versions))
           KEEP_VERSIONS: ((download_keep_versions))
-          REPOSITORY_OVERRIDES: ((repository_overrides))
+          REPOSITORY_OVERRIDES: ((repositories_override))
           # S3 version database configuration
           USE_S3_VERSION_DB: ((use_s3_version_db))
           VERSION_DB_S3_BUCKET: ((version_db_s3_bucket))
@@ -79,6 +87,9 @@ jobs:
           VERSION_DB_S3_REGION: ((s3_region))
           AWS_ACCESS_KEY_ID: ((s3_access_key))
           AWS_SECRET_ACCESS_KEY: ((s3_secret_key))
+          # S3-compatible endpoint for version DB
+          S3_ENDPOINT: ((s3_endpoint))
+          S3_SKIP_SSL_VERIFICATION: ((s3_skip_ssl_verification))
 
       - put: release-storage
         params:
@@ -92,3 +103,4 @@ resource_types:
     type: registry-image
     source:
       repository: concourse/s3-resource
+      tag: 1.2.1  # Use specific version that supports endpoints
