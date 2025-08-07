@@ -106,17 +106,12 @@ download:
     istio/istio:
       asset_patterns:
         - "*-linux-amd64.tar.gz"
-      include_prereleases: false
 
     # Example: Repository with Kubernetes manifests only
     wavefrontHQ/observability-for-kubernetes:
       asset_patterns:
         - "*.yaml"
         - "*.yml"
-      source_archives:
-        fallback_only: false # Always download source for this repo
-        prefer: "tarball"
-      include_prereleases: false
 
     open-policy-agent/gatekeeper:
       target_version: "v3.18.3"

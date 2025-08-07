@@ -147,6 +147,7 @@ Pipeline parameters are in `../params/`:
 - `global.yml`: Traditional S3 pipeline parameters  
 - `test.yml`: Test environment overrides
 - `prod.yml`: Production environment overrides
+- `credentials.yml`: Test or Production pipeline credentials
 - `minio-local.yml`: Local MinIO configuration
 - `minio-credentials.yml`: MinIO credentials (create from example)
 

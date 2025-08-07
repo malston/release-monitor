@@ -187,6 +187,7 @@ pipeline-set-test: ## Deploy pipeline to test environment (public repos only, re
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
+		-l params/credentials.yml \
 		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
 
@@ -335,6 +336,7 @@ pipeline-set-test-with-key: ## Deploy pipeline to test environment with SSH key 
 		-c ci/pipeline.yml \
 		-l params/global.yml \
 		-l params/test.yml \
+		-l params/credentials.yml \
 		--var git_private_key="$$(cat $$SSH_KEY)" \
 		--var github_token="$$GITHUB_TOKEN" \
 		--non-interactive
