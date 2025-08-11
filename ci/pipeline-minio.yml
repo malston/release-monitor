@@ -76,9 +76,6 @@ jobs:
         file: release-monitor-repo/ci/tasks/check-releases/task.yml
         params:
           GITHUB_TOKEN: ((github_token))
-          # Pass S3-compatible endpoint to task if needed
-          S3_ENDPOINT: ((s3_endpoint))
-          # Repository list override
           REPOSITORIES_OVERRIDE: ((repositories_override))
 
       - put: monitor-output
