@@ -27,8 +27,11 @@ params:
   GITHUB_SKIP_SSL_VERIFICATION: "false"
   HTTP_PROXY: ""
   HTTPS_PROXY: ""
+  NO_PROXY: ""
   LOG_LEVEL: info
   REPOSITORIES_OVERRIDE: "{}"
+  REPOSITORY_OVERRIDES: "{}"
+  S3_USE_MC: "false"
   STATE_FILE: /tmp/release-state/release_state.json
 
 run:
