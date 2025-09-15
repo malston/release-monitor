@@ -201,6 +201,7 @@ Icon
 # Generated documentation
 docs/_build/
 site/
+.serena/
 
 # Performance and profiling
 *.prof
